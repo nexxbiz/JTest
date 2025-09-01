@@ -1,4 +1,5 @@
 using System.Text.Json;
+using JTest.Core.Assertions;
 using JTest.Core.Execution;
 
 namespace JTest.Core.Steps;
@@ -19,6 +20,19 @@ public abstract class BaseStep : IStep
     public string? Id { get; set; }
     
     /// <summary>
+    /// Gets the step configuration JSON element
+    /// </summary>
+    protected JsonElement Configuration { get; private set; }
+    
+    /// <summary>
+    /// Sets the step configuration
+    /// </summary>
+    public void SetConfiguration(JsonElement configuration)
+    {
+        Configuration = configuration;
+    }
+    
+    /// <summary>
     /// Executes the step with the provided context
     /// </summary>
     public abstract Task<StepResult> ExecuteAsync(IExecutionContext context);
@@ -29,6 +43,20 @@ public abstract class BaseStep : IStep
     public virtual bool ValidateConfiguration(JsonElement configuration)
     {
         return true;
+    }
+    
+    /// <summary>
+    /// Processes assertions if present in step configuration
+    /// </summary>
+    protected async Task<List<AssertionResult>> ProcessAssertionsAsync(IExecutionContext context)
+    {
+        if (Configuration.ValueKind == JsonValueKind.Undefined || !Configuration.TryGetProperty("assert", out var assertElement))
+        {
+            return new List<AssertionResult>();
+        }
+
+        var processor = new DefaultAssertionProcessor();
+        return await processor.ProcessAssertionsAsync(assertElement, context);
     }
     
     /// <summary>
