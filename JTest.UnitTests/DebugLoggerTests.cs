@@ -154,6 +154,56 @@ public class DebugLoggerTests
         Assert.Contains("💡 **For Assertions:**", output);
         Assert.Contains("<details>", output);
         Assert.Contains("📋 Runtime Context", output);
+        
+        // Verify assertion guidance format matches sample exactly
+        Assert.Contains("- `$.execute-workflow` or `{{ $.execute-workflow }}`", output);
+        Assert.Contains("  - Example: `$.execute-workflow.status`", output);
+        Assert.Contains("- `$.workflowInstanceId` or `{{ $.workflowInstanceId }}`", output);
+        Assert.DoesNotContain("$.workflowInstanceId.status", output); // No example for ID fields
+        Assert.Contains("- `$.this` or `{{ $.this }}`", output);
+    }
+
+    [Fact]
+    public void MarkdownDebugLogger_EdgeCases_HandlesGracefully()
+    {
+        var logger = new MarkdownDebugLogger();
+        
+        // Test with empty step ID
+        var stepInfo = new StepDebugInfo
+        {
+            TestNumber = 2,
+            StepNumber = 3,
+            StepType = "UseStep",
+            StepId = "",
+            Enabled = false,
+            Result = "❌ Failed",
+            Duration = TimeSpan.FromMilliseconds(0.5),
+            Description = ""
+        };
+        
+        // Test with empty context changes
+        var changes = new ContextChanges();
+        
+        // Test with minimal context
+        var context = new Dictionary<string, object>
+        {
+            ["env"] = new Dictionary<string, object>(),
+            ["this"] = new { status = 404 }
+        };
+        
+        logger.LogStepExecution(stepInfo);
+        logger.LogContextChanges(changes);
+        logger.LogRuntimeContext(context);
+        
+        var output = logger.GetOutput();
+        
+        Assert.Contains("## Test 2, Step 3: UseStep", output);
+        Assert.DoesNotContain("**Step ID:**", output); // Empty ID should not appear
+        Assert.Contains("**Enabled:** False", output);
+        Assert.Contains("**Result:** ❌ Failed", output);
+        Assert.Contains("0,50ms", output); // Test decimal formatting
+        Assert.Contains("📋 **Context Changes:** None", output);
+        Assert.DoesNotContain("💡 **For Assertions:**", output); // No assertions for empty changes
     }
 
     private StepDebugInfo CreateTestStepInfo()

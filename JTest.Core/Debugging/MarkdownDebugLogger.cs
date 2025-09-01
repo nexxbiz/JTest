@@ -37,11 +37,21 @@ public class MarkdownDebugLogger : IDebugLogger
 
     private void WriteStepDetails(StepDebugInfo stepInfo)
     {
+        WriteStepIdentification(stepInfo);
+        WriteStepResult(stepInfo);
+    }
+
+    private void WriteStepIdentification(StepDebugInfo stepInfo)
+    {
         if (!string.IsNullOrEmpty(stepInfo.StepId))
             _output.AppendLine($"**Step ID:** {stepInfo.StepId}");
         _output.AppendLine($"**Step Type:** {stepInfo.StepType}");
         _output.AppendLine($"**Enabled:** {stepInfo.Enabled}");
         _output.AppendLine();
+    }
+
+    private void WriteStepResult(StepDebugInfo stepInfo)
+    {
         _output.AppendLine($"**Result:** {stepInfo.Result}");
         _output.AppendLine($"**Duration:** {FormatDuration(stepInfo.Duration)}");
         _output.AppendLine();
@@ -74,13 +84,28 @@ public class MarkdownDebugLogger : IDebugLogger
 
     private void WriteRuntimeContext(Dictionary<string, object> context)
     {
+        WriteDetailsHeader();
+        WriteJsonContent(context);
+        WriteDetailsFooter();
+    }
+
+    private void WriteDetailsHeader()
+    {
         _output.AppendLine("<details>");
         _output.AppendLine("<summary>📋 Runtime Context (Click to expand)</summary>");
         _output.AppendLine();
+    }
+
+    private void WriteJsonContent(Dictionary<string, object> context)
+    {
         _output.AppendLine("```json");
         _output.AppendLine(FormatContextAsJson(context));
         _output.AppendLine("```");
         _output.AppendLine();
+    }
+
+    private void WriteDetailsFooter()
+    {
         _output.AppendLine("</details>");
     }
 
@@ -116,18 +141,15 @@ public class MarkdownDebugLogger : IDebugLogger
         foreach (var expr in available)
         {
             _output.AppendLine($"- `{expr}` or `{{{{ {expr} }}}}`");
-            WriteExampleUsage(expr);
+            // Only show examples for complex object paths, not simple values
+            if (expr.Contains("execute-workflow") || expr.Contains("workflow") && !expr.EndsWith("Id"))
+                WriteExampleUsage(expr);
         }
     }
 
     private void WriteExampleUsage(string expression)
     {
-        if (expression.Contains('.'))
-        {
-            var parts = expression.Split('.');
-            if (parts.Length > 1)
-                _output.AppendLine($"  - Example: `{expression}.status`");
-        }
+        _output.AppendLine($"  - Example: `{expression}.status`");
     }
 
     private string FormatContextAsJson(Dictionary<string, object> context)
