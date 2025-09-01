@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text;
 using System.Text.Json;
+using JTest.Core.Assertions;
 
 namespace JTest.Core.Debugging;
 
@@ -26,6 +27,11 @@ public class MarkdownDebugLogger : IDebugLogger
     public void LogRuntimeContext(Dictionary<string, object> context)
     {
         WriteRuntimeContext(context);
+    }
+
+    public void LogAssertionResults(List<AssertionResult> assertionResults)
+    {
+        WriteAssertionResults(assertionResults);
     }
 
     public string GetOutput() => _output.ToString();
@@ -87,6 +93,53 @@ public class MarkdownDebugLogger : IDebugLogger
         WriteDetailsHeader();
         WriteJsonContent(context);
         WriteDetailsFooter();
+    }
+
+    private void WriteAssertionResults(List<AssertionResult> assertionResults)
+    {
+        if (!assertionResults.Any()) return;
+        
+        _output.AppendLine("🧪 **Assertion Results:**");
+        _output.AppendLine();
+        
+        foreach (var result in assertionResults)
+        {
+            WriteAssertionResult(result);
+        }
+        _output.AppendLine();
+    }
+
+    private void WriteAssertionResult(AssertionResult result)
+    {
+        var icon = result.Success ? "✅" : "❌";
+        var status = result.Success ? "PASSED" : "FAILED";
+        
+        _output.AppendLine($"**{icon} {result.Operation.ToUpperInvariant()}** - {status}");
+        
+        if (!string.IsNullOrEmpty(result.Description))
+            _output.AppendLine($"  - Description: {result.Description}");
+            
+        if (result.ActualValue != null)
+            _output.AppendLine($"  - Actual: `{FormatAssertionValue(result.ActualValue)}`");
+            
+        if (result.ExpectedValue != null)
+            _output.AppendLine($"  - Expected: `{FormatAssertionValue(result.ExpectedValue)}`");
+            
+        if (!result.Success && !string.IsNullOrEmpty(result.ErrorMessage))
+            _output.AppendLine($"  - Error: {result.ErrorMessage}");
+            
+        _output.AppendLine();
+    }
+
+    private string FormatAssertionValue(object value)
+    {
+        return value switch
+        {
+            null => "null",
+            string str => str.Length > 50 ? $"{str[..47]}..." : str,
+            JsonElement jsonElement => jsonElement.ToString(),
+            _ => value.ToString() ?? "null"
+        };
     }
 
     private void WriteDetailsHeader()
