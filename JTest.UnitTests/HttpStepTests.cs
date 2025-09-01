@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using JTest.Core.Debugging;
 using JTest.Core.Execution;
 using JTest.Core.Steps;
 using Moq;
@@ -16,7 +17,7 @@ public class HttpStepTests
         public IList<string> Log { get; } = new List<string>();
     }
 
-    private HttpStep CreateHttpStep(HttpResponseMessage? responseMessage = null)
+    private HttpStep CreateHttpStep(HttpResponseMessage? responseMessage = null, IDebugLogger? debugLogger = null)
     {
         var mockHandler = new Mock<HttpMessageHandler>();
         var response = responseMessage ?? new HttpResponseMessage(HttpStatusCode.OK)
@@ -31,7 +32,7 @@ public class HttpStepTests
             .ReturnsAsync(response);
             
         var httpClient = new HttpClient(mockHandler.Object);
-        return new HttpStep(httpClient);
+        return new HttpStep(httpClient, debugLogger);
     }
 
     [Fact]
@@ -202,7 +203,7 @@ public class HttpStepTests
             .ThrowsAsync(new HttpRequestException("Network error"));
             
         var httpClient = new HttpClient(mockHandler.Object);
-        var step = new HttpStep(httpClient);
+        var step = new HttpStep(httpClient, null);
         var context = new TestExecutionContext();
         var config = JsonSerializer.SerializeToElement(new { method = "GET", url = "https://api.example.com" });
         
@@ -245,6 +246,41 @@ public class HttpStepTests
         Assert.True(context.Variables.ContainsKey("this"));
         var responseData = context.Variables["this"];
         Assert.NotNull(responseData);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WithDebugLogger_CallsDebugMethods()
+    {
+        var debugLogger = new MarkdownDebugLogger();
+        var jsonResponse = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent("{\"workflowInstanceId\":\"test123\"}", Encoding.UTF8, "application/json")
+        };
+        var step = CreateHttpStep(jsonResponse, debugLogger);
+        step.Id = "test-step";
+        
+        var context = new TestExecutionContext();
+        context.Variables["env"] = new Dictionary<string, object>
+        {
+            ["baseUrl"] = "https://api.test.com"
+        };
+        
+        var config = JsonSerializer.SerializeToElement(new { method = "GET", url = "https://api.example.com" });
+        
+        step.ValidateConfiguration(config);
+        await step.ExecuteAsync(context);
+        
+        var output = debugLogger.GetOutput();
+        
+        Assert.Contains("## Test 1, Step 1: HttpStep", output);
+        Assert.Contains("**Step ID:** test-step", output);
+        Assert.Contains("**Result:** ✅ Success", output);
+        Assert.Contains("📋 **Context Changes:**", output);
+        Assert.Contains("**✅ Added:**", output);
+        Assert.Contains("- `$.this` = {object with", output);
+        Assert.Contains("💡 **For Assertions:**", output);
+        Assert.Contains("<details>", output);
+        Assert.Contains("📋 Runtime Context", output);
     }
 
     [Fact]
