@@ -321,6 +321,11 @@ public class DebugLoggerTests
         Assert.Contains("**✅ EQUALS** - PASSED", output);
         Assert.Contains("<details>", output);
         Assert.Contains("📋 Runtime Context", output);
+        
+        // Print the complete debug output for demonstration
+        Console.WriteLine("=== COMPLETE DEBUG MARKDOWN OUTPUT ===");
+        Console.WriteLine(output);
+        Console.WriteLine("=== END OUTPUT ===");
     }
 
     private StepDebugInfo CreateTestStepInfo()
