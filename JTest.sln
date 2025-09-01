@@ -1,0 +1,34 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JTest.Core", "JTest.Core\JTest.Core.csproj", "{20111903-945D-4E7F-9C0A-50DA3BE317FD}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JTest.Cli", "JTest.Cli\JTest.Cli.csproj", "{5E41A495-78D7-4FFA-8E13-E9F0FABBC932}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JTest.UnitTests", "JTest.UnitTests\JTest.UnitTests.csproj", "{472FE99D-5520-48F5-A6C6-73A99D4D365E}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{20111903-945D-4E7F-9C0A-50DA3BE317FD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{20111903-945D-4E7F-9C0A-50DA3BE317FD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{20111903-945D-4E7F-9C0A-50DA3BE317FD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{20111903-945D-4E7F-9C0A-50DA3BE317FD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5E41A495-78D7-4FFA-8E13-E9F0FABBC932}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5E41A495-78D7-4FFA-8E13-E9F0FABBC932}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5E41A495-78D7-4FFA-8E13-E9F0FABBC932}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5E41A495-78D7-4FFA-8E13-E9F0FABBC932}.Release|Any CPU.Build.0 = Release|Any CPU
+		{472FE99D-5520-48F5-A6C6-73A99D4D365E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{472FE99D-5520-48F5-A6C6-73A99D4D365E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{472FE99D-5520-48F5-A6C6-73A99D4D365E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{472FE99D-5520-48F5-A6C6-73A99D4D365E}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
