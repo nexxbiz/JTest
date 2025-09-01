@@ -621,9 +621,11 @@ Assertions validate that responses meet expected criteria. They use JSONPath exp
 
 ### Assertion operations
 
-#### equals
+JTest provides a comprehensive set of 18 assertion operations organized into categories:
 
-Tests exact equality:
+#### Basic Operations
+
+**equals** - Tests exact equality:
 
 ```json
 {
@@ -633,9 +635,17 @@ Tests exact equality:
 }
 ```
 
-#### exists
+**notequals** - Tests inequality:
 
-Tests that a value exists and is not null:
+```json
+{
+    "op": "notequals",
+    "actualValue": "{{$.this.status}}",
+    "expectedValue": 404
+}
+```
+
+**exists** - Tests that a value exists and is not null:
 
 ```json
 {
@@ -644,9 +654,18 @@ Tests that a value exists and is not null:
 }
 ```
 
-#### contains
+**notexists** - Tests that a value does not exist or is null:
 
-Tests that a string contains a substring:
+```json
+{
+    "op": "notexists",
+    "actualValue": "{{$.this.body.error}}"
+}
+```
+
+#### String Operations
+
+**contains** - Tests that a string contains a substring:
 
 ```json
 {
@@ -656,29 +675,171 @@ Tests that a string contains a substring:
 }
 ```
 
-#### greater-than / less-than
-
-Numeric comparisons:
+**notcontains** - Tests that a string does not contain a substring:
 
 ```json
 {
-    "op": "greater-than",
+    "op": "notcontains",
+    "actualValue": "{{$.this.body.message}}",
+    "expectedValue": "error"
+}
+```
+
+**startswith** - Tests that a string starts with a prefix:
+
+```json
+{
+    "op": "startswith",
+    "actualValue": "{{$.this.body.url}}",
+    "expectedValue": "https://"
+}
+```
+
+**endswith** - Tests that a string ends with a suffix:
+
+```json
+{
+    "op": "endswith",
+    "actualValue": "{{$.this.body.filename}}",
+    "expectedValue": ".json"
+}
+```
+
+**matches** - Tests that a string matches a regular expression:
+
+```json
+{
+    "op": "matches",
+    "actualValue": "{{$.this.body.email}}",
+    "expectedValue": "^[\\w\\.-]+@[\\w\\.-]+\\.[a-zA-Z]{2,}$"
+}
+```
+
+#### Numeric Operations
+
+**greaterthan** - Tests that a number is greater than expected:
+
+```json
+{
+    "op": "greaterthan",
     "actualValue": "{{$.this.body.count}}",
     "expectedValue": 0
 }
 ```
 
-#### regex
-
-Pattern matching:
+**greaterorequal** - Tests that a number is greater than or equal to expected:
 
 ```json
 {
-    "op": "regex",
-    "actualValue": "{{$.this.body.email}}",
-    "expectedValue": "^[\\w\\.-]+@[\\w\\.-]+\\.[a-zA-Z]{2,}$"
+    "op": "greaterorequal",
+    "actualValue": "{{$.this.body.score}}",
+    "expectedValue": 80
 }
 ```
+
+**lessthan** - Tests that a number is less than expected:
+
+```json
+{
+    "op": "lessthan",
+    "actualValue": "{{$.this.duration}}",
+    "expectedValue": 5000
+}
+```
+
+**lessorequal** - Tests that a number is less than or equal to expected:
+
+```json
+{
+    "op": "lessorequal",
+    "actualValue": "{{$.this.body.temperature}}",
+    "expectedValue": 100
+}
+```
+
+**between** - Tests that a number is within a range:
+
+```json
+{
+    "op": "between",
+    "actualValue": "{{$.this.body.percentage}}",
+    "expectedValue": [0, 100]
+}
+```
+
+#### Collection Operations
+
+**length** - Tests the length of a collection or string:
+
+```json
+{
+    "op": "length",
+    "actualValue": "{{$.this.body.items}}",
+    "expectedValue": 5
+}
+```
+
+**empty** - Tests that a collection or string is empty:
+
+```json
+{
+    "op": "empty",
+    "actualValue": "{{$.this.body.errors}}"
+}
+```
+
+**notempty** - Tests that a collection or string is not empty:
+
+```json
+{
+    "op": "notempty",
+    "actualValue": "{{$.this.body.results}}"
+}
+```
+
+**in** - Tests that a value is contained in a collection:
+
+```json
+{
+    "op": "in",
+    "actualValue": "{{$.this.body.status}}",
+    "expectedValue": ["active", "pending", "completed"]
+}
+```
+
+#### Type Checking
+
+**type** - Tests the type of a value:
+
+```json
+{
+    "op": "type",
+    "actualValue": "{{$.this.body.id}}",
+    "expectedValue": "integer"
+}
+```
+
+Supported types: `null`, `boolean`, `integer`, `number`, `string`, `array`, `object`
+
+#### Advanced Features
+
+**Cardinality Validation** - The assertion engine automatically validates that operators are used with appropriate value types:
+
+- Collection operators (`length`, `empty`, `notempty`, `in`) expect collections or strings
+- Scalar operators work with primitive values
+- Helpful error messages guide you to the correct operator when mismatches occur
+
+**Smart Error Messages** - When an unknown operation is used, the engine provides:
+
+- Suggestions for similar operation names using fuzzy matching
+- Complete list of available operations when no close matches are found
+- Context about cardinality mismatches with fix suggestions
+
+**JSONPath Validation** - Enhanced validation for JSONPath expressions:
+
+- Detection of references to reserved scopes (`this`, `env`, `now`, `random`)
+- Validation of step references with suggestions for available variables
+- Warnings for potentially missing step IDs
 
 ### Common assertion patterns
 
@@ -1144,10 +1305,12 @@ engine.RegisterStep<QueueStep>("queue");
 engine.RegisterStep<WaitStep>("wait");
 engine.RegisterStep<ScriptStep>("script");
 
-// Register custom assertion operations
+// Register custom assertion operations (beyond the 18 built-in operations)
 engine.RegisterAssertion<JsonSchemaAssertion>("json-schema");
 engine.RegisterAssertion<DateRangeAssertion>("date-range");
 ```
+
+> **Note**: JTest now includes 18 built-in assertion operations covering basic, string, numeric, collection, and type checking scenarios. Custom assertions are only needed for specialized domain-specific validation logic.
 
 #### Plugin Discovery
 JTest can also discover extensions automatically:
