@@ -1,5 +1,7 @@
 namespace JTest.Core.Debugging;
 
+using JTest.Core.Assertions;
+
 /// <summary>
 /// Interface for debug logging during test step execution
 /// </summary>
@@ -19,4 +21,9 @@ public interface IDebugLogger
     /// Logs current runtime context
     /// </summary>
     void LogRuntimeContext(Dictionary<string, object> context);
+    
+    /// <summary>
+    /// Logs assertion execution results
+    /// </summary>
+    void LogAssertionResults(List<AssertionResult> assertionResults);
 }

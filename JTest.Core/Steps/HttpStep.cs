@@ -3,6 +3,7 @@ using System.Net.Http;
 using System.Reflection;
 using System.Text;
 using System.Text.Json;
+using JTest.Core.Assertions;
 using JTest.Core.Debugging;
 using JTest.Core.Execution;
 using JTest.Core.Utilities;
@@ -44,7 +45,7 @@ public class HttpStep : BaseStep
             // Process assertions after storing response data
             var assertionResults = await ProcessAssertionsAsync(context);
             
-            LogDebugInformation(context, contextBefore, stopwatch, true);
+            LogDebugInformation(context, contextBefore, stopwatch, true, assertionResults);
             var result = StepResult.CreateSuccess(responseData, stopwatch.ElapsedMilliseconds);
             result.AssertionResults = assertionResults;
             return result;
@@ -53,7 +54,7 @@ public class HttpStep : BaseStep
         {
             stopwatch.Stop();
             context.Log.Add($"HTTP request failed: {ex.Message}");
-            LogDebugInformation(context, contextBefore, stopwatch, false);
+            LogDebugInformation(context, contextBefore, stopwatch, false, new List<AssertionResult>());
             return StepResult.CreateFailure(ex.Message, stopwatch.ElapsedMilliseconds);
         }
     }
@@ -263,7 +264,7 @@ public class HttpStep : BaseStep
         return new Dictionary<string, object>(context.Variables);
     }
 
-    private void LogDebugInformation(IExecutionContext context, Dictionary<string, object> contextBefore, Stopwatch stopwatch, bool success)
+    private void LogDebugInformation(IExecutionContext context, Dictionary<string, object> contextBefore, Stopwatch stopwatch, bool success, List<AssertionResult> assertionResults)
     {
         if (_debugLogger == null) return;
         
@@ -272,6 +273,7 @@ public class HttpStep : BaseStep
         
         _debugLogger.LogStepExecution(stepInfo);
         _debugLogger.LogContextChanges(contextChanges);
+        _debugLogger.LogAssertionResults(assertionResults);
         _debugLogger.LogRuntimeContext(context.Variables);
     }
 

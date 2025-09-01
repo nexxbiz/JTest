@@ -1,3 +1,4 @@
+using JTest.Core.Assertions;
 using JTest.Core.Debugging;
 
 namespace JTest.UnitTests;
@@ -204,6 +205,127 @@ public class DebugLoggerTests
         Assert.Contains("0,50ms", output); // Test decimal formatting
         Assert.Contains("📋 **Context Changes:** None", output);
         Assert.DoesNotContain("💡 **For Assertions:**", output); // No assertions for empty changes
+    }
+
+    [Fact]
+    public void MarkdownDebugLogger_LogAssertionResults_WithSuccessfulAssertions_GeneratesCorrectOutput()
+    {
+        var logger = new MarkdownDebugLogger();
+        var assertionResults = new List<AssertionResult>
+        {
+            new AssertionResult(true)
+            {
+                Operation = "equals",
+                Description = "Check status code",
+                ActualValue = 200,
+                ExpectedValue = 200
+            },
+            new AssertionResult(true)
+            {
+                Operation = "exists",
+                Description = "Check response body exists",
+                ActualValue = "response data"
+            }
+        };
+        
+        logger.LogAssertionResults(assertionResults);
+        var output = logger.GetOutput();
+        
+        Assert.Contains("🧪 **Assertion Results:**", output);
+        Assert.Contains("**✅ EQUALS** - PASSED", output);
+        Assert.Contains("  - Description: Check status code", output);
+        Assert.Contains("  - Actual: `200`", output);
+        Assert.Contains("  - Expected: `200`", output);
+        Assert.Contains("**✅ EXISTS** - PASSED", output);
+        Assert.Contains("  - Description: Check response body exists", output);
+        Assert.Contains("  - Actual: `response data`", output);
+    }
+
+    [Fact]
+    public void MarkdownDebugLogger_LogAssertionResults_WithFailedAssertions_GeneratesCorrectOutput()
+    {
+        var logger = new MarkdownDebugLogger();
+        var assertionResults = new List<AssertionResult>
+        {
+            new AssertionResult(false, "Expected 200 but got 404")
+            {
+                Operation = "equals",
+                Description = "Check status code",
+                ActualValue = 404,
+                ExpectedValue = 200
+            },
+            new AssertionResult(false, "Value is null")
+            {
+                Operation = "exists",
+                Description = "Check required field",
+                ActualValue = null
+            }
+        };
+        
+        logger.LogAssertionResults(assertionResults);
+        var output = logger.GetOutput();
+        
+        Assert.Contains("🧪 **Assertion Results:**", output);
+        Assert.Contains("**❌ EQUALS** - FAILED", output);
+        Assert.Contains("  - Description: Check status code", output);
+        Assert.Contains("  - Actual: `404`", output);
+        Assert.Contains("  - Expected: `200`", output);
+        Assert.Contains("  - Error: Expected 200 but got 404", output);
+        Assert.Contains("**❌ EXISTS** - FAILED", output);
+        Assert.Contains("  - Error: Value is null", output);
+    }
+
+    [Fact]
+    public void MarkdownDebugLogger_LogAssertionResults_WithEmptyList_DoesNotAddSection()
+    {
+        var logger = new MarkdownDebugLogger();
+        var assertionResults = new List<AssertionResult>();
+        
+        logger.LogAssertionResults(assertionResults);
+        var output = logger.GetOutput();
+        
+        Assert.DoesNotContain("🧪 **Assertion Results:**", output);
+        Assert.Equal("", output); // Should produce no output
+    }
+
+    [Fact]
+    public void MarkdownDebugLogger_FullWorkflowWithAssertions_GeneratesCompleteOutput()
+    {
+        var logger = new MarkdownDebugLogger();
+        var stepInfo = CreateTestStepInfo();
+        var changes = CreateTestContextChanges();
+        var context = CreateTestRuntimeContext();
+        var assertionResults = new List<AssertionResult>
+        {
+            new AssertionResult(true)
+            {
+                Operation = "equals",
+                ActualValue = 200,
+                ExpectedValue = 200
+            }
+        };
+        
+        logger.LogStepExecution(stepInfo);
+        logger.LogContextChanges(changes);
+        logger.LogAssertionResults(assertionResults);
+        logger.LogRuntimeContext(context);
+        
+        var output = logger.GetOutput();
+        
+        // Verify complete output structure includes assertion results
+        Assert.Contains("## Test 1, Step 1: HttpStep", output);
+        Assert.Contains("**Duration:** 332,74ms", output);
+        Assert.Contains("**✅ Added:**", output);
+        Assert.Contains("💡 **For Assertions:**", output);
+        Assert.Contains("🧪 **Assertion Results:**", output);
+        Assert.Contains("**✅ EQUALS** - PASSED", output);
+        Assert.Contains("<details>", output);
+        Assert.Contains("📋 Runtime Context", output);
+        
+        // Print the complete debug output for demonstration
+        Console.WriteLine("=== COMPLETE DEBUG MARKDOWN OUTPUT ===");
+        Console.WriteLine(output);
+        Console.WriteLine("=== END OUTPUT ===");
     }
 
     private StepDebugInfo CreateTestStepInfo()
