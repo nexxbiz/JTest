@@ -265,4 +265,58 @@ public class HttpStepTests
         var responseData = context.Variables["this"];
         Assert.NotNull(responseData);
     }
+
+    [Fact]
+    public async Task ExecuteAsync_WithQueryParameters_AddsToUrl()
+    {
+        var step = CreateHttpStep();
+        var context = new TestExecutionContext();
+        context.Variables["filters"] = new { status = "active" };
+        
+        var config = JsonSerializer.SerializeToElement(new {
+            method = "GET",
+            url = "https://api.example.com/users",
+            query = new {
+                limit = "10",
+                status = "{{$.filters.status}}",
+                order = "name"
+            }
+        });
+        
+        step.ValidateConfiguration(config);
+        var result = await step.ExecuteAsync(context);
+        
+        Assert.True(result.Success);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_ResponseDataStructure_ContainsRequiredFields()
+    {
+        var response = new HttpResponseMessage(HttpStatusCode.Created)
+        {
+            Content = new StringContent("{\"id\":123}", Encoding.UTF8, "application/json")
+        };
+        response.Headers.Add("X-Custom-Header", "test-value");
+        
+        var step = CreateHttpStep(response);
+        var context = new TestExecutionContext();
+        var config = JsonSerializer.SerializeToElement(new { method = "POST", url = "https://api.example.com" });
+        
+        step.ValidateConfiguration(config);
+        var result = await step.ExecuteAsync(context);
+        
+        Assert.True(result.Success);
+        Assert.True(context.Variables.ContainsKey("this"));
+        
+        // The response data should be an anonymous object with status, headers, body, duration properties
+        var responseData = context.Variables["this"];
+        Assert.NotNull(responseData);
+        
+        // Verify the structure has the required properties
+        var responseType = responseData.GetType();
+        Assert.True(responseType.GetProperty("status") != null);
+        Assert.True(responseType.GetProperty("headers") != null);
+        Assert.True(responseType.GetProperty("body") != null);
+        Assert.True(responseType.GetProperty("duration") != null);
+    }
 }

@@ -33,7 +33,7 @@ public class HttpStep : BaseStep
         var stopwatch = Stopwatch.StartNew();
         try
         {
-            var responseData = await PerformHttpRequest(context);
+            var responseData = await PerformHttpRequest(context, stopwatch);
             stopwatch.Stop();
             StoreResultInContext(context, responseData);
             return StepResult.CreateSuccess(responseData, stopwatch.ElapsedMilliseconds);
@@ -52,18 +52,19 @@ public class HttpStep : BaseStep
                _configuration.TryGetProperty("url", out _);
     }
 
-    private async Task<object> PerformHttpRequest(IExecutionContext context)
+    private async Task<object> PerformHttpRequest(IExecutionContext context, Stopwatch stopwatch)
     {
         var request = BuildHttpRequest(context);
         var response = await _httpClient.SendAsync(request);
-        return await CreateResponseData(response);
+        return await CreateResponseData(response, stopwatch);
     }
 
     private HttpRequestMessage BuildHttpRequest(IExecutionContext context)
     {
         var method = GetResolvedMethod(context);
         var url = GetResolvedUrl(context);
-        var request = new HttpRequestMessage(new HttpMethod(method), url);
+        var finalUrl = AddQueryParameters(url, context);
+        var request = new HttpRequestMessage(new HttpMethod(method), finalUrl);
         AddResolvedHeaders(request, context);
         AddResolvedBody(request, context);
         return request;
@@ -79,6 +80,36 @@ public class HttpStep : BaseStep
     {
         var url = _configuration.GetProperty("url").GetString() ?? "";
         return VariableInterpolator.ResolveVariableTokens(url, context).ToString() ?? "";
+    }
+
+    private string AddQueryParameters(string url, IExecutionContext context)
+    {
+        if (!_configuration.TryGetProperty("query", out var queryElement)) return url;
+        if (queryElement.ValueKind != JsonValueKind.Object) return url;
+        var queryString = BuildQueryString(queryElement, context);
+        return string.IsNullOrEmpty(queryString) ? url : $"{url}?{queryString}";
+    }
+
+    private string BuildQueryString(JsonElement queryElement, IExecutionContext context)
+    {
+        var parameters = new List<string>();
+        foreach (var property in queryElement.EnumerateObject())
+            parameters.Add(BuildQueryParameter(property, context));
+        return string.Join("&", parameters.Where(p => !string.IsNullOrEmpty(p)));
+    }
+
+    private string BuildQueryParameter(JsonProperty property, IExecutionContext context)
+    {
+        var key = Uri.EscapeDataString(property.Name);
+        var value = ResolveQueryValue(property.Value, context);
+        return string.IsNullOrEmpty(value) ? "" : $"{key}={Uri.EscapeDataString(value)}";
+    }
+
+    private string ResolveQueryValue(JsonElement value, IExecutionContext context)
+    {
+        if (value.ValueKind == JsonValueKind.String)
+            return VariableInterpolator.ResolveVariableTokens(value.GetString() ?? "", context).ToString() ?? "";
+        return GetJsonElementValue(value).ToString() ?? "";
     }
 
     private void AddResolvedHeaders(HttpRequestMessage request, IExecutionContext context)
@@ -176,7 +207,7 @@ public class HttpStep : BaseStep
         return new StringContent(content, Encoding.UTF8, "application/json");
     }
 
-    private async Task<object> CreateResponseData(HttpResponseMessage response)
+    private async Task<object> CreateResponseData(HttpResponseMessage response, Stopwatch stopwatch)
     {
         var body = await GetResponseBody(response);
         var headers = GetResponseHeaders(response);
@@ -184,7 +215,8 @@ public class HttpStep : BaseStep
         {
             status = (int)response.StatusCode,
             headers = headers,
-            body = body
+            body = body,
+            duration = stopwatch.ElapsedMilliseconds
         };
     }
 
