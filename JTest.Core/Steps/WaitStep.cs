@@ -11,13 +11,11 @@ namespace JTest.Core.Steps;
 /// </summary>
 public class WaitStep : BaseStep
 {
-    private JsonElement _configuration;
-
     public override string Type => "wait";
 
     public override bool ValidateConfiguration(JsonElement configuration)
     {
-        _configuration = configuration;
+        SetConfiguration(configuration);
         return ValidateRequiredProperties();
     }
 
@@ -34,7 +32,7 @@ public class WaitStep : BaseStep
         if (delayMs < 0) return CreateValidationFailure();
         await Task.Delay(delayMs);
         stopwatch.Stop();
-        return CreateSuccessResult(delayMs, stopwatch, context);
+        return await CreateSuccessResult(delayMs, stopwatch, context);
     }
 
     private StepResult HandleExecutionError(Exception ex, Stopwatch stopwatch)
@@ -43,21 +41,27 @@ public class WaitStep : BaseStep
         return StepResult.CreateFailure($"Wait step failed: {ex.Message}", stopwatch.ElapsedMilliseconds);
     }
 
-    private StepResult CreateSuccessResult(int delayMs, Stopwatch stopwatch, IExecutionContext context)
+    private async Task<StepResult> CreateSuccessResult(int delayMs, Stopwatch stopwatch, IExecutionContext context)
     {
         var resultData = CreateResultData(delayMs, stopwatch.ElapsedMilliseconds);
         StoreResultInContext(context, resultData);
-        return StepResult.CreateSuccess(resultData, stopwatch.ElapsedMilliseconds);
+        
+        // Process assertions after storing result data
+        var assertionResults = await ProcessAssertionsAsync(context);
+        
+        var result = StepResult.CreateSuccess(resultData, stopwatch.ElapsedMilliseconds);
+        result.AssertionResults = assertionResults;
+        return result;
     }
 
     private bool ValidateRequiredProperties()
     {
-        return _configuration.TryGetProperty("ms", out _);
+        return Configuration.TryGetProperty("ms", out _);
     }
 
     private int ParseDelayMilliseconds(IExecutionContext context)
     {
-        if (!_configuration.TryGetProperty("ms", out var msProperty)) return -1;
+        if (!Configuration.TryGetProperty("ms", out var msProperty)) return -1;
         var resolvedValue = ResolveMillisecondsValue(msProperty, context);
         return ParseToInteger(resolvedValue);
     }

@@ -37,7 +37,7 @@ public class AssertionTests
 
         // Assert
         Assert.False(result.Success);
-        Assert.Contains("Expected '43' but got '42'", result.Message);
+        Assert.Contains("Expected '43' but got '42'", result.ErrorMessage);
     }
 
     [Fact]
@@ -159,7 +159,7 @@ public class AssertionTests
 
         // Assert
         Assert.False(result.Success);
-        Assert.Equal("Value does not exist or is null/empty", result.Message);
+        Assert.Equal("Value does not exist or is null/empty", result.ErrorMessage);
     }
 
     [Fact]
@@ -251,7 +251,7 @@ public class AssertionTests
         // Assert
         Assert.Single(results);
         Assert.False(results[0].Success);
-        Assert.Contains("Unknown assertion operation: 'unknown-operation'", results[0].Message);
+        Assert.Contains("Unknown assertion operation: 'unknown-operation'", results[0].ErrorMessage);
     }
 
     [Fact]
@@ -306,7 +306,7 @@ public class AssertionTests
 
         // Assert
         Assert.False(result.Success);
-        Assert.Contains("Expected '42' to not equal '42'", result.Message);
+        Assert.Contains("Expected '42' to not equal '42'", result.ErrorMessage);
     }
 
     [Fact]
@@ -333,7 +333,7 @@ public class AssertionTests
 
         // Assert
         Assert.False(result.Success);
-        Assert.Contains("Expected value to not exist, but it does", result.Message);
+        Assert.Contains("Expected value to not exist, but it does", result.ErrorMessage);
     }
 
     [Fact]
@@ -360,7 +360,7 @@ public class AssertionTests
 
         // Assert
         Assert.False(result.Success);
-        Assert.Contains("Expected 'Hello World' to contain 'xyz'", result.Message);
+        Assert.Contains("Expected 'Hello World' to contain 'xyz'", result.ErrorMessage);
     }
 
     [Fact]
@@ -387,7 +387,7 @@ public class AssertionTests
 
         // Assert
         Assert.False(result.Success);
-        Assert.Contains("Expected 'Hello World' to not contain 'World'", result.Message);
+        Assert.Contains("Expected 'Hello World' to not contain 'World'", result.ErrorMessage);
     }
 
     [Fact]
@@ -414,7 +414,7 @@ public class AssertionTests
 
         // Assert
         Assert.False(result.Success);
-        Assert.Contains("Expected 'Hello World' to start with 'World'", result.Message);
+        Assert.Contains("Expected 'Hello World' to start with 'World'", result.ErrorMessage);
     }
 
     [Fact]
@@ -441,7 +441,7 @@ public class AssertionTests
 
         // Assert
         Assert.False(result.Success);
-        Assert.Contains("Expected 'Hello World' to end with 'Hello'", result.Message);
+        Assert.Contains("Expected 'Hello World' to end with 'Hello'", result.ErrorMessage);
     }
 
     [Fact]
@@ -468,7 +468,7 @@ public class AssertionTests
 
         // Assert
         Assert.False(result.Success);
-        Assert.Contains("Expected 'test' to match pattern", result.Message);
+        Assert.Contains("Expected 'test' to match pattern", result.ErrorMessage);
     }
 
     [Fact]
@@ -482,7 +482,7 @@ public class AssertionTests
 
         // Assert
         Assert.False(result.Success);
-        Assert.Contains("Invalid regex pattern", result.Message);
+        Assert.Contains("Invalid regex pattern", result.ErrorMessage);
     }
 
     [Fact]
@@ -522,7 +522,7 @@ public class AssertionTests
 
         // Assert
         Assert.False(result.Success);
-        Assert.Contains("Expected 5 to be greater than or equal to 10", result.Message);
+        Assert.Contains("Expected 5 to be greater than or equal to 10", result.ErrorMessage);
     }
 
     [Fact]
@@ -562,7 +562,7 @@ public class AssertionTests
 
         // Assert
         Assert.False(result.Success);
-        Assert.Contains("Expected 10 to be less than or equal to 5", result.Message);
+        Assert.Contains("Expected 10 to be less than or equal to 5", result.ErrorMessage);
     }
 
     [Fact]
@@ -591,7 +591,7 @@ public class AssertionTests
 
         // Assert
         Assert.False(result.Success);
-        Assert.Contains("Expected 20 to be between 5 and 15", result.Message);
+        Assert.Contains("Expected 20 to be between 5 and 15", result.ErrorMessage);
     }
 
     [Fact]
@@ -605,7 +605,7 @@ public class AssertionTests
 
         // Assert
         Assert.False(result.Success);
-        Assert.Contains("Between assertion requires an array", result.Message);
+        Assert.Contains("Between assertion requires an array", result.ErrorMessage);
     }
 
     [Fact]
@@ -632,7 +632,7 @@ public class AssertionTests
 
         // Assert
         Assert.False(result.Success);
-        Assert.Contains("Expected length 3 but got 5", result.Message);
+        Assert.Contains("Expected length 3 but got 5", result.ErrorMessage);
     }
 
     [Fact]
@@ -673,7 +673,7 @@ public class AssertionTests
 
         // Assert
         Assert.False(result.Success);
-        Assert.Contains("Expected value to be empty but it has 5", result.Message);
+        Assert.Contains("Expected value to be empty but it has 5", result.ErrorMessage);
     }
 
     [Fact]
@@ -700,7 +700,7 @@ public class AssertionTests
 
         // Assert
         Assert.False(result.Success);
-        Assert.Contains("Expected value to not be empty but it is", result.Message);
+        Assert.Contains("Expected value to not be empty but it is", result.ErrorMessage);
     }
 
     [Fact]
@@ -729,7 +729,7 @@ public class AssertionTests
 
         // Assert
         Assert.False(result.Success);
-        Assert.Contains("Expected 'grape' to be in [apple, banana, orange]", result.Message);
+        Assert.Contains("Expected 'grape' to be in [apple, banana, orange]", result.ErrorMessage);
     }
 
     [Fact]
@@ -770,7 +770,7 @@ public class AssertionTests
 
         // Assert
         Assert.False(result.Success);
-        Assert.Contains("Expected type 'string' but got 'integer'", result.Message);
+        Assert.Contains("Expected type 'string' but got 'integer'", result.ErrorMessage);
     }
 
     [Fact]
@@ -811,7 +811,7 @@ public class AssertionTests
         // Assert
         Assert.Single(results);
         Assert.False(results[0].Success);
-        Assert.Contains("Did you mean:", results[0].Message);
-        Assert.Contains("'equals'", results[0].Message);
+        Assert.Contains("Did you mean:", results[0].ErrorMessage);
+        Assert.Contains("'equals'", results[0].ErrorMessage);
     }
 }

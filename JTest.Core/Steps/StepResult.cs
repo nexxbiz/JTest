@@ -1,3 +1,5 @@
+using JTest.Core.Assertions;
+
 namespace JTest.Core.Steps;
 
 /// <summary>
@@ -24,6 +26,11 @@ public class StepResult
     /// Gets or sets the execution duration in milliseconds
     /// </summary>
     public long DurationMs { get; set; }
+    
+    /// <summary>
+    /// Gets or sets the assertion results from step execution
+    /// </summary>
+    public List<AssertionResult> AssertionResults { get; set; } = new();
     
     /// <summary>
     /// Creates a successful step result

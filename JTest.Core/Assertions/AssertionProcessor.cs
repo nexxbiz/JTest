@@ -10,7 +10,41 @@ namespace JTest.Core.Assertions;
 /// <summary>
 /// Result of an assertion operation
 /// </summary>
-public record AssertionResult(bool Success, string Message = "");
+public class AssertionResult
+{
+    public bool Success { get; set; }
+    public string Operation { get; set; } = "";
+    public string Description { get; set; } = "";
+    public object? ActualValue { get; set; }
+    public object? ExpectedValue { get; set; }
+    public string ErrorMessage { get; set; } = "";
+
+    public AssertionResult(bool success, string errorMessage = "")
+    {
+        Success = success;
+        ErrorMessage = errorMessage;
+    }
+}
+
+/// <summary>
+/// Interface for assertion processing
+/// </summary>
+public interface IAssertionProcessor
+{
+    Task<List<AssertionResult>> ProcessAssertionsAsync(JsonElement assertArray, IExecutionContext context);
+}
+
+/// <summary>
+/// Default implementation of IAssertionProcessor
+/// </summary>
+public class DefaultAssertionProcessor : IAssertionProcessor
+{
+    public Task<List<AssertionResult>> ProcessAssertionsAsync(JsonElement assertArray, IExecutionContext context)
+    {
+        var results = AssertionProcessor.ProcessAssertions(assertArray, context);
+        return Task.FromResult(results);
+    }
+}
 
 /// <summary>
 /// Base interface for assertion operations
@@ -31,8 +65,13 @@ public class EqualsAssertion : IAssertionOperation
     public AssertionResult Execute(object? actualValue, object? expectedValue)
     {
         var result = AreValuesEqual(actualValue, expectedValue);
-        var message = result ? "" : $"Expected '{expectedValue}' but got '{actualValue}'";
-        return new AssertionResult(result, message);
+        var errorMessage = result ? "" : $"Expected '{expectedValue}' but got '{actualValue}'";
+        return new AssertionResult(result, errorMessage)
+        {
+            Operation = OperationType,
+            ActualValue = actualValue,
+            ExpectedValue = expectedValue
+        };
     }
 
     private bool AreValuesEqual(object? actual, object? expected)
@@ -95,8 +134,13 @@ public class ExistsAssertion : IAssertionOperation
     {
         var exists = actualValue != null && 
                     !string.IsNullOrEmpty(actualValue.ToString());
-        var message = exists ? "" : "Value does not exist or is null/empty";
-        return new AssertionResult(exists, message);
+        var errorMessage = exists ? "" : "Value does not exist or is null/empty";
+        return new AssertionResult(exists, errorMessage)
+        {
+            Operation = OperationType,
+            ActualValue = actualValue,
+            ExpectedValue = expectedValue
+        };
     }
 }
 
@@ -114,12 +158,22 @@ public class GreaterThanAssertion : IAssertionOperation
             var actual = Convert.ToDouble(actualValue, CultureInfo.InvariantCulture);
             var expected = Convert.ToDouble(expectedValue, CultureInfo.InvariantCulture);
             var result = actual > expected;
-            var message = result ? "" : $"Expected {actualValue} to be greater than {expectedValue}";
-            return new AssertionResult(result, message);
+            var errorMessage = result ? "" : $"Expected {actualValue} to be greater than {expectedValue}";
+            return new AssertionResult(result, errorMessage)
+            {
+                Operation = OperationType,
+                ActualValue = actualValue,
+                ExpectedValue = expectedValue
+            };
         }
         catch (Exception ex)
         {
-            return new AssertionResult(false, $"Cannot compare values: {ex.Message}");
+            return new AssertionResult(false, $"Cannot compare values: {ex.Message}")
+            {
+                Operation = OperationType,
+                ActualValue = actualValue,
+                ExpectedValue = expectedValue
+            };
         }
     }
 }
@@ -138,12 +192,22 @@ public class LessThanAssertion : IAssertionOperation
             var actual = Convert.ToDouble(actualValue, CultureInfo.InvariantCulture);
             var expected = Convert.ToDouble(expectedValue, CultureInfo.InvariantCulture);
             var result = actual < expected;
-            var message = result ? "" : $"Expected {actualValue} to be less than {expectedValue}";
-            return new AssertionResult(result, message);
+            var errorMessage = result ? "" : $"Expected {actualValue} to be less than {expectedValue}";
+            return new AssertionResult(result, errorMessage)
+            {
+                Operation = OperationType,
+                ActualValue = actualValue,
+                ExpectedValue = expectedValue
+            };
         }
         catch (Exception ex)
         {
-            return new AssertionResult(false, $"Cannot compare values: {ex.Message}");
+            return new AssertionResult(false, $"Cannot compare values: {ex.Message}")
+            {
+                Operation = OperationType,
+                ActualValue = actualValue,
+                ExpectedValue = expectedValue
+            };
         }
     }
 }
@@ -160,8 +224,13 @@ public class NotEqualsAssertion : IAssertionOperation
         var equalsAssertion = new EqualsAssertion();
         var equalsResult = equalsAssertion.Execute(actualValue, expectedValue);
         var result = !equalsResult.Success;
-        var message = result ? "" : $"Expected '{actualValue}' to not equal '{expectedValue}'";
-        return new AssertionResult(result, message);
+        var errorMessage = result ? "" : $"Expected '{actualValue}' to not equal '{expectedValue}'";
+        return new AssertionResult(result, errorMessage)
+        {
+            Operation = OperationType,
+            ActualValue = actualValue,
+            ExpectedValue = expectedValue
+        };
     }
 }
 
@@ -192,14 +261,24 @@ public class ContainsAssertion : IAssertionOperation
     {
         if (actualValue == null || expectedValue == null)
         {
-            return new AssertionResult(false, "Cannot perform contains check on null values");
+            return new AssertionResult(false, "Cannot perform contains check on null values")
+            {
+                Operation = OperationType,
+                ActualValue = actualValue,
+                ExpectedValue = expectedValue
+            };
         }
 
         var actualStr = actualValue.ToString() ?? "";
         var expectedStr = expectedValue.ToString() ?? "";
         var result = actualStr.Contains(expectedStr, StringComparison.OrdinalIgnoreCase);
-        var message = result ? "" : $"Expected '{actualStr}' to contain '{expectedStr}'";
-        return new AssertionResult(result, message);
+        var errorMessage = result ? "" : $"Expected '{actualStr}' to contain '{expectedStr}'";
+        return new AssertionResult(result, errorMessage)
+        {
+            Operation = OperationType,
+            ActualValue = actualValue,
+            ExpectedValue = expectedValue
+        };
     }
 }
 

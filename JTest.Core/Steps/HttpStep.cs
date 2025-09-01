@@ -16,7 +16,6 @@ public class HttpStep : BaseStep
 {
     private readonly HttpClient _httpClient;
     private readonly IDebugLogger? _debugLogger;
-    private JsonElement _configuration;
 
     public HttpStep(HttpClient httpClient, IDebugLogger? debugLogger = null)
     {
@@ -28,7 +27,7 @@ public class HttpStep : BaseStep
 
     public override bool ValidateConfiguration(JsonElement configuration)
     {
-        _configuration = configuration;
+        SetConfiguration(configuration);
         return ValidateRequiredProperties();
     }
 
@@ -42,8 +41,13 @@ public class HttpStep : BaseStep
             stopwatch.Stop();
             StoreResultInContext(context, responseData);
             
+            // Process assertions after storing response data
+            var assertionResults = await ProcessAssertionsAsync(context);
+            
             LogDebugInformation(context, contextBefore, stopwatch, true);
-            return StepResult.CreateSuccess(responseData, stopwatch.ElapsedMilliseconds);
+            var result = StepResult.CreateSuccess(responseData, stopwatch.ElapsedMilliseconds);
+            result.AssertionResults = assertionResults;
+            return result;
         }
         catch (Exception ex)
         {
@@ -56,8 +60,8 @@ public class HttpStep : BaseStep
 
     private bool ValidateRequiredProperties()
     {
-        return _configuration.TryGetProperty("method", out _) && 
-               _configuration.TryGetProperty("url", out _);
+        return Configuration.TryGetProperty("method", out _) && 
+               Configuration.TryGetProperty("url", out _);
     }
 
     private async Task<object> PerformHttpRequest(IExecutionContext context, Stopwatch stopwatch)
@@ -80,19 +84,19 @@ public class HttpStep : BaseStep
 
     private string GetResolvedMethod(IExecutionContext context)
     {
-        var method = _configuration.GetProperty("method").GetString() ?? "GET";
+        var method = Configuration.GetProperty("method").GetString() ?? "GET";
         return VariableInterpolator.ResolveVariableTokens(method, context).ToString() ?? "GET";
     }
 
     private string GetResolvedUrl(IExecutionContext context)
     {
-        var url = _configuration.GetProperty("url").GetString() ?? "";
+        var url = Configuration.GetProperty("url").GetString() ?? "";
         return VariableInterpolator.ResolveVariableTokens(url, context).ToString() ?? "";
     }
 
     private string AddQueryParameters(string url, IExecutionContext context)
     {
-        if (!_configuration.TryGetProperty("query", out var queryElement)) return url;
+        if (!Configuration.TryGetProperty("query", out var queryElement)) return url;
         if (queryElement.ValueKind != JsonValueKind.Object) return url;
         var queryString = BuildQueryString(queryElement, context);
         return string.IsNullOrEmpty(queryString) ? url : $"{url}?{queryString}";
@@ -122,7 +126,7 @@ public class HttpStep : BaseStep
 
     private void AddResolvedHeaders(HttpRequestMessage request, IExecutionContext context)
     {
-        if (!_configuration.TryGetProperty("headers", out var headersElement)) return;
+        if (!Configuration.TryGetProperty("headers", out var headersElement)) return;
         if (headersElement.ValueKind != JsonValueKind.Array) return;
         foreach (var header in headersElement.EnumerateArray())
         {
@@ -152,7 +156,7 @@ public class HttpStep : BaseStep
 
     private void AddResolvedBody(HttpRequestMessage request, IExecutionContext context)
     {
-        if (!_configuration.TryGetProperty("body", out var bodyElement)) return;
+        if (!Configuration.TryGetProperty("body", out var bodyElement)) return;
         var content = CreateHttpContent(bodyElement, context);
         if (content != null) request.Content = content;
     }
