@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
@@ -133,6 +134,15 @@ public static class VariableInterpolator
 
     private static string ConvertToString(object value)
     {
-        return value?.ToString() ?? string.Empty;
+        if (value == null) return string.Empty;
+        
+        // Use invariant culture for numeric types to ensure consistent decimal formatting
+        return value switch
+        {
+            double d => d.ToString(CultureInfo.InvariantCulture),
+            float f => f.ToString(CultureInfo.InvariantCulture),
+            decimal dec => dec.ToString(CultureInfo.InvariantCulture),
+            _ => value.ToString() ?? string.Empty
+        };
     }
 }

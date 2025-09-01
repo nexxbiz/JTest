@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json.Nodes;
 using JTest.Core.Execution;
 using JTest.Core.Utilities;
@@ -205,5 +206,34 @@ public class VariableInterpolatorTests
 
         // Assert
         Assert.Equal("Port: 8080, Timeout: 30.5", result);
+    }
+
+    [Fact]
+    public void ResolveVariableTokens_WithNumericValue_InDifferentCulture_ReturnsConsistentDecimalFormat()
+    {
+        // Save current culture
+        var originalCulture = CultureInfo.CurrentCulture;
+        
+        try
+        {
+            // Set to a culture that uses comma as decimal separator
+            CultureInfo.CurrentCulture = new CultureInfo("de-DE"); // German culture uses comma
+            
+            // Arrange
+            var context = new TestExecutionContext();
+            context.Variables["config"] = new { port = 8080, timeout = 30.5 };
+            var input = "Port: {{$.config.port}}, Timeout: {{$.config.timeout}}";
+
+            // Act
+            var result = VariableInterpolator.ResolveVariableTokens(input, context);
+
+            // Assert - should always use dot as decimal separator regardless of culture
+            Assert.Equal("Port: 8080, Timeout: 30.5", result);
+        }
+        finally
+        {
+            // Restore original culture
+            CultureInfo.CurrentCulture = originalCulture;
+        }
     }
 }
