@@ -224,8 +224,13 @@ public class NotEqualsAssertion : IAssertionOperation
         var equalsAssertion = new EqualsAssertion();
         var equalsResult = equalsAssertion.Execute(actualValue, expectedValue);
         var result = !equalsResult.Success;
-        var message = result ? "" : $"Expected '{actualValue}' to not equal '{expectedValue}'";
-        return new AssertionResult(result, message);
+        var errorMessage = result ? "" : $"Expected '{actualValue}' to not equal '{expectedValue}'";
+        return new AssertionResult(result, errorMessage)
+        {
+            Operation = OperationType,
+            ActualValue = actualValue,
+            ExpectedValue = expectedValue
+        };
     }
 }
 
@@ -256,14 +261,24 @@ public class ContainsAssertion : IAssertionOperation
     {
         if (actualValue == null || expectedValue == null)
         {
-            return new AssertionResult(false, "Cannot perform contains check on null values");
+            return new AssertionResult(false, "Cannot perform contains check on null values")
+            {
+                Operation = OperationType,
+                ActualValue = actualValue,
+                ExpectedValue = expectedValue
+            };
         }
 
         var actualStr = actualValue.ToString() ?? "";
         var expectedStr = expectedValue.ToString() ?? "";
         var result = actualStr.Contains(expectedStr, StringComparison.OrdinalIgnoreCase);
-        var message = result ? "" : $"Expected '{actualStr}' to contain '{expectedStr}'";
-        return new AssertionResult(result, message);
+        var errorMessage = result ? "" : $"Expected '{actualStr}' to contain '{expectedStr}'";
+        return new AssertionResult(result, errorMessage)
+        {
+            Operation = OperationType,
+            ActualValue = actualValue,
+            ExpectedValue = expectedValue
+        };
     }
 }
 
