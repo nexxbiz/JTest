@@ -1,0 +1,30 @@
+using System.Text.Json;
+using JTest.Core.Execution;
+
+namespace JTest.Core.Steps;
+
+/// <summary>
+/// Interface for step implementations in the JTest execution engine
+/// </summary>
+public interface IStep
+{
+    /// <summary>
+    /// Gets the step type identifier
+    /// </summary>
+    string Type { get; }
+    
+    /// <summary>
+    /// Gets or sets the step ID for context storage
+    /// </summary>
+    string? Id { get; set; }
+    
+    /// <summary>
+    /// Executes the step with the provided context
+    /// </summary>
+    Task<StepResult> ExecuteAsync(IExecutionContext context);
+    
+    /// <summary>
+    /// Validates the step configuration from JSON
+    /// </summary>
+    bool ValidateConfiguration(JsonElement configuration);
+}
