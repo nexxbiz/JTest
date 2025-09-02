@@ -43,9 +43,17 @@ public class TestRunner
             var jsonDoc = JsonDocument.Parse(jsonDefinition);
             var root = jsonDoc.RootElement;
             
+            // Check if this is a test suite
+            if (root.TryGetProperty("version", out _) && 
+                root.TryGetProperty("tests", out var testsElement) && 
+                testsElement.ValueKind == JsonValueKind.Array)
+            {
+                // Test suite validation
+                return ValidateTestSuite(root);
+            }
             // For backwards compatibility, allow basic JSON validation
             // If it has 'name' and 'steps', validate as JTest schema
-            if (root.TryGetProperty("name", out _) || root.TryGetProperty("steps", out _))
+            else if (root.TryGetProperty("name", out _) || root.TryGetProperty("steps", out _))
             {
                 // JTest schema validation
                 if (!root.TryGetProperty("name", out _))
@@ -62,11 +70,33 @@ public class TestRunner
             return false;
         }
     }
+
+    private bool ValidateTestSuite(JsonElement root)
+    {
+        // Validate required fields
+        if (!root.TryGetProperty("version", out _))
+            return false;
+            
+        if (!root.TryGetProperty("tests", out var testsElement) || testsElement.ValueKind != JsonValueKind.Array)
+            return false;
+            
+        // Validate each test case in the tests array
+        foreach (var testElement in testsElement.EnumerateArray())
+        {
+            if (!testElement.TryGetProperty("name", out _))
+                return false;
+                
+            if (!testElement.TryGetProperty("steps", out var stepsElement) || stepsElement.ValueKind != JsonValueKind.Array)
+                return false;
+        }
+        
+        return true;
+    }
     
     /// <summary>
     /// Runs a test from JSON definition with optional debug logging
     /// </summary>
-    /// <param name="jsonDefinition">The JSON test definition</param>
+    /// <param name="jsonDefinition">The JSON test definition (single test case or test suite)</param>
     /// <param name="environment">Environment variables</param>
     /// <param name="globals">Global variables</param>
     /// <param name="debugLogger">Optional debug logger for detailed output</param>
@@ -77,16 +107,23 @@ public class TestRunner
         Dictionary<string, object>? globals = null,
         IDebugLogger? debugLogger = null)
     {
-        var testCase = ParseTestCase(jsonDefinition);
-        var context = CreateExecutionContext(environment, globals);
-        
         // Update executor to use debug logger if provided
         if (debugLogger != null)
         {
             _stepFactory.SetDebugLogger(debugLogger);
         }
-        
-        return await _executor.ExecuteAsync(testCase, context);
+
+        // Detect if this is a test suite or individual test case
+        if (IsTestSuite(jsonDefinition))
+        {
+            return await RunTestSuiteAsync(jsonDefinition, environment, globals);
+        }
+        else
+        {
+            var testCase = ParseTestCase(jsonDefinition);
+            var context = CreateExecutionContext(environment, globals);
+            return await _executor.ExecuteAsync(testCase, context);
+        }
     }
     
     /// <summary>
@@ -148,6 +185,91 @@ public class TestRunner
             throw new ArgumentException("Invalid test case JSON");
             
         return testCase;
+    }
+
+    private bool IsTestSuite(string jsonDefinition)
+    {
+        try
+        {
+            var jsonDoc = JsonDocument.Parse(jsonDefinition);
+            var root = jsonDoc.RootElement;
+            
+            // Check if it has the test suite structure (version and tests array)
+            return root.TryGetProperty("version", out _) && 
+                   root.TryGetProperty("tests", out var testsElement) && 
+                   testsElement.ValueKind == JsonValueKind.Array;
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
+    }
+
+    private async Task<List<JTestCaseResult>> RunTestSuiteAsync(
+        string jsonDefinition, 
+        Dictionary<string, object>? environment = null,
+        Dictionary<string, object>? globals = null)
+    {
+        var testSuite = ParseTestSuite(jsonDefinition);
+        
+        // Merge environment variables (parameter takes precedence)
+        var mergedEnvironment = MergeDictionaries(testSuite.Env, environment);
+        
+        // Merge global variables (parameter takes precedence)
+        var mergedGlobals = MergeDictionaries(testSuite.Globals, globals);
+        
+        var allResults = new List<JTestCaseResult>();
+        
+        // Execute each test case in the suite
+        foreach (var testCase in testSuite.Tests)
+        {
+            var context = CreateExecutionContext(mergedEnvironment, mergedGlobals);
+            var results = await _executor.ExecuteAsync(testCase, context);
+            allResults.AddRange(results);
+        }
+        
+        return allResults;
+    }
+
+    private JTestSuite ParseTestSuite(string jsonDefinition)
+    {
+        var options = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true
+        };
+        
+        var testSuite = JsonSerializer.Deserialize<JTestSuite>(jsonDefinition, options);
+        if (testSuite == null)
+            throw new ArgumentException("Invalid test suite JSON");
+            
+        return testSuite;
+    }
+
+    private Dictionary<string, object> MergeDictionaries(
+        Dictionary<string, object>? source, 
+        Dictionary<string, object>? target)
+    {
+        var result = new Dictionary<string, object>();
+        
+        // Add source first
+        if (source != null)
+        {
+            foreach (var kvp in source)
+            {
+                result[kvp.Key] = kvp.Value;
+            }
+        }
+        
+        // Add target, overriding source values
+        if (target != null)
+        {
+            foreach (var kvp in target)
+            {
+                result[kvp.Key] = kvp.Value;
+            }
+        }
+        
+        return result;
     }
     
     private TestExecutionContext CreateExecutionContext(
