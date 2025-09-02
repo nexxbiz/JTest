@@ -6,11 +6,6 @@ namespace JTest.UnitTests;
 
 public class WaitStepTests
 {
-    private class TestExecutionContext : IExecutionContext
-    {
-        public Dictionary<string, object> Variables { get; } = new();
-        public IList<string> Log { get; } = new List<string>();
-    }
 
     [Fact]
     public void Type_ShouldReturnWait()
