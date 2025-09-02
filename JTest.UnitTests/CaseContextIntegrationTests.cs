@@ -80,7 +80,7 @@ public class CaseContextIntegrationTests
         var testCase = new JTestCase
         {
             Name = "Order processing",
-            Flow = new List<object>
+            Steps = new List<object>
             {
                 new 
                 {

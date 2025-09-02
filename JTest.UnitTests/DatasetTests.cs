@@ -38,14 +38,14 @@ public class DatasetTests
         var testCaseWithoutDatasets = new JTestCase
         {
             Name = "Simple test",
-            Flow = new List<object> { new { type = "http", method = "GET" } }
+            Steps = new List<object> { new { type = "http", method = "GET" } }
         };
 
         // Test case with datasets
         var testCaseWithDatasets = new JTestCase
         {
             Name = "Data-driven test",
-            Flow = new List<object> { new { type = "http", method = "POST" } },
+            Steps = new List<object> { new { type = "http", method = "POST" } },
             Datasets = new List<JTestDataset>
             {
                 new() { Name = "dataset1", Case = new Dictionary<string, object> { ["value"] = 1 } },
@@ -93,7 +93,7 @@ public class DatasetTests
         var json = """
         {
           "name": "Order processing",
-          "flow": [
+          "steps": [
             {
               "type": "http",
               "id": "createOrder", 
@@ -125,7 +125,7 @@ public class DatasetTests
         // Assert
         Assert.NotNull(testCase);
         Assert.Equal("Order processing", testCase.Name);
-        Assert.Single(testCase.Flow);
+        Assert.Single(testCase.Steps);
         Assert.NotNull(testCase.Datasets);
         Assert.Single(testCase.Datasets);
         Assert.Equal("basic", testCase.Datasets[0].Name);

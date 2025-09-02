@@ -16,7 +16,7 @@ public class DatasetCleanupTests
         var testCase = new JTestCase
         {
             Name = "Globals sharing test",
-            Flow = new List<object>(), // Empty flow for this test
+            Steps = new List<object>(), // Empty steps for this test
             Datasets = new List<JTestDataset>
             {
                 new() 
@@ -61,7 +61,7 @@ public class DatasetCleanupTests
         var testCase = new JTestCase
         {
             Name = "Context reset test",
-            Flow = new List<object> { new { type = "mock_step" } }, // Mock step that modifies variables
+            Steps = new List<object> { new { type = "mock_step" } }, // Mock step that modifies variables
             Datasets = new List<JTestDataset>
             {
                 new() 
@@ -107,7 +107,7 @@ public class DatasetCleanupTests
         var testCase = new JTestCase
         {
             Name = "Env immutability test",
-            Flow = new List<object>(),
+            Steps = new List<object>(),
             Datasets = new List<JTestDataset>
             {
                 new() 

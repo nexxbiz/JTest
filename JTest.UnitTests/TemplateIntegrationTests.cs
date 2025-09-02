@@ -45,7 +45,7 @@ public class TemplateIntegrationTests
         var testJson = """
         {
             "name": "Test with authentication template",
-            "flow": [
+            "steps": [
                 {
                     "type": "use",
                     "template": "authenticate",
@@ -112,7 +112,7 @@ public class TemplateIntegrationTests
         var testJson = """
         {
             "name": "Debug logger test",
-            "flow": [
+            "steps": [
                 {
                     "type": "use",
                     "id": "debug-step",
@@ -171,7 +171,7 @@ public class TemplateIntegrationTests
         var testJson = """
         {
             "name": "Required parameter test",
-            "flow": [
+            "steps": [
                 {
                     "type": "use",
                     "template": "required-param-test",
