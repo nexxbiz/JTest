@@ -269,13 +269,13 @@ public class HttpStepTests
         
         Assert.Contains("## Test 1, Step 1: HttpStep", output);
         Assert.Contains("**Step ID:** test-step", output);
-        Assert.Contains("**Result:** ✅ Success", output);
-        Assert.Contains("📋 **Context Changes:**", output);
-        Assert.Contains("**✅ Added:**", output);
+        Assert.Contains("**Result:** Success", output);
+        Assert.Contains("**Context Changes:**", output);
+        Assert.Contains("**Added:**", output);
         Assert.Contains("- `$.this` = {object with", output);
-        Assert.Contains("💡 **For Assertions:**", output);
+        Assert.Contains("**For Assertions:**", output);
         Assert.Contains("<details>", output);
-        Assert.Contains("📋 Runtime Context", output);
+        Assert.Contains("Runtime Context", output);
     }
 
     [Fact]

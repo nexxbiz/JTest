@@ -74,27 +74,27 @@ var results = await testRunner.RunTestAsync(testJson, environment);
 
 ## Key Features
 
-### ✅ Context Isolation
+### Context Isolation
 - Templates execute in their own isolated context
 - Template parameters don't leak to parent context
 - Only template outputs are exposed to parent context
 
-### ✅ Parameter Validation
+### Parameter Validation
 - Required parameters are validated
 - Default values supported for optional parameters
 - Type checking as specified in template definition
 
-### ✅ Output Mapping
+### Output Mapping
 - Template outputs available via consistent access: `{{$.this.outputKey}}`
 - Supports complex output expressions with variable interpolation
 - Clean isolation ensures only explicitly defined outputs are exposed
 
-### ✅ Debug Support
+### Debug Support
 - MarkdownDebugLogger shows template step execution
 - Template context changes logged separately from parent context
 - Full visibility into template parameter resolution
 
-### ✅ Integration
+### Integration
 - Works seamlessly with existing JTest step system
 - Compatible with all existing features (save, assertions, etc.)
 - Can be used with datasets and all other JTest functionality

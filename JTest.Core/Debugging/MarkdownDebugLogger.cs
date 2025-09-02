@@ -67,13 +67,13 @@ public class MarkdownDebugLogger : IDebugLogger
     {
         if (HasContextChanges(changes))
         {
-            _output.AppendLine("📋 **Context Changes:**");
+            _output.AppendLine("**Context Changes:**");
             WriteAddedVariables(changes.Added);
             WriteModifiedVariables(changes.Modified);
         }
         else
         {
-            _output.AppendLine("📋 **Context Changes:** None");
+            _output.AppendLine("**Context Changes:** None");
         }
         _output.AppendLine();
     }
@@ -82,7 +82,7 @@ public class MarkdownDebugLogger : IDebugLogger
     {
         if (changes.Available.Any())
         {
-            _output.AppendLine("💡 **For Assertions:** You can now reference these JSONPath expressions:");
+            _output.AppendLine("**For Assertions:** You can now reference these JSONPath expressions:");
             WriteAvailableExpressions(changes.Available);
             _output.AppendLine();
         }
@@ -99,7 +99,7 @@ public class MarkdownDebugLogger : IDebugLogger
     {
         if (!assertionResults.Any()) return;
         
-        _output.AppendLine("🧪 **Assertion Results:**");
+        _output.AppendLine("**Assertion Results:**");
         _output.AppendLine();
         
         foreach (var result in assertionResults)
@@ -111,10 +111,9 @@ public class MarkdownDebugLogger : IDebugLogger
 
     private void WriteAssertionResult(AssertionResult result)
     {
-        var icon = result.Success ? "✅" : "❌";
         var status = result.Success ? "PASSED" : "FAILED";
         
-        _output.AppendLine($"**{icon} {result.Operation.ToUpperInvariant()}** - {status}");
+        _output.AppendLine($"**{result.Operation.ToUpperInvariant()}** - {status}");
         
         if (!string.IsNullOrEmpty(result.Description))
             _output.AppendLine($"  - Description: {result.Description}");
@@ -145,7 +144,7 @@ public class MarkdownDebugLogger : IDebugLogger
     private void WriteDetailsHeader()
     {
         _output.AppendLine("<details>");
-        _output.AppendLine("<summary>📋 Runtime Context (Click to expand)</summary>");
+        _output.AppendLine("<summary>Runtime Context (Click to expand)</summary>");
         _output.AppendLine();
     }
 
@@ -175,7 +174,7 @@ public class MarkdownDebugLogger : IDebugLogger
     {
         if (!added.Any()) return;
         _output.AppendLine();
-        _output.AppendLine("**✅ Added:**");
+        _output.AppendLine("**Added:**");
         foreach (var variable in added)
             _output.AppendLine($"- {variable}");
     }
@@ -184,7 +183,7 @@ public class MarkdownDebugLogger : IDebugLogger
     {
         if (!modified.Any()) return;
         _output.AppendLine();
-        _output.AppendLine("**🔄 Modified:**");
+        _output.AppendLine("**Modified:**");
         foreach (var variable in modified)
             _output.AppendLine($"- {variable}");
     }
