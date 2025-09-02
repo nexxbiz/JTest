@@ -452,7 +452,7 @@ Import templates using the `using` array:
                     "headers": [
                         {
                             "name": "Authorization",
-                            "value": "{{$.output.authHeader}}"
+                            "value": "{{$.this.authHeader}}"
                         }
                     ]
                 }
@@ -527,8 +527,8 @@ The template's `output` property defines what gets exposed to the parent context
 
 After this template executes, the parent context will have:
 
-- `{{$.output.token}}` - containing the access token value
-- `{{$.output.authHeader}}` - containing the formatted authorization header
+- `{{$.this.token}}` - containing the access token value
+- `{{$.this.authHeader}}` - containing the formatted authorization header
 
 #### Accessing template outputs
 
@@ -559,7 +559,7 @@ Parent tests can access template outputs using the defined output variable names
                         "tokenUrl": "{{$.env.tokenUrl}}"
                     },
                     "save": {
-                        "$.globals.authToken": "{{$.output.token}}"
+                        "$.globals.authToken": "{{$.this.token}}"
                     }
                 },
                 {
@@ -569,7 +569,7 @@ Parent tests can access template outputs using the defined output variable names
                     "headers": [
                         {
                             "name": "Authorization",
-                            "value": "{{$.output.authHeader}}"
+                            "value": "{{$.this.authHeader}}"
                         }
                     ],
                     "assert": [
@@ -588,21 +588,12 @@ Parent tests can access template outputs using the defined output variable names
 
 In this example:
 - The `authenticate` template executes and exposes `token` and `authHeader` through its `output` property
-- The first step saves the token to globals using `"$.globals.authToken": "{{$.output.token}}"`
-- The second step uses the template's `authHeader` output directly with `{{$.output.authHeader}}`
+- The first step saves the token to globals using `"$.globals.authToken": "{{$.this.token}}"`
+- The second step uses the template's `authHeader` output directly with `{{$.this.authHeader}}`
 
-#### Alternative output access pattern
+#### Template output access
 
-You can also access template outputs using direct variable names without the `$.output.` prefix:
-
-```json
-{
-    "name": "Authorization",
-    "value": "{{$.authHeader}}"
-}
-```
-
-Both access patterns (`{{$.output.authHeader}}` and `{{$.authHeader}}`) work identically - the `$.output.` prefix makes it explicit that you're accessing template output values.
+Template outputs are accessible through the `{{$.this.outputKey}}` pattern, ensuring consistent behavior with other step types. This provides clean isolation where only explicitly defined outputs are exposed to the parent context.
 
 ## Assertions
 
@@ -1486,7 +1477,7 @@ Here's a complete example showing how to share data across test cases using glob
                         "password": "{{$.env.password}}"
                     },
                     "save": {
-                        "$.globals.authToken": "{{$.output.token}}"
+                        "$.globals.authToken": "{{$.this.token}}"
                     }
                 }
             ]

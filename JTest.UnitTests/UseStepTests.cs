@@ -92,13 +92,18 @@ public class UseStepTests
 
         // Assert
         Assert.True(result.Success);
-        Assert.Contains("result", context.Variables.Keys);
-        Assert.Equal("Template executed with hello world", context.Variables["result"]);
         
-        // Check output prefix access pattern
-        Assert.Contains("output", context.Variables.Keys);
-        var outputDict = Assert.IsType<Dictionary<string, object>>(context.Variables["output"]);
-        Assert.Equal("Template executed with hello world", outputDict["result"]);
+        // Template outputs should be accessible via {{$.this.outputKey}} pattern
+        Assert.Contains("this", context.Variables.Keys);
+        var thisResult = Assert.IsType<Dictionary<string, object>>(context.Variables["this"]);
+        Assert.Equal("Template executed with hello world", thisResult["result"]);
+        Assert.Equal("template", thisResult["type"]);
+        
+        // Direct output access should NOT be available
+        Assert.DoesNotContain("result", context.Variables.Keys);
+        
+        // Old output prefix access should NOT be available
+        Assert.DoesNotContain("output", context.Variables.Keys);
     }
 
     [Fact] 
@@ -194,7 +199,11 @@ public class UseStepTests
 
         // Assert
         Assert.True(result.Success);
-        Assert.Equal("default value", context.Variables["result"]);
+        
+        // Template outputs should be accessible via {{$.this.outputKey}} pattern
+        Assert.Contains("this", context.Variables.Keys);
+        var thisResult = Assert.IsType<Dictionary<string, object>>(context.Variables["this"]);
+        Assert.Equal("default value", thisResult["result"]);
     }
 
     [Fact]
@@ -248,7 +257,11 @@ public class UseStepTests
 
         // Assert
         Assert.True(result.Success);
-        Assert.Equal("https://api.example.com", context.Variables["result"]);
+        
+        // Template outputs should be accessible via {{$.this.outputKey}} pattern
+        Assert.Contains("this", context.Variables.Keys);
+        var thisResult = Assert.IsType<Dictionary<string, object>>(context.Variables["this"]);
+        Assert.Equal("https://api.example.com", thisResult["result"]);
     }
 }
 

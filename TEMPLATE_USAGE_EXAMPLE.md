@@ -43,7 +43,7 @@ This document demonstrates the template step functionality that has been impleme
                 "password": "{{$.env.password}}"
             },
             "save": {
-                "$.globals.authToken": "{{$.output.token}}"
+                "$.globals.authToken": "{{$.this.token}}"
             }
         }
     ]
@@ -85,9 +85,9 @@ var results = await testRunner.RunTestAsync(testJson, environment);
 - Type checking as specified in template definition
 
 ### ✅ Output Mapping
-- Template outputs available via direct access: `{{$.token}}`
-- Also available via output prefix: `{{$.output.token}}`
+- Template outputs available via consistent access: `{{$.this.outputKey}}`
 - Supports complex output expressions with variable interpolation
+- Clean isolation ensures only explicitly defined outputs are exposed
 
 ### ✅ Debug Support
 - MarkdownDebugLogger shows template step execution
@@ -106,7 +106,7 @@ When a template executes:
 1. **Isolated Context**: Creates completely separate execution context
 2. **Parameter Access**: Template parameters available as `{{$.paramName}}`
 3. **Step Execution**: Template steps run in isolated context
-4. **Output Mapping**: Only defined outputs are mapped to parent context
+4. **Output Mapping**: Only defined outputs are mapped to parent context via `{{$.this.outputKey}}`
 5. **Parent Preservation**: Parent context unchanged except for outputs
 
 This ensures clean separation between template logic and test logic while providing a powerful reusable component system.

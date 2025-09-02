@@ -204,21 +204,9 @@ public class UseStep : BaseStep
 
     private void StoreTemplateOutputsInParentContext(IExecutionContext parentContext, Dictionary<string, object> outputs)
     {
-        // Store outputs with direct access pattern ({{$.outputKey}})
-        foreach (var output in outputs)
-        {
-            parentContext.Variables[output.Key] = output.Value;
-        }
-
-        // Also store under 'output' key for explicit access pattern ({{$.output.outputKey}})
-        parentContext.Variables["output"] = outputs;
-
-        // Store step result as 'this' for consistent step behavior
-        var stepResult = new
-        {
-            outputs = outputs,
-            type = "template"
-        };
+        // Store step result as 'this' with outputs directly accessible ({{$.this.outputKey}})
+        var stepResult = new Dictionary<string, object>(outputs);
+        stepResult["type"] = "template";
         
         parentContext.Variables["this"] = stepResult;
         
