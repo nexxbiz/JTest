@@ -95,6 +95,9 @@ public class UseStep : BaseStep
         // Store outputs in parent context using both direct and output-prefixed access patterns
         StoreTemplateOutputsInParentContext(context, outputs);
         
+        // Process save operations after storing template outputs
+        ProcessSaveOperations(context);
+        
         return new
         {
             templateName = templateName,

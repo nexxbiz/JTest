@@ -263,6 +263,75 @@ public class UseStepTests
         var thisResult = Assert.IsType<Dictionary<string, object>>(context.Variables["this"]);
         Assert.Equal("https://api.example.com", thisResult["result"]);
     }
+    
+    [Fact]
+    public async Task UseStep_ExecuteAsync_ProcessesSaveOperations()
+    {
+        // Arrange
+        var templateProvider = new TemplateProvider();
+        var stepFactory = new StepFactory(templateProvider);
+        
+        var templateJson = """
+        {
+            "version": "1.0",
+            "components": {
+                "templates": [
+                    {
+                        "name": "auth-template",
+                        "params": {
+                            "username": { "type": "string", "required": true },
+                            "password": { "type": "string", "required": true }
+                        },
+                        "steps": [],
+                        "output": {
+                            "token": "{{$.username}}-{{$.password}}-token",
+                            "authHeader": "Bearer {{$.username}}-{{$.password}}-token"
+                        }
+                    }
+                ]
+            }
+        }
+        """;
+        templateProvider.LoadTemplatesFromJson(templateJson);
+        
+        var useStep = new UseStep(templateProvider, stepFactory);
+        
+        var config = JsonSerializer.Deserialize<JsonElement>("""
+        {
+            "template": "auth-template",
+            "with": {
+                "username": "testuser",
+                "password": "testpass"
+            },
+            "save": {
+                "$.globals.token": "{{$.this.token}}",
+                "$.globals.authHeader": "{{$.this.authHeader}}"
+            }
+        }
+        """);
+        useStep.ValidateConfiguration(config);
+        
+        var context = new TestExecutionContext();
+        context.Variables["globals"] = new Dictionary<string, object>();
+
+        // Act
+        var result = await useStep.ExecuteAsync(context);
+
+        // Assert
+        Assert.True(result.Success);
+        
+        // Template outputs should be accessible via {{$.this.outputKey}} pattern
+        Assert.Contains("this", context.Variables.Keys);
+        var thisResult = Assert.IsType<Dictionary<string, object>>(context.Variables["this"]);
+        Assert.Equal("testuser-testpass-token", thisResult["token"]);
+        Assert.Equal("Bearer testuser-testpass-token", thisResult["authHeader"]);
+        
+        // Save operations should have stored values in globals
+        Assert.Contains("globals", context.Variables.Keys);
+        var globals = Assert.IsType<Dictionary<string, object>>(context.Variables["globals"]);
+        Assert.Equal("testuser-testpass-token", globals["token"]);
+        Assert.Equal("Bearer testuser-testpass-token", globals["authHeader"]);
+    }
 }
 
 public class TemplateProviderTests
