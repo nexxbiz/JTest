@@ -48,8 +48,16 @@ public class UseStep : BaseStep
             var result = await ExecuteTemplateAsync(context, stopwatch);
             stopwatch.Stop();
             
+            // Store result in context and process save operations (consistent with other steps)
+            StoreResultInContext(context, result);
+            
+            // Process assertions after storing result data (consistent with other steps)
+            var assertionResults = await ProcessAssertionsAsync(context);
+            
             LogDebugInformation(context, contextBefore, stopwatch, true);
-            return StepResult.CreateSuccess(result, stopwatch.ElapsedMilliseconds);
+            var stepResult = StepResult.CreateSuccess(result, stopwatch.ElapsedMilliseconds);
+            stepResult.AssertionResults = assertionResults;
+            return stepResult;
         }
         catch (Exception ex)
         {
@@ -92,15 +100,13 @@ public class UseStep : BaseStep
         // Map template outputs to parent context
         var outputs = MapTemplateOutputs(template, templateContext);
         
-        // Store outputs in parent context using both direct and output-prefixed access patterns
-        StoreTemplateOutputsInParentContext(context, outputs);
+        // Return step result data that will be stored by StoreResultInContext()
+        var resultData = new Dictionary<string, object>(outputs);
+        resultData["type"] = "template";
+        resultData["templateName"] = templateName;
+        resultData["steps"] = templateResults.Count;
         
-        return new
-        {
-            templateName = templateName,
-            outputs = outputs,
-            steps = templateResults.Count
-        };
+        return resultData;
     }
 
     private TestExecutionContext CreateIsolatedTemplateContext(IExecutionContext parentContext, Template template)
@@ -200,21 +206,6 @@ public class UseStep : BaseStep
             JsonValueKind.Object => element.EnumerateObject().ToDictionary(p => p.Name, p => ResolveJsonElementValue(p.Value, templateContext)),
             _ => GetJsonElementValue(element)
         };
-    }
-
-    private void StoreTemplateOutputsInParentContext(IExecutionContext parentContext, Dictionary<string, object> outputs)
-    {
-        // Store step result as 'this' with outputs directly accessible ({{$.this.outputKey}})
-        var stepResult = new Dictionary<string, object>(outputs);
-        stepResult["type"] = "template";
-        
-        parentContext.Variables["this"] = stepResult;
-        
-        // Store with step ID if provided
-        if (!string.IsNullOrEmpty(Id))
-        {
-            parentContext.Variables[Id] = stepResult;
-        }
     }
 
     private object GetJsonElementValue(JsonElement element)
