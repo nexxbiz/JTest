@@ -16,6 +16,13 @@ namespace JTest.Core.Execution;
 /// </summary>
 public class TestCaseExecutor
 {
+    private readonly StepFactory _stepFactory;
+    
+    public TestCaseExecutor(StepFactory? stepFactory = null)
+    {
+        _stepFactory = stepFactory ?? new StepFactory();
+    }
+
     /// <summary>
     /// Executes a test case, running it once if no datasets are provided,
     /// or multiple times (once per dataset) if datasets are available
@@ -101,23 +108,33 @@ public class TestCaseExecutor
             // Execute the test flow steps
             foreach (var stepConfig in testCase.Flow)
             {
-                // TODO: This would need to be implemented with step factory/registry
-                // For now, this is a placeholder showing the execution pattern
-                
-                // Parse step configuration and create step instance
-                // var step = stepFactory.CreateStep(stepConfig);
-                // var stepResult = await step.ExecuteAsync(executionContext);
-                // result.StepResults.Add(stepResult);
-                
-                // if (!stepResult.Success)
-                // {
-                //     result.Success = false;
-                //     result.ErrorMessage = stepResult.ErrorMessage;
-                //     break;
-                // }
+                try
+                {
+                    // Create step instance from configuration
+                    var step = _stepFactory.CreateStep(stepConfig);
+                    var stepResult = await step.ExecuteAsync(executionContext);
+                    result.StepResults.Add(stepResult);
+                    
+                    if (!stepResult.Success)
+                    {
+                        result.Success = false;
+                        result.ErrorMessage = stepResult.ErrorMessage;
+                        break;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    result.Success = false;
+                    result.ErrorMessage = $"Step execution failed: {ex.Message}";
+                    break;
+                }
             }
 
-            result.Success = true; // Placeholder - would be determined by step results
+            // Set success to true only if no errors occurred
+            if (result.ErrorMessage == null)
+            {
+                result.Success = true;
+            }
         }
         catch (Exception ex)
         {
