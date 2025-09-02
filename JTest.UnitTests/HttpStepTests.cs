@@ -11,11 +11,6 @@ namespace JTest.UnitTests;
 
 public class HttpStepTests
 {
-    private class TestExecutionContext : IExecutionContext
-    {
-        public Dictionary<string, object> Variables { get; } = new();
-        public IList<string> Log { get; } = new List<string>();
-    }
 
     private HttpStep CreateHttpStep(HttpResponseMessage? responseMessage = null, IDebugLogger? debugLogger = null)
     {

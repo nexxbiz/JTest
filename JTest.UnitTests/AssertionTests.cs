@@ -7,11 +7,6 @@ namespace JTest.UnitTests;
 
 public class AssertionTests
 {
-    private class TestExecutionContext : IExecutionContext
-    {
-        public Dictionary<string, object> Variables { get; } = new();
-        public IList<string> Log { get; } = new List<string>();
-    }
 
     [Fact]
     public void EqualsAssertion_WithIntegerValues_ReturnsTrue()
