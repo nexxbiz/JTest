@@ -261,7 +261,7 @@ public class UseStep : BaseStep
             StepType = "UseStep",
             StepId = Id ?? "",
             Enabled = true,
-            Result = success ? "✅ Success" : "❌ Failed",
+            Result = success ? "Success" : "Failed",
             Duration = stopwatch.Elapsed,
             Description = $"Execute template '{templateName}'"
         };

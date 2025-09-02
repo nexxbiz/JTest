@@ -29,7 +29,7 @@ public class DebugLoggerTests
         logger.LogStepExecution(stepInfo);
         var output = logger.GetOutput();
         
-        Assert.Contains("**Result:** ✅ Success", output);
+        Assert.Contains("**Result:** Success", output);
         Assert.Contains("**Duration:** 332,74ms", output);
     }
 
@@ -42,7 +42,7 @@ public class DebugLoggerTests
         logger.LogContextChanges(changes);
         var output = logger.GetOutput();
         
-        Assert.Contains("📋 **Context Changes:** None", output);
+        Assert.Contains("**Context Changes:** None", output);
     }
 
     [Fact]
@@ -54,10 +54,10 @@ public class DebugLoggerTests
         logger.LogContextChanges(changes);
         var output = logger.GetOutput();
         
-        Assert.Contains("**✅ Added:**", output);
+        Assert.Contains("**Added:**", output);
         Assert.Contains("- `$.execute-workflow` = {object with 5 properties}", output);
         Assert.Contains("- `$.workflowInstanceId` = \"b92e57abae5e5873\"", output);
-        Assert.Contains("**🔄 Modified:**", output);
+        Assert.Contains("**Modified:**", output);
         Assert.Contains("- `$.this`: {object with 0 properties} → {object with 3 properties}", output);
     }
 
@@ -70,7 +70,7 @@ public class DebugLoggerTests
         logger.LogContextChanges(changes);
         var output = logger.GetOutput();
         
-        Assert.Contains("💡 **For Assertions:** You can now reference these JSONPath expressions:", output);
+        Assert.Contains("**For Assertions:** You can now reference these JSONPath expressions:", output);
         Assert.Contains("- `$.execute-workflow` or `{{ $.execute-workflow }}`", output);
         Assert.Contains("  - Example: `$.execute-workflow.status`", output);
         Assert.Contains("- `$.workflowInstanceId` or `{{ $.workflowInstanceId }}`", output);
@@ -87,7 +87,7 @@ public class DebugLoggerTests
         var output = logger.GetOutput();
         
         Assert.Contains("<details>", output);
-        Assert.Contains("<summary>📋 Runtime Context (Click to expand)</summary>", output);
+        Assert.Contains("<summary>Runtime Context (Click to expand)</summary>", output);
         Assert.Contains("```json", output);
         Assert.Contains("\"env\":", output);
         Assert.Contains("\"this\":", output);
@@ -105,7 +105,7 @@ public class DebugLoggerTests
             TestNumber = 1,
             StepNumber = 1,
             StepType = "HttpStep",
-            Result = "✅ Success"
+            Result = "Success"
         };
         
         logger.LogStepExecution(stepInfo);
@@ -128,8 +128,8 @@ public class DebugLoggerTests
         logger.LogContextChanges(changes);
         var output = logger.GetOutput();
         
-        Assert.Contains("📋 **Context Changes:** None", output);
-        Assert.DoesNotContain("💡 **For Assertions:**", output);
+        Assert.Contains("**Context Changes:** None", output);
+        Assert.DoesNotContain("**For Assertions:**", output);
     }
 
     [Fact]
@@ -150,11 +150,11 @@ public class DebugLoggerTests
         Assert.Contains("## Test 1, Step 1: HttpStep", output);
         Assert.Contains("**Step ID:** execute-workflow", output);
         Assert.Contains("**Duration:** 332,74ms", output);
-        Assert.Contains("**✅ Added:**", output);
-        Assert.Contains("**🔄 Modified:**", output);
-        Assert.Contains("💡 **For Assertions:**", output);
+        Assert.Contains("**Added:**", output);
+        Assert.Contains("**Modified:**", output);
+        Assert.Contains("**For Assertions:**", output);
         Assert.Contains("<details>", output);
-        Assert.Contains("📋 Runtime Context", output);
+        Assert.Contains("Runtime Context", output);
         
         // Verify assertion guidance format matches sample exactly
         Assert.Contains("- `$.execute-workflow` or `{{ $.execute-workflow }}`", output);
@@ -177,7 +177,7 @@ public class DebugLoggerTests
             StepType = "UseStep",
             StepId = "",
             Enabled = false,
-            Result = "❌ Failed",
+            Result = "Failed",
             Duration = TimeSpan.FromMilliseconds(0.5),
             Description = ""
         };
@@ -201,10 +201,10 @@ public class DebugLoggerTests
         Assert.Contains("## Test 2, Step 3: UseStep", output);
         Assert.DoesNotContain("**Step ID:**", output); // Empty ID should not appear
         Assert.Contains("**Enabled:** False", output);
-        Assert.Contains("**Result:** ❌ Failed", output);
+        Assert.Contains("**Result:** Failed", output);
         Assert.Contains("0,50ms", output); // Test decimal formatting
-        Assert.Contains("📋 **Context Changes:** None", output);
-        Assert.DoesNotContain("💡 **For Assertions:**", output); // No assertions for empty changes
+        Assert.Contains("**Context Changes:** None", output);
+        Assert.DoesNotContain("**For Assertions:**", output); // No assertions for empty changes
     }
 
     [Fact]
@@ -231,12 +231,12 @@ public class DebugLoggerTests
         logger.LogAssertionResults(assertionResults);
         var output = logger.GetOutput();
         
-        Assert.Contains("🧪 **Assertion Results:**", output);
-        Assert.Contains("**✅ EQUALS** - PASSED", output);
+        Assert.Contains("**Assertion Results:**", output);
+        Assert.Contains("**EQUALS** - PASSED", output);
         Assert.Contains("  - Description: Check status code", output);
         Assert.Contains("  - Actual: `200`", output);
         Assert.Contains("  - Expected: `200`", output);
-        Assert.Contains("**✅ EXISTS** - PASSED", output);
+        Assert.Contains("**EXISTS** - PASSED", output);
         Assert.Contains("  - Description: Check response body exists", output);
         Assert.Contains("  - Actual: `response data`", output);
     }
@@ -265,13 +265,13 @@ public class DebugLoggerTests
         logger.LogAssertionResults(assertionResults);
         var output = logger.GetOutput();
         
-        Assert.Contains("🧪 **Assertion Results:**", output);
-        Assert.Contains("**❌ EQUALS** - FAILED", output);
+        Assert.Contains("**Assertion Results:**", output);
+        Assert.Contains("**EQUALS** - FAILED", output);
         Assert.Contains("  - Description: Check status code", output);
         Assert.Contains("  - Actual: `404`", output);
         Assert.Contains("  - Expected: `200`", output);
         Assert.Contains("  - Error: Expected 200 but got 404", output);
-        Assert.Contains("**❌ EXISTS** - FAILED", output);
+        Assert.Contains("**EXISTS** - FAILED", output);
         Assert.Contains("  - Error: Value is null", output);
     }
 
@@ -284,7 +284,7 @@ public class DebugLoggerTests
         logger.LogAssertionResults(assertionResults);
         var output = logger.GetOutput();
         
-        Assert.DoesNotContain("🧪 **Assertion Results:**", output);
+        Assert.DoesNotContain("**Assertion Results:**", output);
         Assert.Equal("", output); // Should produce no output
     }
 
@@ -315,12 +315,12 @@ public class DebugLoggerTests
         // Verify complete output structure includes assertion results
         Assert.Contains("## Test 1, Step 1: HttpStep", output);
         Assert.Contains("**Duration:** 332,74ms", output);
-        Assert.Contains("**✅ Added:**", output);
-        Assert.Contains("💡 **For Assertions:**", output);
-        Assert.Contains("🧪 **Assertion Results:**", output);
-        Assert.Contains("**✅ EQUALS** - PASSED", output);
+        Assert.Contains("**Added:**", output);
+        Assert.Contains("**For Assertions:**", output);
+        Assert.Contains("**Assertion Results:**", output);
+        Assert.Contains("**EQUALS** - PASSED", output);
         Assert.Contains("<details>", output);
-        Assert.Contains("📋 Runtime Context", output);
+        Assert.Contains("Runtime Context", output);
         
         // Print the complete debug output for demonstration
         Console.WriteLine("=== COMPLETE DEBUG MARKDOWN OUTPUT ===");
@@ -337,7 +337,7 @@ public class DebugLoggerTests
             StepType = "HttpStep",
             StepId = "execute-workflow",
             Enabled = true,
-            Result = "✅ Success",
+            Result = "Success",
             Duration = TimeSpan.FromMilliseconds(332.74),
             Description = "Execute workflow HTTP request"
         };
