@@ -1,7 +1,12 @@
 namespace JTest.Core.Execution;
 
 /// <summary>
-/// Default implementation of IExecutionContext for test execution
+/// Default implementation of IExecutionContext for test execution.
+/// 
+/// During dataset iterations, proper cleanup is implemented via TestCaseExecutor:
+/// - env variables: Immutable, preserved across iterations
+/// - globals: Shared state, modifications persist across iterations
+/// - other variables (ctx, this, named): Reset to original values for each iteration
 /// </summary>
 public class TestExecutionContext : IExecutionContext
 {
