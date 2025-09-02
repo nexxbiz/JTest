@@ -3,6 +3,7 @@ using JTest.Core.Debugging;
 using JTest.Core.Execution;
 using JTest.Core.Models;
 using JTest.Core.Steps;
+using JTest.Core.Templates;
 
 namespace JTest.Core;
 
@@ -13,11 +14,13 @@ public class TestRunner
 {
     private readonly TestCaseExecutor _executor;
     private readonly StepFactory _stepFactory;
+    private readonly TemplateProvider _templateProvider;
 
     public TestRunner()
     {
-        _executor = new TestCaseExecutor();
-        _stepFactory = new StepFactory();
+        _templateProvider = new TemplateProvider();
+        _stepFactory = new StepFactory(_templateProvider);
+        _executor = new TestCaseExecutor(_stepFactory);
     }
 
     /// <summary>
@@ -113,6 +116,15 @@ public class TestRunner
         };
         
         return JsonSerializer.Serialize(template, new JsonSerializerOptions { WriteIndented = true });
+    }
+    
+    /// <summary>
+    /// Loads templates from JSON definition
+    /// </summary>
+    /// <param name="jsonDefinition">The JSON template definition</param>
+    public void LoadTemplates(string jsonDefinition)
+    {
+        _templateProvider.LoadTemplatesFromJson(jsonDefinition);
     }
     
     /// <summary>

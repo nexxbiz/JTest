@@ -1,5 +1,6 @@
 using System.Text.Json;
 using JTest.Core.Debugging;
+using JTest.Core.Templates;
 
 namespace JTest.Core.Steps;
 
@@ -10,10 +11,12 @@ public class StepFactory
 {
     private readonly HttpClient _httpClient;
     private IDebugLogger? _debugLogger;
+    private readonly ITemplateProvider _templateProvider;
     
-    public StepFactory()
+    public StepFactory(ITemplateProvider? templateProvider = null)
     {
         _httpClient = new HttpClient();
+        _templateProvider = templateProvider ?? new TemplateProvider();
     }
     
     /// <summary>
@@ -46,6 +49,7 @@ public class StepFactory
         {
             "http" => new HttpStep(_httpClient, _debugLogger),
             "wait" => new WaitStep(),
+            "use" => new UseStep(_templateProvider, this, _debugLogger),
             _ => throw new ArgumentException($"Unknown step type: {stepType}")
         };
         
@@ -63,6 +67,11 @@ public class StepFactory
         
         return step;
     }
+    
+    /// <summary>
+    /// Gets the template provider
+    /// </summary>
+    public ITemplateProvider TemplateProvider => _templateProvider;
     
     /// <summary>
     /// Disposes resources used by the factory
