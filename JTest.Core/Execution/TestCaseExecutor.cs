@@ -105,8 +105,8 @@ public class TestCaseExecutor
                 executionContext.ClearCase();
             }
 
-            // Execute the test flow steps
-            foreach (var stepConfig in testCase.Flow)
+            // Execute the test steps
+            foreach (var stepConfig in testCase.Steps)
             {
                 try
                 {

@@ -13,7 +13,7 @@ public class TestCaseExecutorTests
         var testCase = new JTestCase
         {
             Name = "Simple test",
-            Flow = new List<object> { new { type = "wait", ms = 1 } },
+            Steps = new List<object> { new { type = "wait", ms = 1 } },
             Datasets = null
         };
         var baseContext = new TestExecutionContext();
@@ -36,7 +36,7 @@ public class TestCaseExecutorTests
         var testCase = new JTestCase
         {
             Name = "Test with empty datasets",
-            Flow = new List<object> { new { type = "wait", ms = 1 } },
+            Steps = new List<object> { new { type = "wait", ms = 1 } },
             Datasets = new List<JTestDataset>()
         };
         var baseContext = new TestExecutionContext();
@@ -58,7 +58,7 @@ public class TestCaseExecutorTests
         var testCase = new JTestCase
         {
             Name = "Data-driven test",
-            Flow = new List<object> { new { type = "wait", ms = 1 } },
+            Steps = new List<object> { new { type = "wait", ms = 1 } },
             Datasets = new List<JTestDataset>
             {
                 new() 
@@ -100,7 +100,7 @@ public class TestCaseExecutorTests
         var testCase = new JTestCase
         {
             Name = "Case context test",
-            Flow = new List<object>(), // Empty flow for this test
+            Steps = new List<object>(), // Empty steps for this test
             Datasets = new List<JTestDataset>
             {
                 new() 
@@ -140,7 +140,7 @@ public class TestCaseExecutorTests
         var testCase = new JTestCase
         {
             Name = "No dataset test",
-            Flow = new List<object>(),
+            Steps = new List<object>(),
             Datasets = null
         };
         
@@ -167,7 +167,7 @@ public class TestCaseExecutorTests
         var testCase = new JTestCase
         {
             Name = "Context preservation test",
-            Flow = new List<object>(),
+            Steps = new List<object>(),
             Datasets = new List<JTestDataset>
             {
                 new() { Name = "test", Case = new Dictionary<string, object> { ["caseVar"] = "caseValue" } }

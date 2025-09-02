@@ -14,10 +14,10 @@ public class JTestCase
     public string Name { get; set; } = string.Empty;
 
     /// <summary>
-    /// Gets or sets the test flow (sequence of steps)
+    /// Gets or sets the test steps (sequence of steps to execute)
     /// </summary>
-    [JsonPropertyName("flow")]
-    public List<object> Flow { get; set; } = new();
+    [JsonPropertyName("steps")]
+    public List<object> Steps { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the datasets for data-driven testing

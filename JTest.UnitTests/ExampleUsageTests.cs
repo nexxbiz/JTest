@@ -21,7 +21,7 @@ public class ExampleUsageTests
         var testCaseJson = """
         {
           "name": "Order processing",
-          "flow": [
+          "steps": [
             {
               "type": "http",
               "id": "createOrder", 

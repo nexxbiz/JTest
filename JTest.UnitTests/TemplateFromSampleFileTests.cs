@@ -54,7 +54,7 @@ public class TemplateFromSampleFileTests
         var testJson = """
         {
             "name": "Test authenticate template from sample",
-            "flow": [
+            "steps": [
                 {
                     "type": "use",
                     "template": "authenticate",

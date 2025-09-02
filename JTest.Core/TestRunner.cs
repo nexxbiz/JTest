@@ -44,14 +44,14 @@ public class TestRunner
             var root = jsonDoc.RootElement;
             
             // For backwards compatibility, allow basic JSON validation
-            // If it has 'name' and 'flow', validate as JTest schema
-            if (root.TryGetProperty("name", out _) || root.TryGetProperty("flow", out _))
+            // If it has 'name' and 'steps', validate as JTest schema
+            if (root.TryGetProperty("name", out _) || root.TryGetProperty("steps", out _))
             {
                 // JTest schema validation
                 if (!root.TryGetProperty("name", out _))
                     return false;
                     
-                if (!root.TryGetProperty("flow", out var flowElement) || flowElement.ValueKind != JsonValueKind.Array)
+                if (!root.TryGetProperty("steps", out var stepsElement) || stepsElement.ValueKind != JsonValueKind.Array)
                     return false;
             }
             
