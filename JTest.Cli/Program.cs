@@ -1,4 +1,6 @@
 ﻿using System.Text.Json;
+using JTest.Core;
+using JTest.Core.Debugging;
 
 namespace JTest;
 
@@ -23,6 +25,12 @@ public class JTestCli
 {
     private Dictionary<string, string> _envVars = new();
     private Dictionary<string, string> _globals = new();
+    private readonly TestRunner _testRunner;
+
+    public JTestCli()
+    {
+        _testRunner = new TestRunner();
+    }
 
     private static readonly string HelpText = @"JTEST CLI v1.0 - Universal Test Definition Language
 ==================================================
@@ -36,6 +44,7 @@ COMMANDS:
     export <format> <testfile> [output] Export tests to other frameworks
     debug <testfile>                    Run with verbose debug output and markdown log
     validate <testfile>                 Validate test file syntax
+    create <testname> [output]          Create a new test template
     --help, -h                          Show this help message
 
 EXPORT FORMATS:
@@ -67,6 +76,9 @@ EXAMPLES:
     # Debug mode with verbose output
     jtest debug tests.json
     jtest debug tests.json --env verbosity=Verbose
+
+    # Create a new test template
+    jtest create ""My API Test"" my_test.json
 
 For more information, visit: https://github.com/ELSA-X/JTEST";
 
@@ -109,6 +121,7 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
             "export" => await ExportCommand(parsedArgs.Skip(1).ToList()),
             "debug" => await DebugCommand(parsedArgs.Skip(1).ToList()),
             "validate" => await ValidateCommand(parsedArgs.Skip(1).ToList()),
+            "create" => await CreateCommand(parsedArgs.Skip(1).ToList()),
             _ => HandleUnknownCommand(command)
         };
     }
@@ -226,16 +239,16 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
 
     private bool IsKnownCommand(string command)
     {
-        return command.ToLower() is "run" or "export" or "debug" or "validate" or "--help" or "-h";
+        return command.ToLower() is "run" or "export" or "debug" or "validate" or "create" or "--help" or "-h";
     }
 
-    private Task<int> RunCommand(string command, List<string> args)
+    private async Task<int> RunCommand(string command, List<string> args)
     {
         if (args.Count == 0)
         {
             Console.Error.WriteLine($"Error: {command} command requires a test file argument");
             Console.Error.WriteLine($"Usage: jtest {command} <testfile>");
-            return Task.FromResult(1);
+            return 1;
         }
 
         var testFile = args[0];
@@ -243,7 +256,7 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
         if (!File.Exists(testFile))
         {
             Console.Error.WriteLine($"Error: Test file not found: {testFile}");
-            return Task.FromResult(1);
+            return 1;
         }
 
         Console.WriteLine($"Running test file: {testFile}");
@@ -266,10 +279,64 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
             }
         }
 
-        // TODO: Implement actual test running logic
-        Console.WriteLine("Test execution completed successfully.");
-        
-        return Task.FromResult(0);
+        try
+        {
+            // Read and execute the test file
+            var jsonContent = await File.ReadAllTextAsync(testFile);
+            
+            // Convert string dictionaries to object dictionaries
+            var environment = _envVars.ToDictionary(kvp => kvp.Key, kvp => (object)kvp.Value);
+            var globals = _globals.ToDictionary(kvp => kvp.Key, kvp => (object)kvp.Value);
+            
+            var results = await _testRunner.RunTestAsync(jsonContent, environment, globals);
+            
+            // Display results
+            var totalSuccess = 0;
+            var totalFailed = 0;
+            
+            foreach (var result in results)
+            {
+                Console.WriteLine($"\nTest: {result.TestCaseName}");
+                if (result.Dataset != null)
+                {
+                    Console.WriteLine($"Dataset: {result.Dataset.Name ?? "unnamed"}");
+                }
+                Console.WriteLine($"Status: {(result.Success ? "✓ PASSED" : "✗ FAILED")}");
+                Console.WriteLine($"Duration: {result.DurationMs}ms");
+                Console.WriteLine($"Steps executed: {result.StepResults.Count}");
+                
+                if (!result.Success && !string.IsNullOrEmpty(result.ErrorMessage))
+                {
+                    Console.WriteLine($"Error: {result.ErrorMessage}");
+                }
+                
+                if (result.Success)
+                    totalSuccess++;
+                else
+                    totalFailed++;
+            }
+            
+            Console.WriteLine($"\n=== TEST SUMMARY ===");
+            Console.WriteLine($"Total tests: {results.Count}");
+            Console.WriteLine($"Passed: {totalSuccess}");
+            Console.WriteLine($"Failed: {totalFailed}");
+            
+            if (totalFailed > 0)
+            {
+                Console.WriteLine("Test execution completed with failures.");
+                return 1;
+            }
+            else
+            {
+                Console.WriteLine("Test execution completed successfully.");
+                return 0;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Error executing test: {ex.Message}");
+            return 1;
+        }
     }
 
     private Task<int> ExportCommand(List<string> args)
@@ -318,13 +385,13 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
         return Task.FromResult(0);
     }
 
-    private Task<int> DebugCommand(List<string> args)
+    private async Task<int> DebugCommand(List<string> args)
     {
         if (args.Count == 0)
         {
             Console.Error.WriteLine("Error: debug command requires a test file argument");
             Console.Error.WriteLine("Usage: jtest debug <testfile>");
-            return Task.FromResult(1);
+            return 1;
         }
 
         var testFile = args[0];
@@ -332,7 +399,7 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
         if (!File.Exists(testFile))
         {
             Console.Error.WriteLine($"Error: Test file not found: {testFile}");
-            return Task.FromResult(1);
+            return 1;
         }
 
         Console.WriteLine($"Running test file in debug mode: {testFile}");
@@ -358,11 +425,102 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
             }
         }
 
-        // TODO: Implement actual debug execution logic
-        Console.WriteLine("\n## Test Execution");
-        Console.WriteLine("Debug execution completed successfully.");
+        try
+        {
+            // Read and execute the test file with debug logging
+            var jsonContent = await File.ReadAllTextAsync(testFile);
+            
+            // Convert string dictionaries to object dictionaries
+            var environment = _envVars.ToDictionary(kvp => kvp.Key, kvp => (object)kvp.Value);
+            var globals = _globals.ToDictionary(kvp => kvp.Key, kvp => (object)kvp.Value);
+            
+            // Create debug logger
+            var debugLogger = new MarkdownDebugLogger();
+            
+            var results = await _testRunner.RunTestAsync(jsonContent, environment, globals, debugLogger);
+            
+            Console.WriteLine("\n## Test Execution");
+            
+            // Display debug output
+            var debugOutput = debugLogger.GetOutput();
+            if (!string.IsNullOrEmpty(debugOutput))
+            {
+                Console.WriteLine(debugOutput);
+            }
+            
+            // Display results summary
+            var totalSuccess = 0;
+            var totalFailed = 0;
+            
+            foreach (var result in results)
+            {
+                if (result.Success)
+                    totalSuccess++;
+                else
+                    totalFailed++;
+                    
+                if (!result.Success && !string.IsNullOrEmpty(result.ErrorMessage))
+                {
+                    Console.WriteLine($"\n**❌ ERROR in {result.TestCaseName}:** {result.ErrorMessage}");
+                }
+            }
+            
+            Console.WriteLine($"\n## Summary");
+            Console.WriteLine($"- **Total tests:** {results.Count}");
+            Console.WriteLine($"- **✅ Passed:** {totalSuccess}");
+            Console.WriteLine($"- **❌ Failed:** {totalFailed}");
+            
+            if (totalFailed > 0)
+            {
+                Console.WriteLine("\nDebug execution completed with failures.");
+                return 1;
+            }
+            else
+            {
+                Console.WriteLine("\nDebug execution completed successfully.");
+                return 0;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"\n**❌ ERROR:** {ex.Message}");
+            return 1;
+        }
+    }
 
-        return Task.FromResult(0);
+    private async Task<int> CreateCommand(List<string> args)
+    {
+        if (args.Count == 0)
+        {
+            Console.Error.WriteLine("Error: create command requires a test name argument");
+            Console.Error.WriteLine("Usage: jtest create <testname> [output]");
+            return 1;
+        }
+
+        var testName = args[0];
+        var outputFile = args.Count > 1 ? args[1] : $"{testName.Replace(" ", "_").ToLowerInvariant()}.json";
+        
+        Console.WriteLine($"Creating test template: {testName}");
+        Console.WriteLine($"Output file: {outputFile}");
+
+        try
+        {
+            var templateJson = _testRunner.CreateTestTemplate(testName);
+            await File.WriteAllTextAsync(outputFile, templateJson);
+            
+            Console.WriteLine("✓ Test template created successfully.");
+            Console.WriteLine($"\nTo run the test:");
+            Console.WriteLine($"  jtest run {outputFile} --env baseUrl=https://your-api.com");
+            Console.WriteLine($"\nTo debug the test:");
+            Console.WriteLine($"  jtest debug {outputFile} --env baseUrl=https://your-api.com");
+            
+            return 0;
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Error creating test template: {ex.Message}");
+            return 1;
+        }
     }
 
     private async Task<int> ValidateCommand(List<string> args)
@@ -387,14 +545,23 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
         try
         {
             var json = await File.ReadAllTextAsync(testFile);
+            
+            // Basic JSON syntax validation
             JsonDocument.Parse(json);
             Console.WriteLine("✓ Valid JSON syntax");
             
-            // TODO: Implement actual JTEST schema validation
-            Console.WriteLine("✓ Valid JTEST schema");
-            Console.WriteLine("Validation completed successfully.");
-            
-            return 0;
+            // JTEST schema validation using TestRunner
+            if (_testRunner.ValidateTestDefinition(json))
+            {
+                Console.WriteLine("✓ Valid JTEST schema");
+                Console.WriteLine("Validation completed successfully.");
+                return 0;
+            }
+            else
+            {
+                Console.Error.WriteLine("✗ Invalid JTEST schema: Missing required properties (name, flow)");
+                return 1;
+            }
         }
         catch (JsonException ex)
         {
