@@ -15,12 +15,14 @@ public class TestRunner
     private readonly TestCaseExecutor _executor;
     private readonly StepFactory _stepFactory;
     private readonly TemplateProvider _templateProvider;
+    private readonly HttpClient _httpClient;
 
     public TestRunner()
     {
         _templateProvider = new TemplateProvider();
         _stepFactory = new StepFactory(_templateProvider);
         _executor = new TestCaseExecutor(_stepFactory);
+        _httpClient = new HttpClient();
     }
 
     /// <summary>
@@ -218,6 +220,12 @@ public class TestRunner
         // Merge global variables (parameter takes precedence)
         var mergedGlobals = MergeDictionaries(testSuite.Globals, globals);
         
+        // Create temporary context for template loading logging
+        var tempContext = CreateExecutionContext(mergedEnvironment, mergedGlobals);
+        
+        // Load templates from using statement before any test execution
+        await LoadTemplatesFromUsingAsync(testSuite.Using, tempContext);
+        
         var allResults = new List<JTestCaseResult>();
         
         // Execute each test case in the suite
@@ -295,5 +303,115 @@ public class TestRunner
         context.Variables["ctx"] = new Dictionary<string, object>();
         
         return context;
+    }
+
+    /// <summary>
+    /// Loads templates from the using statement before test execution
+    /// </summary>
+    /// <param name="usingPaths">List of template file paths or URLs</param>
+    /// <param name="context">Execution context for logging</param>
+    private async Task LoadTemplatesFromUsingAsync(List<string>? usingPaths, IExecutionContext context)
+    {
+        if (usingPaths == null || !usingPaths.Any())
+            return;
+
+        var loadedTemplateNames = new HashSet<string>();
+
+        foreach (var path in usingPaths)
+        {
+            try
+            {
+                context.Log.Add($"Loading templates from: {path}");
+                
+                string templateContent = await LoadContentFromPathAsync(path);
+                
+                // Parse to check for template names before loading
+                var templateNames = GetTemplateNamesFromJson(templateContent);
+                
+                // Check for overwrites and log warnings
+                foreach (var templateName in templateNames)
+                {
+                    if (loadedTemplateNames.Contains(templateName))
+                    {
+                        context.Log.Add($"Warning: Template '{templateName}' from '{path}' overwrites previously loaded template");
+                    }
+                    loadedTemplateNames.Add(templateName);
+                }
+                
+                _templateProvider.LoadTemplatesFromJson(templateContent);
+                context.Log.Add($"Successfully loaded templates from: {path}");
+            }
+            catch (Exception ex)
+            {
+                context.Log.Add($"Error loading templates from '{path}': {ex.Message}");
+                throw new InvalidOperationException($"Failed to load templates from '{path}': {ex.Message}", ex);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Loads content from either a file path or HTTP URL
+    /// </summary>
+    /// <param name="path">File path or HTTP URL</param>
+    /// <returns>The content as string</returns>
+    private async Task<string> LoadContentFromPathAsync(string path)
+    {
+        if (IsHttpUrl(path))
+        {
+            var response = await _httpClient.GetAsync(path);
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadAsStringAsync();
+        }
+        else
+        {
+            return await File.ReadAllTextAsync(path);
+        }
+    }
+
+    /// <summary>
+    /// Checks if a path is an HTTP URL
+    /// </summary>
+    /// <param name="path">The path to check</param>
+    /// <returns>True if HTTP URL, false otherwise</returns>
+    private static bool IsHttpUrl(string path)
+    {
+        return path.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+               path.StartsWith("https://", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Extracts template names from JSON content without fully deserializing
+    /// </summary>
+    /// <param name="jsonContent">The JSON content</param>
+    /// <returns>List of template names</returns>
+    private static List<string> GetTemplateNamesFromJson(string jsonContent)
+    {
+        var names = new List<string>();
+        
+        try
+        {
+            using var document = JsonDocument.Parse(jsonContent);
+            var root = document.RootElement;
+            
+            if (root.TryGetProperty("components", out var components) &&
+                components.TryGetProperty("templates", out var templates) &&
+                templates.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var template in templates.EnumerateArray())
+                {
+                    if (template.TryGetProperty("name", out var nameElement) &&
+                        nameElement.ValueKind == JsonValueKind.String)
+                    {
+                        names.Add(nameElement.GetString() ?? "");
+                    }
+                }
+            }
+        }
+        catch
+        {
+            // If parsing fails, return empty list - the main loading will handle the error
+        }
+        
+        return names;
     }
 }
