@@ -11,26 +11,26 @@
 **Step Type:** HttpStep
 **Enabled:** True
 
-**Result:** ✅ Success
+**Result:** Success
 **Duration:** 332,74ms
 
-📋 **Context Changes:**
+**Context Changes:**
 
-**✅ Added:**
+**Added:**
 - `$.execute-workflow` = {object with 5 properties}
 - `$.workflowInstanceId` = "b92e57abae5e5873"
 
-**🔄 Modified:**
+**Modified:**
 - `$.this`: {object with 0 properties} → {object with 3 properties}
 
-💡 **For Assertions:** You can now reference these JSONPath expressions:
+**For Assertions:** You can now reference these JSONPath expressions:
 - `$.execute-workflow` or `{{ $.execute-workflow }}`
   - Example: `$.execute-workflow.status`
 - `$.workflowInstanceId` or `{{ $.workflowInstanceId }}`
 - `$.this` or `{{ $.this }}`
 
 <details>
-<summary>📋 Runtime Context (Click to expand)</summary>
+<summary>Runtime Context (Click to expand)</summary>
 
 ```json
 {
@@ -283,13 +283,13 @@
 **Step Type:** UseStep
 **Enabled:** True
 
-**Result:** ✅ Success
+**Result:** Success
 **Duration:** 359,92ms
 
-📋 **Context Changes:** None
+**Context Changes:** None
 
 <details>
-<summary>📋 Runtime Context (Click to expand)</summary>
+<summary>Runtime Context (Click to expand)</summary>
 
 ```json
 {
@@ -542,7 +542,7 @@
 
 **Total Duration:** 0,89 seconds
 **Tests Executed:** 1
-**Completion Status:** ✅ Completed
+**Completion Status:** Completed
 **Errors:** 0
 **Total Steps:** 2
 **HTTP Requests:** 2

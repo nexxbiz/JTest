@@ -9,9 +9,11 @@
 
 ### Response style
 - Use sentence casing in all text and documentation
-- Avoid using icons, emojis, or special symbols
+- NEVER use icons, emojis, or Unicode symbols (✓, ✗, ❌, ✅, 💡, 📋, 🔄, 🧪, etc.)
+- Replace any existing icons with descriptive text (SUCCESS, FAILED, INFO, etc.)
 - Keep responses concise and professional
 - Focus on clarity over verbosity
+- Ensure all output is accessible and works in text-only environments
 
 ## Code standards
 

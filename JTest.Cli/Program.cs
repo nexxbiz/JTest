@@ -301,7 +301,7 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
                 {
                     Console.WriteLine($"Dataset: {result.Dataset.Name ?? "unnamed"}");
                 }
-                Console.WriteLine($"Status: {(result.Success ? "✓ PASSED" : "✗ FAILED")}");
+                Console.WriteLine($"Status: {(result.Success ? "PASSED" : "FAILED")}");
                 Console.WriteLine($"Duration: {result.DurationMs}ms");
                 Console.WriteLine($"Steps executed: {result.StepResults.Count}");
                 
@@ -461,14 +461,14 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
                     
                 if (!result.Success && !string.IsNullOrEmpty(result.ErrorMessage))
                 {
-                    Console.WriteLine($"\n**❌ ERROR in {result.TestCaseName}:** {result.ErrorMessage}");
+                    Console.WriteLine($"\nERROR in {result.TestCaseName}: {result.ErrorMessage}");
                 }
             }
             
             Console.WriteLine($"\n## Summary");
             Console.WriteLine($"- **Total tests:** {results.Count}");
-            Console.WriteLine($"- **✅ Passed:** {totalSuccess}");
-            Console.WriteLine($"- **❌ Failed:** {totalFailed}");
+            Console.WriteLine($"- Passed: {totalSuccess}");
+            Console.WriteLine($"- Failed: {totalFailed}");
             
             if (totalFailed > 0)
             {
@@ -483,7 +483,7 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"\n**❌ ERROR:** {ex.Message}");
+            Console.Error.WriteLine($"\nERROR: {ex.Message}");
             return 1;
         }
     }
@@ -508,7 +508,7 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
             var templateJson = _testRunner.CreateTestTemplate(testName);
             await File.WriteAllTextAsync(outputFile, templateJson);
             
-            Console.WriteLine("✓ Test template created successfully.");
+            Console.WriteLine("Test template created successfully.");
             Console.WriteLine($"\nTo run the test:");
             Console.WriteLine($"  jtest run {outputFile} --env baseUrl=https://your-api.com");
             Console.WriteLine($"\nTo debug the test:");
@@ -548,29 +548,29 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
             
             // Basic JSON syntax validation
             JsonDocument.Parse(json);
-            Console.WriteLine("✓ Valid JSON syntax");
+            Console.WriteLine("Valid JSON syntax");
             
             // JTEST schema validation using TestRunner
             if (_testRunner.ValidateTestDefinition(json))
             {
-                Console.WriteLine("✓ Valid JTEST schema");
+                Console.WriteLine("Valid JTEST schema");
                 Console.WriteLine("Validation completed successfully.");
                 return 0;
             }
             else
             {
-                Console.Error.WriteLine("✗ Invalid JTEST schema: Missing required properties (name, flow)");
+                Console.Error.WriteLine("Invalid JTEST schema: Missing required properties (name, flow)");
                 return 1;
             }
         }
         catch (JsonException ex)
         {
-            Console.Error.WriteLine($"✗ Invalid JSON syntax: {ex.Message}");
+            Console.Error.WriteLine($"Invalid JSON syntax: {ex.Message}");
             return 1;
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"✗ Validation error: {ex.Message}");
+            Console.Error.WriteLine($"Validation error: {ex.Message}");
             return 1;
         }
     }
