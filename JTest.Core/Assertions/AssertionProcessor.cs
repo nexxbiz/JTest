@@ -149,7 +149,7 @@ public class ExistsAssertion : IAssertionOperation
 /// </summary>
 public class GreaterThanAssertion : IAssertionOperation
 {
-    public string OperationType => "greater-than";
+    public string OperationType => "greaterthan";
 
     public AssertionResult Execute(object? actualValue, object? expectedValue)
     {
@@ -183,7 +183,7 @@ public class GreaterThanAssertion : IAssertionOperation
 /// </summary>
 public class LessThanAssertion : IAssertionOperation
 {
-    public string OperationType => "less-than";
+    public string OperationType => "lessthan";
 
     public AssertionResult Execute(object? actualValue, object? expectedValue)
     {

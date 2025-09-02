@@ -206,7 +206,7 @@ public class AssertionTests
             var assertionJson = """
             [
                 {
-                    "op": "less-than",
+                    "op": "lessthan",
                     "actualValue": "{{$.response.duration}}",
                     "expectedValue": 60.0
                 }
