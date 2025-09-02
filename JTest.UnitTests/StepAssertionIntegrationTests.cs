@@ -7,11 +7,6 @@ namespace JTest.UnitTests;
 
 public class StepAssertionIntegrationTests
 {
-    private class TestExecutionContext : IExecutionContext
-    {
-        public Dictionary<string, object> Variables { get; } = new();
-        public IList<string> Log { get; } = new List<string>();
-    }
 
     [Fact]
     public async Task WaitStep_WithSimpleAssertions_ProcessesCorrectly()
