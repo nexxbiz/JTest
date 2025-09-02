@@ -171,4 +171,34 @@ public class UsingStatementTests
         // The overwrite warning should be logged but we can't easily check it in this test
         // The important thing is that it doesn't fail and uses the last loaded template
     }
+
+    [Fact]
+    public async Task RunTestAsync_WithInvalidHttpUrl_ThrowsException()
+    {
+        // Arrange
+        var testRunner = new TestRunner();
+        var testSuiteJson = """
+        {
+            "version": "1.0",
+            "using": [
+                "https://nonexistent.invalid.url/templates.json"
+            ],
+            "tests": [
+                {
+                    "name": "Test with invalid HTTP URL",
+                    "steps": [
+                        {
+                            "type": "wait",
+                            "ms": 10
+                        }
+                    ]
+                }
+            ]
+        }
+        """;
+
+        // Act & Assert
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => testRunner.RunTestAsync(testSuiteJson));
+    }
 }
