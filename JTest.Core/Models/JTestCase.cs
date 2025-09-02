@@ -14,6 +14,12 @@ public class JTestCase
     public string Name { get; set; } = string.Empty;
 
     /// <summary>
+    /// Gets or sets the description of the test case
+    /// </summary>
+    [JsonPropertyName("description")]
+    public string? Description { get; set; }
+
+    /// <summary>
     /// Gets or sets the test steps (sequence of steps to execute)
     /// </summary>
     [JsonPropertyName("steps")]
