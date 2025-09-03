@@ -1,12 +1,83 @@
+using System.Net;
+using System.Text;
 using System.Text.Json;
 using JTest.Core.Debugging;
 using JTest.Core.Execution;
 using JTest.Core.Models;
 using JTest.Core.Steps;
 using JTest.Core.Templates;
+using Moq;
+using Moq.Protected;
 using Xunit;
 
 namespace JTest.UnitTests;
+
+/// <summary>
+/// Test step factory that creates mocked HttpStep with debug logging for testing
+/// </summary>
+public class TestStepFactory : StepFactory
+{
+    private readonly IDebugLogger? _debugLogger;
+    
+    public TestStepFactory(ITemplateProvider templateProvider, IDebugLogger? debugLogger) 
+        : base(templateProvider)
+    {
+        _debugLogger = debugLogger;
+    }
+    
+    public override IStep CreateStep(object stepConfig)
+    {
+        var json = JsonSerializer.Serialize(stepConfig);
+        var jsonElement = JsonSerializer.Deserialize<JsonElement>(json);
+        
+        if (!jsonElement.TryGetProperty("type", out var typeElement))
+        {
+            throw new ArgumentException("Step configuration must have a 'type' property");
+        }
+        
+        var stepType = typeElement.GetString();
+        
+        IStep step = stepType?.ToLowerInvariant() switch
+        {
+            "http" => CreateMockedHttpStep(),
+            "wait" => new WaitStep(),
+            "use" => new UseStep(TemplateProvider, this, _debugLogger),
+            _ => throw new ArgumentException($"Unknown step type: {stepType}")
+        };
+        
+        // Set step ID if provided
+        if (jsonElement.TryGetProperty("id", out var idElement))
+        {
+            step.Id = idElement.GetString();
+        }
+        
+        // Validate configuration
+        if (!step.ValidateConfiguration(jsonElement))
+        {
+            throw new ArgumentException($"Invalid configuration for step type '{stepType}'");
+        }
+        
+        return step;
+    }
+    
+    private HttpStep CreateMockedHttpStep()
+    {
+        var mockHandler = new Mock<HttpMessageHandler>();
+        var response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent("{\"result\":\"success\",\"statusCode\":200}", Encoding.UTF8, "application/json")
+        };
+        
+        mockHandler.Protected()
+            .Setup<Task<HttpResponseMessage>>("SendAsync", 
+                ItExpr.IsAny<HttpRequestMessage>(), 
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(response);
+            
+        var httpClient = new HttpClient(mockHandler.Object);
+        return new HttpStep(httpClient, _debugLogger);
+    }
+}
 
 public class UseStepTests
 {
@@ -687,5 +758,83 @@ public class TemplateProviderTests
         Console.WriteLine(output);
         Console.WriteLine($"=== Details sections found: {detailsCount} ===");
         Console.WriteLine("=== END OUTPUT ===");
+    }
+
+    [Fact]
+    public async Task UseStep_WithTemplateContainingStep_ShowsCorrectLoggingOrder()
+    {
+        // Arrange - Create a custom step factory that creates mocked HttpStep with debug logging
+        var templateProvider = new TemplateProvider();
+        var debugLogger = new MarkdownDebugLogger();
+        
+        // Use reflection to create a custom StepFactory that will create HttpStep with debug logging
+        var stepFactory = new TestStepFactory(templateProvider, debugLogger);
+        
+        // Template containing an HTTP step
+        var templatesJson = """
+        {
+            "version": "1.0",
+            "components": {
+                "templates": [
+                    {
+                        "name": "http-template",
+                        "params": {
+                            "url": { "type": "string", "required": true }
+                        },
+                        "steps": [
+                            {
+                                "type": "http",
+                                "id": "call-api",
+                                "method": "GET",
+                                "url": "{{$.url}}"
+                            }
+                        ],
+                        "output": {
+                            "response": "{{$.this.statusCode}}"
+                        }
+                    }
+                ]
+            }
+        }
+        """;
+        templateProvider.LoadTemplatesFromJson(templatesJson);
+        
+        var useStep = new UseStep(templateProvider, stepFactory, debugLogger);
+        
+        var config = JsonSerializer.Deserialize<JsonElement>("""
+        {
+            "type": "use",
+            "template": "http-template",
+            "with": {
+                "url": "https://api.example.com"
+            }
+        }
+        """);
+        useStep.ValidateConfiguration(config);
+        
+        var context = new TestExecutionContext();
+
+        // Act
+        var result = await useStep.ExecuteAsync(context);
+
+        // Assert
+        Assert.True(result.Success, result.ErrorMessage ?? "Unknown error");
+        
+        var output = debugLogger.GetOutput();
+        
+        // The problem: Currently this shows HttpStep as a separate step
+        // It should show UseStep with template details in collapsible format
+        
+        // Print the output to see current incorrect behavior  
+        Console.WriteLine("=== CURRENT INCORRECT LOGGING ORDER ===");
+        Console.WriteLine(output);
+        Console.WriteLine("=== END OUTPUT ===");
+        
+        // Count step headers - there should only be ONE step header for UseStep
+        var stepHeaderCount = output.Split("## Test").Length - 1;
+        
+        // Currently this will fail because we have both UseStep and HttpStep headers
+        // After fix, this should pass with only 1 step header (UseStep)
+        Assert.Equal(1, stepHeaderCount); // This will currently fail, demonstrating the problem
     }
 }
