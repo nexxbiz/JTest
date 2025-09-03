@@ -414,6 +414,102 @@ public class UseStepTests
         Console.WriteLine(output);
         Console.WriteLine("=== END OUTPUT ===");
     }
+
+    [Fact]
+    public async Task UseStep_WithComplexTemplate_ShowsAllExecutionDetails()
+    {
+        // Arrange
+        var templateProvider = new TemplateProvider();
+        var stepFactory = new StepFactory(templateProvider);
+        var debugLogger = new MarkdownDebugLogger();
+        
+        var templateJson = """
+        {
+            "version": "1.0",
+            "components": {
+                "templates": [
+                    {
+                        "name": "complex-template",
+                        "params": {
+                            "baseUrl": { "type": "string", "required": true },
+                            "retries": { "type": "number", "required": false, "default": 3 },
+                            "timeout": { "type": "number", "required": false, "default": 30 }
+                        },
+                        "steps": [
+                            {
+                                "type": "wait",
+                                "ms": 1
+                            }
+                        ],
+                        "output": {
+                            "finalUrl": "{{$.baseUrl}}/api",
+                            "retryCount": "{{$.retries}}",
+                            "timeoutMs": "{{$.timeout}}"
+                        }
+                    }
+                ]
+            }
+        }
+        """;
+        templateProvider.LoadTemplatesFromJson(templateJson);
+        
+        var useStep = new UseStep(templateProvider, stepFactory, debugLogger);
+        
+        var config = JsonSerializer.Deserialize<JsonElement>("""
+        {
+            "template": "complex-template",
+            "with": {
+                "baseUrl": "https://complex.api.com"
+            },
+            "save": {
+                "$.globals.finalUrl": "{{$.this.finalUrl}}",
+                "$.globals.retries": "{{$.this.retryCount}}"
+            }
+        }
+        """);
+        useStep.ValidateConfiguration(config);
+        
+        var context = new TestExecutionContext();
+        context.Variables["globals"] = new Dictionary<string, object>();
+
+        // Act
+        var result = await useStep.ExecuteAsync(context);
+
+        // Assert
+        Assert.True(result.Success, result.ErrorMessage ?? "Unknown error");
+        
+        var output = debugLogger.GetOutput();
+        
+        // Verify template execution details show steps were executed
+        Assert.Contains("### Template Execution Details", output);
+        Assert.Contains("**Template:** complex-template", output);
+        Assert.Contains("**Steps Executed:** 1", output);
+        
+        // Verify input parameters including default values
+        Assert.Contains("**Input Parameters:**", output);
+        Assert.Contains("- `baseUrl`: \"https://complex.api.com\"", output);
+        
+        // Verify template outputs with computed values
+        Assert.Contains("**Template Outputs:**", output);
+        Assert.Contains("- `finalUrl`: \"https://complex.api.com/api\"", output);
+        Assert.Contains("- `retryCount`: 3", output);
+        Assert.Contains("- `timeoutMs`: 30", output);
+        
+        // Verify multiple saved variables
+        Assert.Contains("**Variables Saved:**", output);
+        Assert.Contains("- `$.globals.finalUrl`: \"https://complex.api.com/api\"", output);
+        Assert.Contains("- `$.globals.retries`: 3", output);
+        
+        // Verify the actual saved values in context
+        var globals = Assert.IsType<Dictionary<string, object>>(context.Variables["globals"]);
+        Assert.Equal("https://complex.api.com/api", globals["finalUrl"]);
+        Assert.Equal(3, globals["retries"]);
+        
+        // Print the complete debug output for verification
+        Console.WriteLine("=== COMPLEX TEMPLATE DEBUG OUTPUT ===");
+        Console.WriteLine(output);
+        Console.WriteLine("=== END OUTPUT ===");
+    }
 }
 
 public class TemplateProviderTests
