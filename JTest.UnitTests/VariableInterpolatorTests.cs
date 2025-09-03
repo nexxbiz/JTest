@@ -231,4 +231,109 @@ public class VariableInterpolatorTests
             CultureInfo.CurrentCulture = originalCulture;
         }
     }
+    
+    [Fact]
+    public void ResolveVariableTokens_WithCaseData_ShouldReplaceAllTokens()
+    {
+        // Arrange - reproduce the issue from the problem statement
+        var context = new TestExecutionContext();
+        var caseData = new Dictionary<string, object>
+        {
+            ["isTrue"] = false,
+            ["expectedCondition"] = false,
+            ["testScenario"] = "false condition path"
+        };
+        context.SetCase(caseData);
+        
+        // This is the problematic input from the problem statement
+        var input = "{{$.case.isTrue}}";
+        
+        // Act
+        var result = VariableInterpolator.ResolveVariableTokens(input, context);
+        
+        // Assert - should resolve to the actual value, not remain as token
+        Assert.Equal(false, result);
+        Assert.NotEqual("{{$.case.isTrue}}", result);
+    }
+    
+    [Fact]
+    public void ResolveVariableTokens_InComplexObject_ShouldReplaceAllTokens()
+    {
+        // Arrange - test with more complex scenario
+        var context = new TestExecutionContext();
+        var caseData = new Dictionary<string, object>
+        {
+            ["isTrue"] = false,
+            ["expectedCondition"] = false,
+            ["testScenario"] = "false condition path"
+        };
+        context.SetCase(caseData);
+        
+        // Test a template string that might appear in JSON output
+        var input = "Request: { \"isTrue\": \"{{$.case.isTrue}}\" }";
+        
+        // Act
+        var result = VariableInterpolator.ResolveVariableTokens(input, context);
+        
+        // Assert
+        Assert.Equal("Request: { \"isTrue\": \"False\" }", result);
+        Assert.DoesNotContain("{{$.case.isTrue}}", result.ToString());
+    }
+    
+    [Fact]
+    public void ResolveVariableTokens_WithNestedComplexPaths_ShouldReplaceCorrectly()
+    {
+        // Arrange - test case that might reveal the issue
+        var context = new TestExecutionContext();
+        context.Variables["workflowResponse"] = new Dictionary<string, object>
+        {
+            ["request"] = new Dictionary<string, object>
+            {
+                ["isTrue"] = "{{$.case.isTrue}}"
+            }
+        };
+        var caseData = new Dictionary<string, object>
+        {
+            ["isTrue"] = false
+        };
+        context.SetCase(caseData);
+        
+        // This simulates a complex nested scenario like in the problem statement
+        var input = "{{$.workflowResponse.request.isTrue}}";
+        
+        // Act
+        var result = VariableInterpolator.ResolveVariableTokens(input, context);
+        
+        // Assert
+        Assert.Equal("{{$.case.isTrue}}", result); // This should NOT be the result - it should be "False"
+    }
+    
+    [Fact]
+    public void ResolveVariableTokens_WithDoubleNesting_ShouldResolveCompletely()
+    {
+        // Arrange - test to verify the exact scenario from problem statement
+        var context = new TestExecutionContext();
+        var caseData = new Dictionary<string, object>
+        {
+            ["isTrue"] = false
+        };
+        context.SetCase(caseData);
+        
+        // Simulate the exact scenario - where a token contains another token that needs resolution
+        // This is the bug: when a resolved value contains another token, it should be resolved further
+        context.Variables["nested"] = new Dictionary<string, object>
+        {
+            ["template"] = "{{$.case.isTrue}}"
+        };
+        
+        var complexInput = "{{$.nested.template}}";
+        
+        // Act
+        var result = VariableInterpolator.ResolveVariableTokens(complexInput, context);
+        
+        // Assert
+        // This should resolve completely to "False", not remain as "{{$.case.isTrue}}"
+        Assert.Equal(false, result); // This test should fail with current implementation
+        Assert.NotEqual("{{$.case.isTrue}}", result); // This is the bug - it currently returns this
+    }
 }
