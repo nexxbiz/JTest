@@ -16,6 +16,12 @@ public class MarkdownDebugLogger : IDebugLogger
     {
         WriteStepHeader(stepInfo);
         WriteStepDetails(stepInfo);
+        
+        // Add template execution details for UseStep
+        if (stepInfo.TemplateExecution != null)
+        {
+            WriteTemplateExecutionDetails(stepInfo.TemplateExecution);
+        }
     }
     
     public void LogContextChanges(ContextChanges changes)
@@ -212,5 +218,62 @@ public class MarkdownDebugLogger : IDebugLogger
             Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
         };
         return JsonSerializer.Serialize(context, options);
+    }
+
+    private void WriteTemplateExecutionDetails(TemplateExecutionInfo templateInfo)
+    {
+        _output.AppendLine("### Template Execution Details");
+        _output.AppendLine();
+        
+        _output.AppendLine($"**Template:** {templateInfo.TemplateName}");
+        _output.AppendLine($"**Steps Executed:** {templateInfo.StepsExecuted}");
+        _output.AppendLine();
+        
+        // Input parameters
+        if (templateInfo.InputParameters.Any())
+        {
+            _output.AppendLine("**Input Parameters:**");
+            foreach (var param in templateInfo.InputParameters)
+            {
+                var valueDesc = DescribeValue(param.Value);
+                _output.AppendLine($"- `{param.Key}`: {valueDesc}");
+            }
+            _output.AppendLine();
+        }
+        
+        // Template outputs
+        if (templateInfo.OutputValues.Any())
+        {
+            _output.AppendLine("**Template Outputs:**");
+            foreach (var output in templateInfo.OutputValues)
+            {
+                var valueDesc = DescribeValue(output.Value);
+                _output.AppendLine($"- `{output.Key}`: {valueDesc}");
+            }
+            _output.AppendLine();
+        }
+        
+        // Saved variables
+        if (templateInfo.SavedVariables.Any())
+        {
+            _output.AppendLine("**Variables Saved:**");
+            foreach (var saved in templateInfo.SavedVariables)
+            {
+                var valueDesc = DescribeValue(saved.Value);
+                _output.AppendLine($"- `{saved.Key}`: {valueDesc}");
+            }
+            _output.AppendLine();
+        }
+    }
+
+    private string DescribeValue(object value)
+    {
+        if (value == null) return "null";
+        if (value is string str) return $"\"{str}\"";
+        
+        if (value is IDictionary<string, object> dict)
+            return $"{{object with {dict.Count} properties}}";
+        
+        return value.ToString() ?? "unknown";
     }
 }

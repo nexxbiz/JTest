@@ -42,19 +42,24 @@ public class UseStep : BaseStep
     {
         var contextBefore = CloneContext(context);
         var stopwatch = Stopwatch.StartNew();
+        TemplateExecutionInfo? templateInfo = null;
         
         try
         {
-            var result = await ExecuteTemplateAsync(context, stopwatch);
+            var (result, templateExecInfo) = await ExecuteTemplateAsync(context, stopwatch);
+            templateInfo = templateExecInfo;
             stopwatch.Stop();
             
             // Store result in context and process save operations (consistent with other steps)
             StoreResultInContext(context, result);
             
+            // Capture saved variables after save operations are processed
+            CaptureSavedVariables(context, contextBefore, templateInfo);
+            
             // Process assertions after storing result data (consistent with other steps)
             var assertionResults = await ProcessAssertionsAsync(context);
             
-            LogDebugInformation(context, contextBefore, stopwatch, true);
+            LogDebugInformation(context, contextBefore, stopwatch, true, templateInfo);
             var stepResult = StepResult.CreateSuccess(result, stopwatch.ElapsedMilliseconds);
             stepResult.AssertionResults = assertionResults;
             return stepResult;
@@ -63,12 +68,12 @@ public class UseStep : BaseStep
         {
             stopwatch.Stop();
             context.Log.Add($"Template execution failed: {ex.Message}");
-            LogDebugInformation(context, contextBefore, stopwatch, false);
+            LogDebugInformation(context, contextBefore, stopwatch, false, templateInfo);
             return StepResult.CreateFailure(ex.Message, stopwatch.ElapsedMilliseconds);
         }
     }
 
-    private async Task<object> ExecuteTemplateAsync(IExecutionContext context, Stopwatch stopwatch)
+    private async Task<(object result, TemplateExecutionInfo templateInfo)> ExecuteTemplateAsync(IExecutionContext context, Stopwatch stopwatch)
     {
         // Get template name
         var templateName = Configuration.GetProperty("template").GetString()
@@ -80,6 +85,17 @@ public class UseStep : BaseStep
 
         // Create isolated execution context for template
         var templateContext = CreateIsolatedTemplateContext(context, template);
+
+        // Capture input parameters for debugging
+        var inputParameters = new Dictionary<string, object>();
+        if (Configuration.TryGetProperty("with", out var withElement) && withElement.ValueKind == JsonValueKind.Object)
+        {
+            foreach (var param in withElement.EnumerateObject())
+            {
+                var resolvedValue = ResolveParameterValue(param.Value, context);
+                inputParameters[param.Name] = resolvedValue;
+            }
+        }
 
         // Execute template steps
         var templateResults = new List<object>();
@@ -105,8 +121,18 @@ public class UseStep : BaseStep
         resultData["type"] = "template";
         resultData["templateName"] = templateName;
         resultData["steps"] = templateResults.Count;
+
+        // Create template execution info for debugging (savedVariables will be filled later)
+        var templateInfo = new TemplateExecutionInfo
+        {
+            TemplateName = templateName,
+            InputParameters = inputParameters,
+            StepsExecuted = templateResults.Count,
+            OutputValues = outputs,
+            SavedVariables = new Dictionary<string, object>() // Will be populated after save operations
+        };
         
-        return resultData;
+        return (resultData, templateInfo);
     }
 
     private TestExecutionContext CreateIsolatedTemplateContext(IExecutionContext parentContext, Template template)
@@ -227,11 +253,67 @@ public class UseStep : BaseStep
         return new Dictionary<string, object>(context.Variables);
     }
 
-    private void LogDebugInformation(IExecutionContext context, Dictionary<string, object> contextBefore, Stopwatch stopwatch, bool success)
+    private void CaptureSavedVariables(IExecutionContext context, Dictionary<string, object> contextBefore, TemplateExecutionInfo templateInfo)
+    {
+        if (Configuration.TryGetProperty("save", out var saveElement) && saveElement.ValueKind == JsonValueKind.Object)
+        {
+            foreach (var saveProperty in saveElement.EnumerateObject())
+            {
+                var targetPath = saveProperty.Name;
+                
+                // Try to get the actual saved value from the context
+                if (TryGetValueFromPath(context.Variables, targetPath, out var savedValue))
+                {
+                    templateInfo.SavedVariables[targetPath] = savedValue ?? "";
+                }
+            }
+        }
+    }
+
+    private bool TryGetValueFromPath(Dictionary<string, object> context, string path, out object? value)
+    {
+        value = null;
+        
+        if (path.StartsWith("$."))
+        {
+            var pathParts = path.Substring(2).Split('.');
+            if (pathParts.Length >= 2)
+            {
+                var scope = pathParts[0];
+                var key = pathParts[1];
+                
+                if (context.ContainsKey(scope) && context[scope] is Dictionary<string, object> scopeDict)
+                {
+                    if (scopeDict.ContainsKey(key))
+                    {
+                        value = scopeDict[key];
+                        return true;
+                    }
+                }
+            }
+            else if (pathParts.Length == 1)
+            {
+                if (context.ContainsKey(pathParts[0]))
+                {
+                    value = context[pathParts[0]];
+                    return true;
+                }
+            }
+        }
+        else if (context.ContainsKey(path))
+        {
+            value = context[path];
+            return true;
+        }
+        
+        return false;
+    }
+
+    private void LogDebugInformation(IExecutionContext context, Dictionary<string, object> contextBefore, Stopwatch stopwatch, bool success, TemplateExecutionInfo? templateInfo = null)
     {
         if (_debugLogger == null) return;
         
-        var stepInfo = CreateStepDebugInfo(stopwatch, success);
+        var stepInfo = CreateStepDebugInfo(stopwatch, success, templateInfo);
         var contextChanges = DetectContextChanges(contextBefore, context.Variables);
         
         _debugLogger.LogStepExecution(stepInfo);
@@ -239,7 +321,7 @@ public class UseStep : BaseStep
         _debugLogger.LogRuntimeContext(context.Variables);
     }
 
-    private StepDebugInfo CreateStepDebugInfo(Stopwatch stopwatch, bool success)
+    private StepDebugInfo CreateStepDebugInfo(Stopwatch stopwatch, bool success, TemplateExecutionInfo? templateInfo = null)
     {
         var templateName = Configuration.TryGetProperty("template", out var templateElement) 
             ? templateElement.GetString() ?? "unknown" 
@@ -254,7 +336,8 @@ public class UseStep : BaseStep
             Enabled = true,
             Result = success ? "Success" : "Failed",
             Duration = stopwatch.Elapsed,
-            Description = $"Execute template '{templateName}'"
+            Description = $"Execute template '{templateName}'",
+            TemplateExecution = templateInfo
         };
     }
 
