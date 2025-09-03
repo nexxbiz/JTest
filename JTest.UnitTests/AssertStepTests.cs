@@ -111,7 +111,7 @@ public class AssertStepTests
         var result = await step.ExecuteAsync(context);
         
         // Assert
-        Assert.True(result.Success); // Step execution succeeds even if assertions fail
+        Assert.False(result.Success); // Step execution should fail when assertions fail
         Assert.Equal(3, result.AssertionResults.Count);
         
         // Check individual assertion results

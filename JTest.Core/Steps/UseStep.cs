@@ -59,8 +59,17 @@ public class UseStep : BaseStep
             // Process assertions after storing result data (consistent with other steps)
             var assertionResults = await ProcessAssertionsAsync(context);
             
-            LogDebugInformation(context, contextBefore, stopwatch, true, templateInfo);
-            var stepResult = StepResult.CreateSuccess(result, stopwatch.ElapsedMilliseconds);
+            // Determine if step should be marked as failed based on assertion results
+            var hasFailedAssertions = HasFailedAssertions(assertionResults);
+            
+            LogDebugInformation(context, contextBefore, stopwatch, !hasFailedAssertions, templateInfo);
+            
+            // Create result - fail if any assertions failed
+            var stepResult = hasFailedAssertions 
+                ? StepResult.CreateFailure("One or more assertions failed", stopwatch.ElapsedMilliseconds)
+                : StepResult.CreateSuccess(result, stopwatch.ElapsedMilliseconds);
+            
+            stepResult.Data = result;
             stepResult.AssertionResults = assertionResults;
             return stepResult;
         }

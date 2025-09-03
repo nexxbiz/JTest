@@ -76,6 +76,14 @@ public abstract class BaseStep : IStep
     }
     
     /// <summary>
+    /// Checks if any assertions failed
+    /// </summary>
+    protected static bool HasFailedAssertions(List<AssertionResult> assertionResults)
+    {
+        return assertionResults.Any(r => !r.Success);
+    }
+    
+    /// <summary>
     /// Stores step result data in execution context
     /// </summary>
     protected virtual void StoreResultInContext(IExecutionContext context, object data)
