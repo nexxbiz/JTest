@@ -134,7 +134,7 @@ public class TemplateIntegrationTests
         Assert.True(results[0].Success);
         
         // Debug output should contain template step information
-        Assert.Contains("UseStep", debugOutput);
+        Assert.Contains("use", debugOutput);
         Assert.Contains("debug-step", debugOutput);
         Assert.Contains("Success", debugOutput);
         

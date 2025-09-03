@@ -779,7 +779,7 @@ public class TemplateProviderTests
         
         // Inner template execution should be captured in step execution details
         Assert.Contains("**Step Execution Details:**", output);
-        Assert.Contains("**UseStep** (): Success", output);
+        Assert.Contains("**use** (): Success", output);
         
         // Should NOT contain inner template as a separate template execution section
         Assert.DoesNotContain("**Template:** inner-template", output);

@@ -58,12 +58,12 @@ public class MarkdownDebugLogger : IDebugLogger
     private void WriteStepIdentification(StepDebugInfo stepInfo)
     {
         if (!string.IsNullOrEmpty(stepInfo.StepId))
-
-            _output.AppendLine();
+        {
             _output.AppendLine($"**Step ID:** {stepInfo.StepId}");
-            _output.AppendLine($"**Step Type:** {stepInfo.StepType}");
-            _output.AppendLine($"**Enabled:** {stepInfo.Enabled}");
-            _output.AppendLine();
+        }
+        _output.AppendLine($"**Step Type:** {stepInfo.StepType}");
+        _output.AppendLine($"**Enabled:** {stepInfo.Enabled}");
+        _output.AppendLine();
     }
 
     private void WriteStepResult(StepDebugInfo stepInfo)
