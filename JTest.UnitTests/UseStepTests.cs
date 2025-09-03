@@ -1,4 +1,5 @@
 using System.Text.Json;
+using JTest.Core.Debugging;
 using JTest.Core.Execution;
 using JTest.Core.Models;
 using JTest.Core.Steps;
@@ -331,6 +332,87 @@ public class UseStepTests
         var globals = Assert.IsType<Dictionary<string, object>>(context.Variables["globals"]);
         Assert.Equal("testuser-testpass-token", globals["token"]);
         Assert.Equal("Bearer testuser-testpass-token", globals["authHeader"]);
+    }
+
+    [Fact]
+    public async Task UseStep_WithDebugLogger_GeneratesTemplateExecutionDetails()
+    {
+        // Arrange
+        var templateProvider = new TemplateProvider();
+        var stepFactory = new StepFactory(templateProvider);
+        var debugLogger = new MarkdownDebugLogger();
+        
+        var templateJson = """
+        {
+            "version": "1.0",
+            "components": {
+                "templates": [
+                    {
+                        "name": "test-template",
+                        "params": {
+                            "apiUrl": { "type": "string", "required": true },
+                            "timeout": { "type": "number", "required": false, "default": 30 }
+                        },
+                        "steps": [],
+                        "output": {
+                            "status": "complete",
+                            "endpoint": "{{$.apiUrl}}/api"
+                        }
+                    }
+                ]
+            }
+        }
+        """;
+        templateProvider.LoadTemplatesFromJson(templateJson);
+        
+        var useStep = new UseStep(templateProvider, stepFactory, debugLogger);
+        
+        var config = JsonSerializer.Deserialize<JsonElement>("""
+        {
+            "template": "test-template",
+            "with": {
+                "apiUrl": "https://api.example.com"
+            },
+            "save": {
+                "$.globals.endpoint": "{{$.this.endpoint}}"
+            }
+        }
+        """);
+        useStep.ValidateConfiguration(config);
+        
+        var context = new TestExecutionContext();
+        context.Variables["globals"] = new Dictionary<string, object>();
+
+        // Act
+        var result = await useStep.ExecuteAsync(context);
+
+        // Assert
+        Assert.True(result.Success);
+        
+        var output = debugLogger.GetOutput();
+        
+        // Verify template execution details are included
+        Assert.Contains("### Template Execution Details", output);
+        Assert.Contains("**Template:** test-template", output);
+        Assert.Contains("**Steps Executed:** 0", output);
+        
+        // Verify input parameters are shown
+        Assert.Contains("**Input Parameters:**", output);
+        Assert.Contains("- `apiUrl`: \"https://api.example.com\"", output);
+        
+        // Verify template outputs are shown
+        Assert.Contains("**Template Outputs:**", output);
+        Assert.Contains("- `status`: \"complete\"", output);
+        Assert.Contains("- `endpoint`: \"https://api.example.com/api\"", output);
+        
+        // Verify saved variables are shown
+        Assert.Contains("**Variables Saved:**", output);
+        Assert.Contains("- `$.globals.endpoint`: \"https://api.example.com/api\"", output);
+        
+        // Print the complete debug output for verification
+        Console.WriteLine("=== TEMPLATE EXECUTION DEBUG OUTPUT ===");
+        Console.WriteLine(output);
+        Console.WriteLine("=== END OUTPUT ===");
     }
 }
 
