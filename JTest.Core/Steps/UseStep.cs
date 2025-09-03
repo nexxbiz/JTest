@@ -97,12 +97,19 @@ public class UseStep : BaseStep
             }
         }
 
+        // Create a template-specific debug logger that captures step details without outputting separate headers
+        var templateStepDebugLogger = new TemplateStepDebugLogger();
+        
+        // Create a template step factory that uses the existing factory but with the template debug logger
+        // This ensures that the steps created (like HttpStep) are properly mocked when testing
+        var templateStepFactory = CreateTemplateStepFactory(templateStepDebugLogger);
+
         // Execute template steps
         var templateResults = new List<object>();
         
         foreach (var stepConfig in template.Steps)
         {
-            var step = _stepFactory.CreateStep(stepConfig);
+            var step = templateStepFactory.CreateStep(stepConfig);
             var stepResult = await step.ExecuteAsync(templateContext);
             
             if (!stepResult.Success)
@@ -129,10 +136,22 @@ public class UseStep : BaseStep
             InputParameters = inputParameters,
             StepsExecuted = templateResults.Count,
             OutputValues = outputs,
-            SavedVariables = new Dictionary<string, object>() // Will be populated after save operations
+            SavedVariables = new Dictionary<string, object>(), // Will be populated after save operations
+            StepExecutionDetails = templateStepDebugLogger.GetCapturedSteps()
         };
         
         return (resultData, templateInfo);
+    }
+
+    /// <summary>
+    /// Creates a step factory for template execution with the specified debug logger
+    /// This method can be overridden by subclasses to customize step creation (e.g., for testing)
+    /// </summary>
+    protected virtual StepFactory CreateTemplateStepFactory(IDebugLogger templateDebugLogger)
+    {
+        var templateStepFactory = new StepFactory(_templateProvider);
+        templateStepFactory.SetDebugLogger(templateDebugLogger);
+        return templateStepFactory;
     }
 
     private TestExecutionContext CreateIsolatedTemplateContext(IExecutionContext parentContext, Template template)

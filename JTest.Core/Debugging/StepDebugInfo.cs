@@ -49,4 +49,9 @@ public class TemplateExecutionInfo
     /// Variables saved via save operations
     /// </summary>
     public Dictionary<string, object> SavedVariables { get; set; } = new();
+    
+    /// <summary>
+    /// Detailed execution information for each step within the template
+    /// </summary>
+    public List<TemplateStepExecutionInfo>? StepExecutionDetails { get; set; }
 }

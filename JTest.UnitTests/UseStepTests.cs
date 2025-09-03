@@ -41,7 +41,7 @@ public class TestStepFactory : StepFactory
         {
             "http" => CreateMockedHttpStep(),
             "wait" => new WaitStep(),
-            "use" => new UseStep(TemplateProvider, this, _debugLogger),
+            "use" => new TestUseStep(TemplateProvider, this, _debugLogger),
             _ => throw new ArgumentException($"Unknown step type: {stepType}")
         };
         
@@ -76,6 +76,31 @@ public class TestStepFactory : StepFactory
             
         var httpClient = new HttpClient(mockHandler.Object);
         return new HttpStep(httpClient, _debugLogger);
+    }
+}
+
+/// <summary>
+/// Test UseStep that can use a custom step factory for template execution
+/// </summary>
+public class TestUseStep : UseStep
+{
+    private readonly StepFactory _testStepFactory;
+    
+    public TestUseStep(ITemplateProvider templateProvider, StepFactory stepFactory, IDebugLogger? debugLogger = null)
+        : base(templateProvider, stepFactory, debugLogger)
+    {
+        _testStepFactory = stepFactory;
+    }
+    
+    protected override StepFactory CreateTemplateStepFactory(IDebugLogger templateDebugLogger)
+    {
+        // Use the test step factory but with the template debug logger
+        if (_testStepFactory is TestStepFactory testFactory)
+        {
+            return new TestStepFactory(testFactory.TemplateProvider, templateDebugLogger);
+        }
+        
+        return base.CreateTemplateStepFactory(templateDebugLogger);
     }
 }
 
@@ -744,14 +769,20 @@ public class TemplateProviderTests
         
         var output = debugLogger.GetOutput();
         
-        // Should have multiple collapsible details sections for nested templates
+        // After the fix: nested templates should show outer template with inner step execution details
         var detailsCount = output.Split("<details>").Length - 1;
-        Assert.True(detailsCount >= 2, $"Expected at least 2 details sections but found {detailsCount}");
+        Assert.True(detailsCount >= 2, $"Expected at least 2 details sections but found {detailsCount}"); // Template details + Runtime context
         
-        // Should contain both template executions in collapsible format
+        // Should contain only the outer template execution in the main template details section
         Assert.Contains("<summary>Template Execution Details (Click to expand)</summary>", output);
         Assert.Contains("**Template:** outer-template", output);
-        Assert.Contains("**Template:** inner-template", output);
+        
+        // Inner template execution should be captured in step execution details
+        Assert.Contains("**Step Execution Details:**", output);
+        Assert.Contains("**UseStep** (): Success", output);
+        
+        // Should NOT contain inner template as a separate template execution section
+        Assert.DoesNotContain("**Template:** inner-template", output);
         
         // Print the complete debug output for analysis
         Console.WriteLine("=== NESTED TEMPLATE DEBUG OUTPUT ===");
@@ -799,7 +830,7 @@ public class TemplateProviderTests
         """;
         templateProvider.LoadTemplatesFromJson(templatesJson);
         
-        var useStep = new UseStep(templateProvider, stepFactory, debugLogger);
+        var useStep = new TestUseStep(templateProvider, stepFactory, debugLogger);
         
         var config = JsonSerializer.Deserialize<JsonElement>("""
         {
@@ -822,19 +853,22 @@ public class TemplateProviderTests
         
         var output = debugLogger.GetOutput();
         
-        // The problem: Currently this shows HttpStep as a separate step
-        // It should show UseStep with template details in collapsible format
+        // The fix: Now this correctly shows UseStep with template details in collapsible format
+        // Inner step execution is shown within the template execution details
         
-        // Print the output to see current incorrect behavior  
-        Console.WriteLine("=== CURRENT INCORRECT LOGGING ORDER ===");
+        // Print the output to see the correct behavior  
+        Console.WriteLine("=== CORRECT LOGGING ORDER AFTER FIX ===");
         Console.WriteLine(output);
         Console.WriteLine("=== END OUTPUT ===");
         
-        // Count step headers - there should only be ONE step header for UseStep
+        // Count step headers - there should be exactly ONE step header for UseStep
         var stepHeaderCount = output.Split("## Test").Length - 1;
         
-        // Currently this will fail because we have both UseStep and HttpStep headers
         // After fix, this should pass with only 1 step header (UseStep)
-        Assert.Equal(1, stepHeaderCount); // This will currently fail, demonstrating the problem
+        Assert.Equal(1, stepHeaderCount);
+        
+        // Verify that the inner step execution is captured in template details
+        Assert.Contains("**Step Execution Details:**", output);
+        Assert.Contains("**HttpStep** (call-api): Success", output);
     }
 }

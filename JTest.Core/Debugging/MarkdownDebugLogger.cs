@@ -312,6 +312,17 @@ public class MarkdownDebugLogger : IDebugLogger
             _output.AppendLine();
         }
         
+        // Step execution details
+        if (templateInfo.StepExecutionDetails?.Any() == true)
+        {
+            _output.AppendLine("**Step Execution Details:**");
+            foreach (var stepDetail in templateInfo.StepExecutionDetails)
+            {
+                _output.AppendLine($"- **{stepDetail.StepType}** ({stepDetail.StepId}): {stepDetail.Result} in {FormatDuration(stepDetail.Duration)}");
+            }
+            _output.AppendLine();
+        }
+        
         _output.AppendLine("</details>");
         _output.AppendLine();
     }
