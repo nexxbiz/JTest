@@ -353,4 +353,42 @@ public class VariableInterpolatorTests
         Assert.NotNull(result);
         Assert.True(context.Log.Any(log => log.Contains("Maximum token resolution depth")));
     }
+    
+    [Fact]
+    public void SetCase_WithTokensInCaseData_ShouldResolveTokensAutomatically()
+    {
+        // Arrange - This test demonstrates the issue FransVanEk pointed out
+        var context = new TestExecutionContext();
+        context.Variables["env"] = new { baseUrl = "https://api.test.com" };
+        
+        // Case data contains tokens that reference other variables
+        var caseData = new Dictionary<string, object>
+        {
+            ["endpoint"] = "{{$.env.baseUrl}}/users", // This token should be resolved when case is set
+            ["userId"] = "123",
+            ["nested"] = new Dictionary<string, object>
+            {
+                ["apiUrl"] = "{{$.env.baseUrl}}/api"
+            }
+        };
+        
+        // Act - Currently this just sets the case data without resolving tokens
+        context.SetCase(caseData);
+        
+        // Try to access the endpoint
+        var resolvedEndpoint = VariableInterpolator.ResolveVariableTokens("{{$.case.endpoint}}", context);
+        var resolvedNestedUrl = VariableInterpolator.ResolveVariableTokens("{{$.case.nested.apiUrl}}", context);
+        
+        // Assert - This currently fails because tokens in case data are not resolved
+        // The resolved endpoint should be the fully resolved URL, not the token
+        Assert.Equal("https://api.test.com/users", resolvedEndpoint);
+        Assert.Equal("https://api.test.com/api", resolvedNestedUrl);
+        
+        // Verify the case data itself was modified to contain resolved values
+        var caseContext = context.Variables["case"] as Dictionary<string, object>;
+        Assert.Equal("https://api.test.com/users", caseContext!["endpoint"]);
+        
+        var nestedContext = caseContext["nested"] as Dictionary<string, object>;
+        Assert.Equal("https://api.test.com/api", nestedContext!["apiUrl"]);
+    }
 }
