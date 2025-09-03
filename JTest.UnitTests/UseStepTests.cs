@@ -1,12 +1,108 @@
+using System.Net;
+using System.Text;
 using System.Text.Json;
 using JTest.Core.Debugging;
 using JTest.Core.Execution;
 using JTest.Core.Models;
 using JTest.Core.Steps;
 using JTest.Core.Templates;
+using Moq;
+using Moq.Protected;
 using Xunit;
 
 namespace JTest.UnitTests;
+
+/// <summary>
+/// Test step factory that creates mocked HttpStep with debug logging for testing
+/// </summary>
+public class TestStepFactory : StepFactory
+{
+    private readonly IDebugLogger? _debugLogger;
+    
+    public TestStepFactory(ITemplateProvider templateProvider, IDebugLogger? debugLogger) 
+        : base(templateProvider)
+    {
+        _debugLogger = debugLogger;
+    }
+    
+    public override IStep CreateStep(object stepConfig)
+    {
+        var json = JsonSerializer.Serialize(stepConfig);
+        var jsonElement = JsonSerializer.Deserialize<JsonElement>(json);
+        
+        if (!jsonElement.TryGetProperty("type", out var typeElement))
+        {
+            throw new ArgumentException("Step configuration must have a 'type' property");
+        }
+        
+        var stepType = typeElement.GetString();
+        
+        IStep step = stepType?.ToLowerInvariant() switch
+        {
+            "http" => CreateMockedHttpStep(),
+            "wait" => new WaitStep(),
+            "use" => new TestUseStep(TemplateProvider, this, _debugLogger),
+            _ => throw new ArgumentException($"Unknown step type: {stepType}")
+        };
+        
+        // Set step ID if provided
+        if (jsonElement.TryGetProperty("id", out var idElement))
+        {
+            step.Id = idElement.GetString();
+        }
+        
+        // Validate configuration
+        if (!step.ValidateConfiguration(jsonElement))
+        {
+            throw new ArgumentException($"Invalid configuration for step type '{stepType}'");
+        }
+        
+        return step;
+    }
+    
+    private HttpStep CreateMockedHttpStep()
+    {
+        var mockHandler = new Mock<HttpMessageHandler>();
+        var response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent("{\"result\":\"success\",\"statusCode\":200}", Encoding.UTF8, "application/json")
+        };
+        
+        mockHandler.Protected()
+            .Setup<Task<HttpResponseMessage>>("SendAsync", 
+                ItExpr.IsAny<HttpRequestMessage>(), 
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(response);
+            
+        var httpClient = new HttpClient(mockHandler.Object);
+        return new HttpStep(httpClient, _debugLogger);
+    }
+}
+
+/// <summary>
+/// Test UseStep that can use a custom step factory for template execution
+/// </summary>
+public class TestUseStep : UseStep
+{
+    private readonly StepFactory _testStepFactory;
+    
+    public TestUseStep(ITemplateProvider templateProvider, StepFactory stepFactory, IDebugLogger? debugLogger = null)
+        : base(templateProvider, stepFactory, debugLogger)
+    {
+        _testStepFactory = stepFactory;
+    }
+    
+    protected override StepFactory CreateTemplateStepFactory(IDebugLogger templateDebugLogger)
+    {
+        // Use the test step factory but with the template debug logger
+        if (_testStepFactory is TestStepFactory testFactory)
+        {
+            return new TestStepFactory(testFactory.TemplateProvider, templateDebugLogger);
+        }
+        
+        return base.CreateTemplateStepFactory(templateDebugLogger);
+    }
+}
 
 public class UseStepTests
 {
@@ -673,19 +769,106 @@ public class TemplateProviderTests
         
         var output = debugLogger.GetOutput();
         
-        // Should have multiple collapsible details sections for nested templates
+        // After the fix: nested templates should show outer template with inner step execution details
         var detailsCount = output.Split("<details>").Length - 1;
-        Assert.True(detailsCount >= 2, $"Expected at least 2 details sections but found {detailsCount}");
+        Assert.True(detailsCount >= 2, $"Expected at least 2 details sections but found {detailsCount}"); // Template details + Runtime context
         
-        // Should contain both template executions in collapsible format
+        // Should contain only the outer template execution in the main template details section
         Assert.Contains("<summary>Template Execution Details (Click to expand)</summary>", output);
         Assert.Contains("**Template:** outer-template", output);
-        Assert.Contains("**Template:** inner-template", output);
+        
+        // Inner template execution should be captured in step execution details
+        Assert.Contains("**Step Execution Details:**", output);
+        Assert.Contains("**UseStep** (): Success", output);
+        
+        // Should NOT contain inner template as a separate template execution section
+        Assert.DoesNotContain("**Template:** inner-template", output);
         
         // Print the complete debug output for analysis
         Console.WriteLine("=== NESTED TEMPLATE DEBUG OUTPUT ===");
         Console.WriteLine(output);
         Console.WriteLine($"=== Details sections found: {detailsCount} ===");
         Console.WriteLine("=== END OUTPUT ===");
+    }
+
+    [Fact]
+    public async Task UseStep_WithTemplateContainingStep_ShowsCorrectLoggingOrder()
+    {
+        // Arrange - Create a custom step factory that creates mocked HttpStep with debug logging
+        var templateProvider = new TemplateProvider();
+        var debugLogger = new MarkdownDebugLogger();
+        
+        // Use reflection to create a custom StepFactory that will create HttpStep with debug logging
+        var stepFactory = new TestStepFactory(templateProvider, debugLogger);
+        
+        // Template containing an HTTP step
+        var templatesJson = """
+        {
+            "version": "1.0",
+            "components": {
+                "templates": [
+                    {
+                        "name": "http-template",
+                        "params": {
+                            "url": { "type": "string", "required": true }
+                        },
+                        "steps": [
+                            {
+                                "type": "http",
+                                "id": "call-api",
+                                "method": "GET",
+                                "url": "{{$.url}}"
+                            }
+                        ],
+                        "output": {
+                            "response": "{{$.this.statusCode}}"
+                        }
+                    }
+                ]
+            }
+        }
+        """;
+        templateProvider.LoadTemplatesFromJson(templatesJson);
+        
+        var useStep = new TestUseStep(templateProvider, stepFactory, debugLogger);
+        
+        var config = JsonSerializer.Deserialize<JsonElement>("""
+        {
+            "type": "use",
+            "template": "http-template",
+            "with": {
+                "url": "https://api.example.com"
+            }
+        }
+        """);
+        useStep.ValidateConfiguration(config);
+        
+        var context = new TestExecutionContext();
+
+        // Act
+        var result = await useStep.ExecuteAsync(context);
+
+        // Assert
+        Assert.True(result.Success, result.ErrorMessage ?? "Unknown error");
+        
+        var output = debugLogger.GetOutput();
+        
+        // The fix: Now this correctly shows UseStep with template details in collapsible format
+        // Inner step execution is shown within the template execution details
+        
+        // Print the output to see the correct behavior  
+        Console.WriteLine("=== CORRECT LOGGING ORDER AFTER FIX ===");
+        Console.WriteLine(output);
+        Console.WriteLine("=== END OUTPUT ===");
+        
+        // Count step headers - there should be exactly ONE step header for UseStep
+        var stepHeaderCount = output.Split("## Test").Length - 1;
+        
+        // After fix, this should pass with only 1 step header (UseStep)
+        Assert.Equal(1, stepHeaderCount);
+        
+        // Verify that the inner step execution is captured in template details
+        Assert.Contains("**Step Execution Details:**", output);
+        Assert.Contains("**HttpStep** (call-api): Success", output);
     }
 }

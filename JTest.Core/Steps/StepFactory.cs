@@ -33,7 +33,7 @@ public class StepFactory
     /// <param name="stepConfig">The JSON configuration object</param>
     /// <returns>The created step instance</returns>
     /// <exception cref="ArgumentException">Thrown when step type is unknown or configuration is invalid</exception>
-    public IStep CreateStep(object stepConfig)
+    public virtual IStep CreateStep(object stepConfig)
     {
         var json = JsonSerializer.Serialize(stepConfig);
         var jsonElement = JsonSerializer.Deserialize<JsonElement>(json);
