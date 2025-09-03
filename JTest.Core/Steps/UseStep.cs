@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text.Json;
+using JTest.Core.Assertions;
 using JTest.Core.Debugging;
 using JTest.Core.Execution;
 using JTest.Core.Models;
@@ -56,22 +57,8 @@ public class UseStep : BaseStep
             // Capture saved variables after save operations are processed
             CaptureSavedVariables(context, contextBefore, templateInfo);
             
-            // Process assertions after storing result data (consistent with other steps)
-            var assertionResults = await ProcessAssertionsAsync(context);
-            
-            // Determine if step should be marked as failed based on assertion results
-            var hasFailedAssertions = HasFailedAssertions(assertionResults);
-            
-            LogDebugInformation(context, contextBefore, stopwatch, !hasFailedAssertions, templateInfo);
-            
-            // Create result - fail if any assertions failed
-            var stepResult = hasFailedAssertions 
-                ? StepResult.CreateFailure("One or more assertions failed", stopwatch.ElapsedMilliseconds)
-                : StepResult.CreateSuccess(result, stopwatch.ElapsedMilliseconds);
-            
-            stepResult.Data = result;
-            stepResult.AssertionResults = assertionResults;
-            return stepResult;
+            // Use common step completion logic from BaseStep
+            return await ProcessStepCompletionAsync(context, contextBefore, stopwatch, result, templateInfo);
         }
         catch (Exception ex)
         {
@@ -370,5 +357,26 @@ public class UseStep : BaseStep
             ? templateElement.GetString() ?? "unknown" 
             : "unknown";
         return $"Execute template '{templateName}'";
+    }
+
+    /// <summary>
+    /// Override to handle TemplateExecutionInfo in debug logging
+    /// </summary>
+    protected override void LogDebugInformationWithAdditionalInfo(
+        IExecutionContext context, 
+        Dictionary<string, object> contextBefore, 
+        Stopwatch stopwatch, 
+        bool success, 
+        List<AssertionResult> assertionResults, 
+        object additionalDebugInfo)
+    {
+        if (additionalDebugInfo is TemplateExecutionInfo templateInfo)
+        {
+            LogDebugInformation(context, contextBefore, stopwatch, success, templateInfo);
+        }
+        else
+        {
+            base.LogDebugInformationWithAdditionalInfo(context, contextBefore, stopwatch, success, assertionResults, additionalDebugInfo);
+        }
     }
 }

@@ -46,25 +46,9 @@ public class WaitStep : BaseStep
     private async Task<StepResult> CreateSuccessResult(int delayMs, Stopwatch stopwatch, IExecutionContext context, Dictionary<string, object> contextBefore)
     {
         var resultData = CreateResultData(delayMs, stopwatch.ElapsedMilliseconds);
-        StoreResultInContext(context, resultData);
         
-        // Process assertions after storing result data
-        var assertionResults = await ProcessAssertionsAsync(context);
-        
-        // Determine if step should be marked as failed based on assertion results
-        var hasFailedAssertions = HasFailedAssertions(assertionResults);
-        
-        // Log debug information
-        LogDebugInformation(context, contextBefore, stopwatch, !hasFailedAssertions, assertionResults);
-        
-        // Create result - fail if any assertions failed
-        var result = hasFailedAssertions 
-            ? StepResult.CreateFailure("One or more assertions failed", stopwatch.ElapsedMilliseconds)
-            : StepResult.CreateSuccess(resultData, stopwatch.ElapsedMilliseconds);
-        
-        result.Data = resultData;
-        result.AssertionResults = assertionResults;
-        return result;
+        // Use common step completion logic from BaseStep
+        return await ProcessStepCompletionAsync(context, contextBefore, stopwatch, resultData);
     }
 
     private bool ValidateRequiredProperties()

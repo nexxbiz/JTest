@@ -297,4 +297,59 @@ public abstract class BaseStep : IStep
     {
         return new Dictionary<string, object>(context.Variables);
     }
+
+    /// <summary>
+    /// Processes the common step completion logic including storing results, processing assertions, 
+    /// logging debug info, and creating the final step result
+    /// </summary>
+    protected async Task<StepResult> ProcessStepCompletionAsync(
+        IExecutionContext context, 
+        Dictionary<string, object> contextBefore, 
+        Stopwatch stopwatch, 
+        object resultData, 
+        object? additionalDebugInfo = null)
+    {
+        // Store result in context and process save operations
+        StoreResultInContext(context, resultData);
+        
+        // Process assertions after storing result data
+        var assertionResults = await ProcessAssertionsAsync(context);
+        
+        // Determine if step should be marked as failed based on assertion results
+        var hasFailedAssertions = HasFailedAssertions(assertionResults);
+        
+        // Log debug information with optional additional debug info
+        if (additionalDebugInfo != null)
+        {
+            LogDebugInformationWithAdditionalInfo(context, contextBefore, stopwatch, !hasFailedAssertions, assertionResults, additionalDebugInfo);
+        }
+        else
+        {
+            LogDebugInformation(context, contextBefore, stopwatch, !hasFailedAssertions, assertionResults);
+        }
+        
+        // Create result - fail if any assertions failed
+        var stepResult = hasFailedAssertions 
+            ? StepResult.CreateFailure("One or more assertions failed", stopwatch.ElapsedMilliseconds)
+            : StepResult.CreateSuccess(resultData, stopwatch.ElapsedMilliseconds);
+        
+        stepResult.Data = resultData;
+        stepResult.AssertionResults = assertionResults;
+        return stepResult;
+    }
+
+    /// <summary>
+    /// Virtual method for logging debug information with additional info - can be overridden by derived classes
+    /// </summary>
+    protected virtual void LogDebugInformationWithAdditionalInfo(
+        IExecutionContext context, 
+        Dictionary<string, object> contextBefore, 
+        Stopwatch stopwatch, 
+        bool success, 
+        List<AssertionResult> assertionResults, 
+        object additionalDebugInfo)
+    {
+        // Default implementation just calls the base method
+        LogDebugInformation(context, contextBefore, stopwatch, success, assertionResults);
+    }
 }
