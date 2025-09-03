@@ -304,8 +304,9 @@ public class VariableInterpolatorTests
         // Act
         var result = VariableInterpolator.ResolveVariableTokens(input, context);
         
-        // Assert
-        Assert.Equal("{{$.case.isTrue}}", result); // This should NOT be the result - it should be "False"
+        // Assert - should resolve completely, not remain as nested token
+        Assert.Equal(false, result); // With the fix, this should resolve to the actual value
+        Assert.NotEqual("{{$.case.isTrue}}", result); // Should not be the intermediate unresolved token
     }
     
     [Fact]
@@ -335,5 +336,21 @@ public class VariableInterpolatorTests
         // This should resolve completely to "False", not remain as "{{$.case.isTrue}}"
         Assert.Equal(false, result); // This test should fail with current implementation
         Assert.NotEqual("{{$.case.isTrue}}", result); // This is the bug - it currently returns this
+    }
+    
+    [Fact]
+    public void ResolveVariableTokens_WithCircularReference_ShouldPreventInfiniteLoop()
+    {
+        // Arrange - test infinite recursion protection
+        var context = new TestExecutionContext();
+        context.Variables["a"] = "{{$.b}}";
+        context.Variables["b"] = "{{$.a}}";
+        
+        // Act
+        var result = VariableInterpolator.ResolveVariableTokens("{{$.a}}", context);
+        
+        // Assert - should not crash and should log warning
+        Assert.NotNull(result);
+        Assert.True(context.Log.Any(log => log.Contains("Maximum token resolution depth")));
     }
 }

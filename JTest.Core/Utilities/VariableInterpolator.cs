@@ -22,7 +22,22 @@ public static class VariableInterpolator
     /// </summary>
     public static object ResolveVariableTokens(string input, IExecutionContext context)
     {
+        return ResolveVariableTokensInternal(input, context, 0);
+    }
+
+    /// <summary>
+    /// Internal recursive method for resolving variable tokens with depth tracking
+    /// </summary>
+    private static object ResolveVariableTokensInternal(string input, IExecutionContext context, int depth)
+    {
         if (input == null) return string.Empty;
+        
+        // Prevent infinite recursion
+        if (depth >= MaxNestingDepth)
+        {
+            context.Log.Add($"Warning: Maximum token resolution depth ({MaxNestingDepth}) reached for input: {input}");
+            return input;
+        }
 
         var matches = TokenRegex.Matches(input);
         if (matches.Count == 0) return input;
@@ -30,27 +45,27 @@ public static class VariableInterpolator
         // Check for single token first before resolving nested tokens
         if (IsSingleTokenInput(input, matches))
         {
-            return ResolveSingleToken(matches[0], context);
+            return ResolveSingleTokenRecursive(matches[0], context, depth);
         }
 
         // Resolve nested tokens iteratively from innermost to outermost for multi-token strings
-        var resolvedInput = ResolveNestedTokens(input, context);
+        var resolvedInput = ResolveNestedTokens(input, context, depth);
         var newMatches = TokenRegex.Matches(resolvedInput);
         
         if (newMatches.Count == 0) return resolvedInput;
-        return ResolveMultipleTokens(resolvedInput, newMatches, context);
+        return ResolveMultipleTokensRecursive(resolvedInput, newMatches, context, depth);
     }
 
     /// <summary>
     /// Resolves nested tokens by finding the innermost tokens first and working outward
     /// Uses a custom parser to properly handle nested braces
     /// </summary>
-    private static string ResolveNestedTokens(string input, IExecutionContext context)
+    private static string ResolveNestedTokens(string input, IExecutionContext context, int depth)
     {
         var current = input;
-        var depth = 0;
+        var iterationDepth = 0;
 
-        while (depth < MaxNestingDepth)
+        while (iterationDepth < MaxNestingDepth)
         {
             var innerTokens = FindInnermostTokensWithProperNesting(current);
             if (innerTokens.Count == 0) break; // No more tokens to resolve
@@ -62,6 +77,13 @@ public static class VariableInterpolator
                 var resolvedValue = ResolveJsonPath(path, context);
                 var replacement = ConvertToString(resolvedValue);
 
+                // Check if the replacement itself contains tokens and resolve recursively
+                if (replacement != token && TokenRegex.IsMatch(replacement))
+                {
+                    var recursiveResult = ResolveVariableTokensInternal(replacement, context, depth + 1);
+                    replacement = ConvertToString(recursiveResult);
+                }
+
                 if (replacement != token)
                 {
                     current = current.Replace(token, replacement);
@@ -70,12 +92,12 @@ public static class VariableInterpolator
             }
 
             if (!hasChanges) break; // No tokens were resolved, avoid infinite loop
-            depth++;
+            iterationDepth++;
         }
 
-        if (depth >= MaxNestingDepth)
+        if (iterationDepth >= MaxNestingDepth)
         {
-            context.Log.Add($"Warning: Maximum nesting depth ({MaxNestingDepth}) reached while resolving tokens in: {input}");
+            context.Log.Add($"Warning: Maximum nesting iteration depth ({MaxNestingDepth}) reached while resolving tokens in: {input}");
         }
 
         return current;
@@ -223,6 +245,47 @@ public static class VariableInterpolator
         return true;
     }
 
+    private static object ResolveSingleTokenRecursive(Match match, IExecutionContext context, int depth)
+    {
+        var path = ExtractPath(match.Value);
+        var result = ResolveJsonPath(path, context);
+        
+        // If the result is a string that contains tokens, resolve them recursively
+        if (result is string stringResult && TokenRegex.IsMatch(stringResult))
+        {
+            return ResolveVariableTokensInternal(stringResult, context, depth + 1);
+        }
+        
+        return result;
+    }
+
+    private static string ResolveMultipleTokensRecursive(string input, MatchCollection matches, IExecutionContext context, int depth)
+    {
+        var result = input;
+        foreach (Match match in matches) 
+        {
+            result = ReplaceTokenRecursive(result, match, context, depth);
+        }
+        return result;
+    }
+
+    private static string ReplaceTokenRecursive(string input, Match match, IExecutionContext context, int depth)
+    {
+        var path = ExtractPath(match.Value);
+        var value = ResolveJsonPath(path, context);
+        var replacement = ConvertToString(value);
+        
+        // Check if the replacement contains tokens and resolve recursively
+        if (TokenRegex.IsMatch(replacement))
+        {
+            var recursiveResult = ResolveVariableTokensInternal(replacement, context, depth + 1);
+            replacement = ConvertToString(recursiveResult);
+        }
+        
+        return input.Replace(match.Value, replacement);
+    }
+
+    // Keep the original methods for compatibility, but they now call the recursive versions
     private static bool IsSingleTokenInput(string input, MatchCollection matches)
     {
         return matches.Count == 1 && matches[0].Value == input;
@@ -230,22 +293,17 @@ public static class VariableInterpolator
 
     private static object ResolveSingleToken(Match match, IExecutionContext context)
     {
-        var path = ExtractPath(match.Value);
-        return ResolveJsonPath(path, context);
+        return ResolveSingleTokenRecursive(match, context, 0);
     }
 
     private static string ResolveMultipleTokens(string input, MatchCollection matches, IExecutionContext context)
     {
-        var result = input;
-        foreach (Match match in matches) result = ReplaceToken(result, match, context);
-        return result;
+        return ResolveMultipleTokensRecursive(input, matches, context, 0);
     }
 
     private static string ReplaceToken(string input, Match match, IExecutionContext context)
     {
-        var path = ExtractPath(match.Value);
-        var value = ResolveJsonPath(path, context);
-        return input.Replace(match.Value, ConvertToString(value));
+        return ReplaceTokenRecursive(input, match, context, 0);
     }
 
     private static string ExtractPath(string token)
