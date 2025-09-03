@@ -17,10 +17,10 @@ public class MarkdownDebugLogger : IDebugLogger
         WriteStepHeader(stepInfo);
         WriteStepDetails(stepInfo);
         
-        // Add template execution details for UseStep
+        // Add template execution details for UseStep in a collapsible section
         if (stepInfo.TemplateExecution != null)
         {
-            WriteTemplateExecutionDetails(stepInfo.TemplateExecution);
+            WriteTemplateExecutionDetailsCollapsible(stepInfo.TemplateExecution);
         }
     }
     
@@ -264,6 +264,56 @@ public class MarkdownDebugLogger : IDebugLogger
             }
             _output.AppendLine();
         }
+    }
+
+    private void WriteTemplateExecutionDetailsCollapsible(TemplateExecutionInfo templateInfo)
+    {
+        _output.AppendLine("<details>");
+        _output.AppendLine("<summary>Template Execution Details (Click to expand)</summary>");
+        _output.AppendLine();
+        
+        _output.AppendLine($"**Template:** {templateInfo.TemplateName}");
+        _output.AppendLine($"**Steps Executed:** {templateInfo.StepsExecuted}");
+        _output.AppendLine();
+        
+        // Input parameters
+        if (templateInfo.InputParameters.Any())
+        {
+            _output.AppendLine("**Input Parameters:**");
+            foreach (var param in templateInfo.InputParameters)
+            {
+                var valueDesc = DescribeValue(param.Value);
+                _output.AppendLine($"- `{param.Key}`: {valueDesc}");
+            }
+            _output.AppendLine();
+        }
+        
+        // Template outputs
+        if (templateInfo.OutputValues.Any())
+        {
+            _output.AppendLine("**Template Outputs:**");
+            foreach (var output in templateInfo.OutputValues)
+            {
+                var valueDesc = DescribeValue(output.Value);
+                _output.AppendLine($"- `{output.Key}`: {valueDesc}");
+            }
+            _output.AppendLine();
+        }
+        
+        // Saved variables
+        if (templateInfo.SavedVariables.Any())
+        {
+            _output.AppendLine("**Variables Saved:**");
+            foreach (var saved in templateInfo.SavedVariables)
+            {
+                var valueDesc = DescribeValue(saved.Value);
+                _output.AppendLine($"- `{saved.Key}`: {valueDesc}");
+            }
+            _output.AppendLine();
+        }
+        
+        _output.AppendLine("</details>");
+        _output.AppendLine();
     }
 
     private string DescribeValue(object value)

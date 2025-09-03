@@ -391,10 +391,12 @@ public class UseStepTests
         
         var output = debugLogger.GetOutput();
         
-        // Verify template execution details are included
-        Assert.Contains("### Template Execution Details", output);
+        // Verify template execution details are included in collapsible section
+        Assert.Contains("<details>", output);
+        Assert.Contains("<summary>Template Execution Details (Click to expand)</summary>", output);
         Assert.Contains("**Template:** test-template", output);
         Assert.Contains("**Steps Executed:** 0", output);
+        Assert.Contains("</details>", output);
         
         // Verify input parameters are shown
         Assert.Contains("**Input Parameters:**", output);
@@ -480,10 +482,12 @@ public class UseStepTests
         
         var output = debugLogger.GetOutput();
         
-        // Verify template execution details show steps were executed
-        Assert.Contains("### Template Execution Details", output);
+        // Verify template execution details show steps were executed in collapsible format
+        Assert.Contains("<details>", output);
+        Assert.Contains("<summary>Template Execution Details (Click to expand)</summary>", output);
         Assert.Contains("**Template:** complex-template", output);
         Assert.Contains("**Steps Executed:** 1", output);
+        Assert.Contains("</details>", output);
         
         // Verify input parameters including default values
         Assert.Contains("**Input Parameters:**", output);
@@ -596,5 +600,92 @@ public class TemplateProviderTests
         // Assert
         Assert.Equal(0, provider.Count);
         Assert.Null(provider.GetTemplate("test-template"));
+    }
+
+    [Fact]
+    public async Task UseStep_WithNestedTemplates_ShowsCollapsibleDetailsForBoth()
+    {
+        // Arrange
+        var templateProvider = new TemplateProvider();
+        var stepFactory = new StepFactory(templateProvider);
+        var debugLogger = new MarkdownDebugLogger();
+        
+        var templatesJson = """
+        {
+            "version": "1.0",
+            "components": {
+                "templates": [
+                    {
+                        "name": "inner-template",
+                        "params": {
+                            "value": { "type": "string", "required": true }
+                        },
+                        "steps": [],
+                        "output": {
+                            "result": "processed-{{$.value}}"
+                        }
+                    },
+                    {
+                        "name": "outer-template",
+                        "params": {
+                            "input": { "type": "string", "required": true }
+                        },
+                        "steps": [
+                            {
+                                "type": "use",
+                                "template": "inner-template",
+                                "with": {
+                                    "value": "{{$.input}}"
+                                }
+                            }
+                        ],
+                        "output": {
+                            "final": "{{$.this.result}}"
+                        }
+                    }
+                ]
+            }
+        }
+        """;
+        templateProvider.LoadTemplatesFromJson(templatesJson);
+        
+        stepFactory.SetDebugLogger(debugLogger);
+        var useStep = new UseStep(templateProvider, stepFactory, debugLogger);
+        
+        var config = JsonSerializer.Deserialize<JsonElement>("""
+        {
+            "type": "use",
+            "template": "outer-template",
+            "with": {
+                "input": "test-data"
+            }
+        }
+        """);
+        useStep.ValidateConfiguration(config);
+        
+        var context = new TestExecutionContext();
+
+        // Act
+        var result = await useStep.ExecuteAsync(context);
+
+        // Assert
+        Assert.True(result.Success);
+        
+        var output = debugLogger.GetOutput();
+        
+        // Should have multiple collapsible details sections for nested templates
+        var detailsCount = output.Split("<details>").Length - 1;
+        Assert.True(detailsCount >= 2, $"Expected at least 2 details sections but found {detailsCount}");
+        
+        // Should contain both template executions in collapsible format
+        Assert.Contains("<summary>Template Execution Details (Click to expand)</summary>", output);
+        Assert.Contains("**Template:** outer-template", output);
+        Assert.Contains("**Template:** inner-template", output);
+        
+        // Print the complete debug output for analysis
+        Console.WriteLine("=== NESTED TEMPLATE DEBUG OUTPUT ===");
+        Console.WriteLine(output);
+        Console.WriteLine($"=== Details sections found: {detailsCount} ===");
+        Console.WriteLine("=== END OUTPUT ===");
     }
 }
