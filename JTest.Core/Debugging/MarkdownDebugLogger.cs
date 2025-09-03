@@ -11,25 +11,25 @@ namespace JTest.Core.Debugging;
 public class MarkdownDebugLogger : IDebugLogger
 {
     private readonly StringBuilder _output = new();
-    
+
     public void LogStepExecution(StepDebugInfo stepInfo)
     {
         WriteStepHeader(stepInfo);
         WriteStepDetails(stepInfo);
-        
+
         // Add template execution details for UseStep in a collapsible section
         if (stepInfo.TemplateExecution != null)
         {
             WriteTemplateExecutionDetailsCollapsible(stepInfo.TemplateExecution);
         }
     }
-    
+
     public void LogContextChanges(ContextChanges changes)
     {
         WriteContextChanges(changes);
         WriteAssertionGuidance(changes);
     }
-    
+
     public void LogRuntimeContext(Dictionary<string, object> context)
     {
         WriteRuntimeContext(context);
@@ -44,7 +44,9 @@ public class MarkdownDebugLogger : IDebugLogger
 
     private void WriteStepHeader(StepDebugInfo stepInfo)
     {
+        _output.AppendLine();
         _output.AppendLine($"## Test {stepInfo.TestNumber}, Step {stepInfo.StepNumber}: {stepInfo.StepType}");
+        _output.AppendLine();
     }
 
     private void WriteStepDetails(StepDebugInfo stepInfo)
@@ -56,10 +58,12 @@ public class MarkdownDebugLogger : IDebugLogger
     private void WriteStepIdentification(StepDebugInfo stepInfo)
     {
         if (!string.IsNullOrEmpty(stepInfo.StepId))
+
+            _output.AppendLine();
             _output.AppendLine($"**Step ID:** {stepInfo.StepId}");
-        _output.AppendLine($"**Step Type:** {stepInfo.StepType}");
-        _output.AppendLine($"**Enabled:** {stepInfo.Enabled}");
-        _output.AppendLine();
+            _output.AppendLine($"**Step Type:** {stepInfo.StepType}");
+            _output.AppendLine($"**Enabled:** {stepInfo.Enabled}");
+            _output.AppendLine();
     }
 
     private void WriteStepResult(StepDebugInfo stepInfo)
@@ -104,10 +108,10 @@ public class MarkdownDebugLogger : IDebugLogger
     private void WriteAssertionResults(List<AssertionResult> assertionResults)
     {
         if (!assertionResults.Any()) return;
-        
+
         _output.AppendLine("**Assertion Results:**");
         _output.AppendLine();
-        
+
         foreach (var result in assertionResults)
         {
             WriteAssertionResult(result);
@@ -118,21 +122,21 @@ public class MarkdownDebugLogger : IDebugLogger
     private void WriteAssertionResult(AssertionResult result)
     {
         var status = result.Success ? "PASSED" : "FAILED";
-        
+
         _output.AppendLine($"**{result.Operation.ToUpperInvariant()}** - {status}");
-        
+
         if (!string.IsNullOrEmpty(result.Description))
             _output.AppendLine($"  - Description: {result.Description}");
-            
+
         if (result.ActualValue != null)
             _output.AppendLine($"  - Actual: `{FormatAssertionValue(result.ActualValue)}`");
-            
+
         if (result.ExpectedValue != null)
             _output.AppendLine($"  - Expected: `{FormatAssertionValue(result.ExpectedValue)}`");
-            
+
         if (!result.Success && !string.IsNullOrEmpty(result.ErrorMessage))
             _output.AppendLine($"  - Error: {result.ErrorMessage}");
-            
+
         _output.AppendLine();
     }
 
@@ -224,11 +228,11 @@ public class MarkdownDebugLogger : IDebugLogger
     {
         _output.AppendLine("### Template Execution Details");
         _output.AppendLine();
-        
+
         _output.AppendLine($"**Template:** {templateInfo.TemplateName}");
         _output.AppendLine($"**Steps Executed:** {templateInfo.StepsExecuted}");
         _output.AppendLine();
-        
+
         // Input parameters
         if (templateInfo.InputParameters.Any())
         {
@@ -240,7 +244,7 @@ public class MarkdownDebugLogger : IDebugLogger
             }
             _output.AppendLine();
         }
-        
+
         // Template outputs
         if (templateInfo.OutputValues.Any())
         {
@@ -252,7 +256,7 @@ public class MarkdownDebugLogger : IDebugLogger
             }
             _output.AppendLine();
         }
-        
+
         // Saved variables
         if (templateInfo.SavedVariables.Any())
         {
@@ -271,11 +275,11 @@ public class MarkdownDebugLogger : IDebugLogger
         _output.AppendLine("<details>");
         _output.AppendLine("<summary>Template Execution Details (Click to expand)</summary>");
         _output.AppendLine();
-        
+
         _output.AppendLine($"**Template:** {templateInfo.TemplateName}");
         _output.AppendLine($"**Steps Executed:** {templateInfo.StepsExecuted}");
         _output.AppendLine();
-        
+
         // Input parameters
         if (templateInfo.InputParameters.Any())
         {
@@ -287,7 +291,7 @@ public class MarkdownDebugLogger : IDebugLogger
             }
             _output.AppendLine();
         }
-        
+
         // Template outputs
         if (templateInfo.OutputValues.Any())
         {
@@ -299,7 +303,7 @@ public class MarkdownDebugLogger : IDebugLogger
             }
             _output.AppendLine();
         }
-        
+
         // Saved variables
         if (templateInfo.SavedVariables.Any())
         {
@@ -311,7 +315,7 @@ public class MarkdownDebugLogger : IDebugLogger
             }
             _output.AppendLine();
         }
-        
+
         // Step execution details
         if (templateInfo.StepExecutionDetails?.Any() == true)
         {
@@ -322,7 +326,7 @@ public class MarkdownDebugLogger : IDebugLogger
             }
             _output.AppendLine();
         }
-        
+
         _output.AppendLine("</details>");
         _output.AppendLine();
     }
@@ -331,10 +335,10 @@ public class MarkdownDebugLogger : IDebugLogger
     {
         if (value == null) return "null";
         if (value is string str) return $"\"{str}\"";
-        
+
         if (value is IDictionary<string, object> dict)
             return $"{{object with {dict.Count} properties}}";
-        
+
         return value.ToString() ?? "unknown";
     }
 }
