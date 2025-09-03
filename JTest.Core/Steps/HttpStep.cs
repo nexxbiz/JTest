@@ -45,8 +45,17 @@ public class HttpStep : BaseStep
             // Process assertions after storing response data
             var assertionResults = await ProcessAssertionsAsync(context);
             
-            LogDebugInformation(context, contextBefore, stopwatch, true, assertionResults);
-            var result = StepResult.CreateSuccess(responseData, stopwatch.ElapsedMilliseconds);
+            // Determine if step should be marked as failed based on assertion results
+            var hasFailedAssertions = HasFailedAssertions(assertionResults);
+            
+            LogDebugInformation(context, contextBefore, stopwatch, !hasFailedAssertions, assertionResults);
+            
+            // Create result - fail if any assertions failed
+            var result = hasFailedAssertions 
+                ? StepResult.CreateFailure("One or more assertions failed", stopwatch.ElapsedMilliseconds)
+                : StepResult.CreateSuccess(responseData, stopwatch.ElapsedMilliseconds);
+            
+            result.Data = responseData;
             result.AssertionResults = assertionResults;
             return result;
         }

@@ -202,7 +202,7 @@ public class StepAssertionIntegrationTests
         var result = await step.ExecuteAsync(context);
         
         // Assert
-        Assert.True(result.Success); // Step execution succeeds even with failed assertions
+        Assert.False(result.Success); // Step execution should fail when assertions fail
         Assert.Equal(5, result.AssertionResults.Count);
         
         // Check specific assertion results

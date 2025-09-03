@@ -51,10 +51,18 @@ public class WaitStep : BaseStep
         // Process assertions after storing result data
         var assertionResults = await ProcessAssertionsAsync(context);
         
-        // Log debug information
-        LogDebugInformation(context, contextBefore, stopwatch, true, assertionResults);
+        // Determine if step should be marked as failed based on assertion results
+        var hasFailedAssertions = HasFailedAssertions(assertionResults);
         
-        var result = StepResult.CreateSuccess(resultData, stopwatch.ElapsedMilliseconds);
+        // Log debug information
+        LogDebugInformation(context, contextBefore, stopwatch, !hasFailedAssertions, assertionResults);
+        
+        // Create result - fail if any assertions failed
+        var result = hasFailedAssertions 
+            ? StepResult.CreateFailure("One or more assertions failed", stopwatch.ElapsedMilliseconds)
+            : StepResult.CreateSuccess(resultData, stopwatch.ElapsedMilliseconds);
+        
+        result.Data = resultData;
         result.AssertionResults = assertionResults;
         return result;
     }
