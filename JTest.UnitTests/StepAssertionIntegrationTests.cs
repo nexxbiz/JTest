@@ -120,4 +120,96 @@ public class StepAssertionIntegrationTests
         Assert.Equal("Template result: test value", equalsAssertion.ExpectedValue);
         Assert.True(equalsAssertion.Success);
     }
+
+    [Fact]
+    public async Task AssertStep_WithAssertions_ProcessesCorrectly()
+    {
+        // Arrange
+        var step = new AssertStep();
+        var context = new TestExecutionContext();
+        
+        // Set up context with some test data
+        context.Variables["user"] = new Dictionary<string, object>
+        {
+            ["name"] = "John Doe",
+            ["age"] = 30,
+            ["email"] = "john.doe@example.com"
+        };
+        context.Variables["config"] = new Dictionary<string, object>
+        {
+            ["maxUsers"] = 100,
+            ["environment"] = "test"
+        };
+        
+        var config = JsonSerializer.SerializeToElement(new 
+        { 
+            assert = new object[]
+            {
+                new { op = "exists", actualValue = "{{$.user.name}}" },
+                new { op = "equals", actualValue = "{{$.user.age}}", expectedValue = 30 },
+                new { op = "contains", actualValue = "{{$.user.email}}", expectedValue = "@example.com" },
+                new { op = "greaterthan", actualValue = "{{$.config.maxUsers}}", expectedValue = 50 },
+                new { op = "equals", actualValue = "{{$.config.environment}}", expectedValue = "test" }
+            }
+        });
+        
+        step.ValidateConfiguration(config);
+        
+        // Act
+        var result = await step.ExecuteAsync(context);
+        
+        // Assert
+        Assert.True(result.Success);
+        Assert.Equal(5, result.AssertionResults.Count);
+        
+        // Verify all assertions passed
+        foreach (var assertion in result.AssertionResults)
+        {
+            Assert.True(assertion.Success, $"Assertion {assertion.Operation} failed: {assertion.ErrorMessage}");
+        }
+        
+        // Verify step stored its result in context
+        Assert.Contains("this", context.Variables.Keys);
+        var thisResult = Assert.IsType<Dictionary<string, object>>(context.Variables["this"]);
+        Assert.Equal("assert", thisResult["type"]);
+        Assert.Equal(true, thisResult["executed"]);
+    }
+
+    [Fact]
+    public async Task AssertStep_WithMixedPassFailAssertions_ReportsCorrectResults()
+    {
+        // Arrange
+        var step = new AssertStep();
+        var context = new TestExecutionContext();
+        
+        context.Variables["testData"] = "hello world";
+        
+        var config = JsonSerializer.SerializeToElement(new 
+        { 
+            assert = new object[]
+            {
+                new { op = "exists", actualValue = "{{$.testData}}" },           // Should pass
+                new { op = "equals", actualValue = "{{$.testData}}", expectedValue = "hello world" }, // Should pass
+                new { op = "equals", actualValue = "{{$.testData}}", expectedValue = "goodbye" },     // Should fail
+                new { op = "contains", actualValue = "{{$.testData}}", expectedValue = "world" },     // Should pass
+                new { op = "contains", actualValue = "{{$.testData}}", expectedValue = "xyz" }        // Should fail
+            }
+        });
+        
+        step.ValidateConfiguration(config);
+        
+        // Act
+        var result = await step.ExecuteAsync(context);
+        
+        // Assert
+        Assert.True(result.Success); // Step execution succeeds even with failed assertions
+        Assert.Equal(5, result.AssertionResults.Count);
+        
+        // Check specific assertion results
+        Assert.True(result.AssertionResults[0].Success);  // exists
+        Assert.True(result.AssertionResults[1].Success);  // equals (pass)
+        Assert.False(result.AssertionResults[2].Success); // equals (fail)
+        Assert.True(result.AssertionResults[3].Success);  // contains (pass)
+        Assert.False(result.AssertionResults[4].Success); // contains (fail)
+    }
 }
