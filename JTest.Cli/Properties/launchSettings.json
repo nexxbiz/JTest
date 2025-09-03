@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "JTest.Cli": {
+      "commandName": "Project"
+    },
+    "if-else-debug": {
+      "commandName": "Project",
+      "commandLineArgs": "debug if-else-tests.json",
+      "workingDirectory": "C:\\Users\\FransvanEk\\OneDrive - nexxbiz accelerating value delivery\\Documenten\\Documents\\Designs\\Testing QA\\tests"
+    }
+  }
+}
