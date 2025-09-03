@@ -208,7 +208,14 @@ public class UseStep : BaseStep
         {
             if (!templateContext.Variables.ContainsKey(param.Key) && param.Value.Default != null)
             {
-                templateContext.Variables[param.Key] = param.Value.Default;
+                // Handle JsonElement default values properly
+                var defaultValue = param.Value.Default;
+                if (defaultValue is JsonElement element)
+                {
+                    defaultValue = GetJsonElementValue(element);
+                }
+                
+                templateContext.Variables[param.Key] = defaultValue;
             }
         }
     }

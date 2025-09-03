@@ -24,13 +24,21 @@ public static class VariableInterpolator
     {
         if (input == null) return string.Empty;
 
-        // Resolve nested tokens iteratively from innermost to outermost
-        var resolvedInput = ResolveNestedTokens(input, context);
+        var matches = TokenRegex.Matches(input);
+        if (matches.Count == 0) return input;
+        
+        // Check for single token first before resolving nested tokens
+        if (IsSingleTokenInput(input, matches))
+        {
+            return ResolveSingleToken(matches[0], context);
+        }
 
-        var matches = TokenRegex.Matches(resolvedInput);
-        if (matches.Count == 0) return resolvedInput;
-        if (IsSingleTokenInput(resolvedInput, matches)) return ResolveSingleToken(matches[0], context);
-        return ResolveMultipleTokens(resolvedInput, matches, context);
+        // Resolve nested tokens iteratively from innermost to outermost for multi-token strings
+        var resolvedInput = ResolveNestedTokens(input, context);
+        var newMatches = TokenRegex.Matches(resolvedInput);
+        
+        if (newMatches.Count == 0) return resolvedInput;
+        return ResolveMultipleTokens(resolvedInput, newMatches, context);
     }
 
     /// <summary>
