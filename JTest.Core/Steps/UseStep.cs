@@ -110,7 +110,7 @@ public class UseStep : BaseStep
             
             if (!stepResult.Success)
             {
-                throw new InvalidOperationException($"Template step failed: {stepResult.ErrorMessage}");
+                throw new InvalidOperationException($"Template step failed: {stepResult.ErrorMessage} - {stepResult.DetailedAssertionFailures}");
             }
             
             templateResults.Add(stepResult.Data ?? new object());

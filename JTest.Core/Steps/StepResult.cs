@@ -47,4 +47,12 @@ public class StepResult
     {
         return new StepResult { Success = false, ErrorMessage = errorMessage, DurationMs = durationMs };
     }
+
+    public string DetailedAssertionFailures
+    {
+        get
+        {
+            return String.Join('-', AssertionResults.Where(a => a.Success == false).Select(a => a.ErrorMessage));
+        }
+    }
 }

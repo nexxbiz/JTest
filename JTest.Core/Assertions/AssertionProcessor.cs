@@ -937,10 +937,7 @@ public static class AssertionProcessor
         if (pathParts.Length > 1)
         {
             var rootKey = pathParts[1]; // Skip the '$' part
-            if (reservedKeys.Contains(rootKey))
-            {
-                return $"Path references reserved scope '{rootKey}' which is read-only.";
-            }
+
             
             // Check for potential step references
             if (pathParts.Length > 2 && !context.Variables.ContainsKey(rootKey))
