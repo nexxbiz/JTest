@@ -58,12 +58,12 @@ public class MarkdownDebugLogger : IDebugLogger
     private void WriteStepIdentification(StepDebugInfo stepInfo)
     {
         if (!string.IsNullOrEmpty(stepInfo.StepId))
-
-            _output.AppendLine();
+        {
             _output.AppendLine($"**Step ID:** {stepInfo.StepId}");
-            _output.AppendLine($"**Step Type:** {stepInfo.StepType}");
-            _output.AppendLine($"**Enabled:** {stepInfo.Enabled}");
-            _output.AppendLine();
+        }
+        _output.AppendLine($"**Step Type:** {stepInfo.StepType}");
+        _output.AppendLine($"**Enabled:** {stepInfo.Enabled}");
+        _output.AppendLine();
     }
 
     private void WriteStepResult(StepDebugInfo stepInfo)
@@ -335,6 +335,10 @@ public class MarkdownDebugLogger : IDebugLogger
     {
         if (value == null) return "null";
         if (value is string str) return $"\"{str}\"";
+        
+        // Handle numeric types properly without quotes
+        if (value is int || value is double || value is float || value is decimal || value is long)
+            return value.ToString() ?? "unknown";
 
         if (value is IDictionary<string, object> dict)
             return $"{{object with {dict.Count} properties}}";

@@ -154,6 +154,13 @@ public class UseStep : BaseStep
     {
         var templateContext = new TestExecutionContext();
         
+        // Copy case data variables from parent context if they exist
+        // This ensures templates can access case variables for data-driven testing
+        if (parentContext.Variables.ContainsKey("case"))
+        {
+            templateContext.Variables["case"] = parentContext.Variables["case"];
+        }
+        
         // Add template parameters from 'with' configuration
         if (Configuration.TryGetProperty("with", out var withElement) && withElement.ValueKind == JsonValueKind.Object)
         {
@@ -208,7 +215,14 @@ public class UseStep : BaseStep
         {
             if (!templateContext.Variables.ContainsKey(param.Key) && param.Value.Default != null)
             {
-                templateContext.Variables[param.Key] = param.Value.Default;
+                // Handle JsonElement default values properly
+                var defaultValue = param.Value.Default;
+                if (defaultValue is JsonElement element)
+                {
+                    defaultValue = GetJsonElementValue(element);
+                }
+                
+                templateContext.Variables[param.Key] = defaultValue;
             }
         }
     }

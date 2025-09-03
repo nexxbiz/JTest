@@ -779,7 +779,7 @@ public class TemplateProviderTests
         
         // Inner template execution should be captured in step execution details
         Assert.Contains("**Step Execution Details:**", output);
-        Assert.Contains("**UseStep** (): Success", output);
+        Assert.Contains("**use** (): Success", output);
         
         // Should NOT contain inner template as a separate template execution section
         Assert.DoesNotContain("**Template:** inner-template", output);
@@ -870,5 +870,208 @@ public class TemplateProviderTests
         // Verify that the inner step execution is captured in template details
         Assert.Contains("**Step Execution Details:**", output);
         Assert.Contains("**http** (call-api): Success", output);
+    }
+}
+
+/// <summary>
+/// Tests for UseStep case data variable access functionality
+/// These tests verify that templates can access case data variables for data-driven testing
+/// </summary>
+public class UseStepCaseDataTests
+{
+    [Fact]
+    public async Task UseStep_WithCaseData_CanAccessCaseVariablesInTemplate()
+    {
+        // Arrange - Create a template that uses case data
+        var templateProvider = new TemplateProvider();
+        
+        var templateJson = """
+        {
+            "version": "1.0",
+            "components": {
+                "templates": [
+                    {
+                        "name": "case-data-template",
+                        "params": {},
+                        "steps": [
+                            {
+                                "type": "wait",
+                                "ms": 1,
+                                "id": "test-step"
+                            }
+                        ],
+                        "output": {
+                            "userId": "{{$.case.userId}}",
+                            "accountId": "{{$.case.accountId}}",
+                            "expectedTotal": "{{$.case.expectedTotal}}"
+                        }
+                    }
+                ]
+            }
+        }
+        """;
+        templateProvider.LoadTemplatesFromJson(templateJson);
+
+        // Create UseStep
+        var useStep = new TestUseStep(templateProvider, new TestStepFactory(templateProvider, null));
+        
+        // Configure UseStep to use the template
+        var configuration = JsonSerializer.Deserialize<JsonElement>(JsonSerializer.Serialize(new
+        {
+            type = "use",
+            template = "case-data-template"
+        }));
+        
+        useStep.ValidateConfiguration(configuration);
+
+        // Create execution context with case data
+        var context = new TestExecutionContext();
+        var caseData = new Dictionary<string, object>
+        {
+            ["userId"] = "user123",
+            ["accountId"] = "acct-1001",
+            ["expectedTotal"] = 25.50
+        };
+        context.SetCase(caseData);
+
+        // Act
+        var result = await useStep.ExecuteAsync(context);
+
+        // Assert
+        Assert.True(result.Success);
+        Assert.NotNull(result.Data);
+        
+        var resultDict = result.Data as Dictionary<string, object>;
+        Assert.NotNull(resultDict);
+        
+        // Verify template outputs correctly resolved case variables
+        Assert.Equal("user123", resultDict["userId"]);
+        Assert.Equal("acct-1001", resultDict["accountId"]);
+        Assert.Equal(25.5, resultDict["expectedTotal"]); // Numbers should preserve type
+    }
+
+    [Fact]
+    public async Task UseStep_WithoutCaseData_WorksNormally()
+    {
+        // Arrange - Create a simple template that doesn't use case data
+        var templateProvider = new TemplateProvider();
+        
+        var templateJson = """
+        {
+            "version": "1.0",
+            "components": {
+                "templates": [
+                    {
+                        "name": "simple-template",
+                        "params": {},
+                        "steps": [
+                            {
+                                "type": "wait",
+                                "ms": 1
+                            }
+                        ],
+                        "output": {
+                            "message": "Template executed successfully"
+                        }
+                    }
+                ]
+            }
+        }
+        """;
+        templateProvider.LoadTemplatesFromJson(templateJson);
+
+        var useStep = new TestUseStep(templateProvider, new TestStepFactory(templateProvider, null));
+        
+        var configuration = JsonSerializer.Deserialize<JsonElement>(JsonSerializer.Serialize(new
+        {
+            type = "use",
+            template = "simple-template"
+        }));
+        
+        useStep.ValidateConfiguration(configuration);
+
+        // Create execution context WITHOUT case data
+        var context = new TestExecutionContext();
+
+        // Act
+        var result = await useStep.ExecuteAsync(context);
+
+        // Assert
+        Assert.True(result.Success);
+        Assert.NotNull(result.Data);
+        
+        var resultDict = result.Data as Dictionary<string, object>;
+        Assert.NotNull(resultDict);
+        Assert.Equal("Template executed successfully", resultDict["message"]);
+    }
+
+    [Fact]
+    public async Task UseStep_WithCaseDataAndTemplateParams_BothAccessible()
+    {
+        // Arrange - Template that uses both case data and template parameters
+        var templateProvider = new TemplateProvider();
+        
+        var templateJson = """
+        {
+            "version": "1.0",
+            "components": {
+                "templates": [
+                    {
+                        "name": "mixed-template",
+                        "params": {
+                            "baseUrl": { "type": "string", "required": true }
+                        },
+                        "steps": [
+                            {
+                                "type": "wait",
+                                "ms": 1
+                            }
+                        ],
+                        "output": {
+                            "fullUrl": "{{$.baseUrl}}/users/{{$.case.userId}}",
+                            "userInfo": "{{$.case.userId}}"
+                        }
+                    }
+                ]
+            }
+        }
+        """;
+        templateProvider.LoadTemplatesFromJson(templateJson);
+
+        var useStep = new TestUseStep(templateProvider, new TestStepFactory(templateProvider, null));
+        
+        var configuration = JsonSerializer.Deserialize<JsonElement>(JsonSerializer.Serialize(new
+        {
+            type = "use",
+            template = "mixed-template",
+            @with = new
+            {
+                baseUrl = "https://api.example.com"
+            }
+        }));
+        
+        useStep.ValidateConfiguration(configuration);
+
+        // Create execution context with case data
+        var context = new TestExecutionContext();
+        var caseData = new Dictionary<string, object>
+        {
+            ["userId"] = "user456"
+        };
+        context.SetCase(caseData);
+
+        // Act
+        var result = await useStep.ExecuteAsync(context);
+
+        // Assert
+        Assert.True(result.Success);
+        Assert.NotNull(result.Data);
+        
+        var resultDict = result.Data as Dictionary<string, object>;
+        Assert.NotNull(resultDict);
+        
+        // Verify both template parameters and case data are accessible
+        Assert.Equal("https://api.example.com/users/user456", resultDict["fullUrl"]);
+        Assert.Equal("user456", resultDict["userInfo"]);
     }
 }
