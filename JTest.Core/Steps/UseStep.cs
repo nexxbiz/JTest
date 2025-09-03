@@ -14,13 +14,13 @@ public class UseStep : BaseStep
 {
     private readonly ITemplateProvider _templateProvider;
     private readonly StepFactory _stepFactory;
-    private readonly IDebugLogger? _debugLogger;
 
     public UseStep(ITemplateProvider templateProvider, StepFactory stepFactory, IDebugLogger? debugLogger = null)
     {
         _templateProvider = templateProvider;
         _stepFactory = stepFactory;
-        _debugLogger = debugLogger;
+        // Set debug logger using base class method
+        SetDebugLogger(debugLogger);
     }
 
     public override string Type => "use";
@@ -267,11 +267,6 @@ public class UseStep : BaseStep
         };
     }
 
-    private Dictionary<string, object> CloneContext(IExecutionContext context)
-    {
-        return new Dictionary<string, object>(context.Variables);
-    }
-
     private void CaptureSavedVariables(IExecutionContext context, Dictionary<string, object> contextBefore, TemplateExecutionInfo templateInfo)
     {
         if (Configuration.TryGetProperty("save", out var saveElement) && saveElement.ValueKind == JsonValueKind.Object)
@@ -330,17 +325,17 @@ public class UseStep : BaseStep
 
     private void LogDebugInformation(IExecutionContext context, Dictionary<string, object> contextBefore, Stopwatch stopwatch, bool success, TemplateExecutionInfo? templateInfo = null)
     {
-        if (_debugLogger == null) return;
+        if (DebugLogger == null) return;
         
-        var stepInfo = CreateStepDebugInfo(stopwatch, success, templateInfo);
+        var stepInfo = CreateStepDebugInfo(context, stopwatch, success, templateInfo);
         var contextChanges = DetectContextChanges(contextBefore, context.Variables);
         
-        _debugLogger.LogStepExecution(stepInfo);
-        _debugLogger.LogContextChanges(contextChanges);
-        _debugLogger.LogRuntimeContext(context.Variables);
+        DebugLogger.LogStepExecution(stepInfo);
+        DebugLogger.LogContextChanges(contextChanges);
+        DebugLogger.LogRuntimeContext(context.Variables);
     }
 
-    private StepDebugInfo CreateStepDebugInfo(Stopwatch stopwatch, bool success, TemplateExecutionInfo? templateInfo = null)
+    private StepDebugInfo CreateStepDebugInfo(IExecutionContext context, Stopwatch stopwatch, bool success, TemplateExecutionInfo? templateInfo = null)
     {
         var templateName = Configuration.TryGetProperty("template", out var templateElement) 
             ? templateElement.GetString() ?? "unknown" 
@@ -348,9 +343,9 @@ public class UseStep : BaseStep
 
         return new StepDebugInfo
         {
-            TestNumber = 1, // TODO: Get from context
-            StepNumber = 1, // TODO: Get from context  
-            StepType = "UseStep",
+            TestNumber = context.TestNumber,
+            StepNumber = context.StepNumber,
+            StepType = Type,
             StepId = Id ?? "",
             Enabled = true,
             Result = success ? "Success" : "Failed",
@@ -360,58 +355,11 @@ public class UseStep : BaseStep
         };
     }
 
-    private ContextChanges DetectContextChanges(Dictionary<string, object> before, Dictionary<string, object> after)
+    protected override string GetStepDescription()
     {
-        var changes = new ContextChanges();
-        
-        DetectAddedVariables(before, after, changes);
-        DetectModifiedVariables(before, after, changes);
-        GenerateAvailableExpressions(after, changes);
-        
-        return changes;
-    }
-
-    private void DetectAddedVariables(Dictionary<string, object> before, Dictionary<string, object> after, ContextChanges changes)
-    {
-        foreach (var kvp in after)
-        {
-            if (!before.ContainsKey(kvp.Key))
-            {
-                var description = DescribeValue(kvp.Value);
-                changes.Added.Add($"`$.{kvp.Key}` = {description}");
-            }
-        }
-    }
-
-    private void DetectModifiedVariables(Dictionary<string, object> before, Dictionary<string, object> after, ContextChanges changes)
-    {
-        foreach (var kvp in after)
-        {
-            if (before.ContainsKey(kvp.Key) && !object.Equals(before[kvp.Key], kvp.Value))
-            {
-                var beforeDesc = DescribeValue(before[kvp.Key]);
-                var afterDesc = DescribeValue(kvp.Value);
-                changes.Modified.Add($"`$.{kvp.Key}`: {beforeDesc} → {afterDesc}");
-            }
-        }
-    }
-
-    private void GenerateAvailableExpressions(Dictionary<string, object> context, ContextChanges changes)
-    {
-        foreach (var key in context.Keys)
-        {
-            changes.Available.Add($"$.{key}");
-        }
-    }
-
-    private string DescribeValue(object value)
-    {
-        if (value == null) return "null";
-        if (value is string str) return $"\"{str}\"";
-        
-        if (value is IDictionary<string, object> dict)
-            return $"{{object with {dict.Count} properties}}";
-        
-        return value.ToString() ?? "unknown";
+        var templateName = Configuration.TryGetProperty("template", out var templateElement) 
+            ? templateElement.GetString() ?? "unknown" 
+            : "unknown";
+        return $"Execute template '{templateName}'";
     }
 }

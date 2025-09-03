@@ -267,12 +267,12 @@ public class HttpStepTests
         
         var output = debugLogger.GetOutput();
         
-        Assert.Contains("## Test 1, Step 1: HttpStep", output);
+        Assert.Contains("## Test 1, Step 1: http", output);
         Assert.Contains("**Step ID:** test-step", output);
         Assert.Contains("**Result:** Success", output);
         Assert.Contains("**Context Changes:**", output);
         Assert.Contains("**Added:**", output);
-        Assert.Contains("- `$.this` = {object with", output);
+        Assert.Contains("- `$.this` = {object of type", output);
         Assert.Contains("**For Assertions:**", output);
         Assert.Contains("<details>", output);
         Assert.Contains("Runtime Context", output);

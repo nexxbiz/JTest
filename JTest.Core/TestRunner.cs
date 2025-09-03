@@ -124,7 +124,7 @@ public class TestRunner
         {
             var testCase = ParseTestCase(jsonDefinition);
             var context = CreateExecutionContext(environment, globals);
-            return await _executor.ExecuteAsync(testCase, context);
+            return await _executor.ExecuteAsync(testCase, context, 1);
         }
     }
     
@@ -229,11 +229,13 @@ public class TestRunner
         var allResults = new List<JTestCaseResult>();
         
         // Execute each test case in the suite
+        int testNumber = 1;
         foreach (var testCase in testSuite.Tests)
         {
             var context = CreateExecutionContext(mergedEnvironment, mergedGlobals);
-            var results = await _executor.ExecuteAsync(testCase, context);
+            var results = await _executor.ExecuteAsync(testCase, context, testNumber);
             allResults.AddRange(results);
+            testNumber++;
         }
         
         return allResults;

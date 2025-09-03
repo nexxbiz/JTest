@@ -28,26 +28,31 @@ public class WaitStep : BaseStep
 
     private async Task<StepResult> ExecuteWaitLogic(IExecutionContext context, Stopwatch stopwatch)
     {
+        var contextBefore = CloneContext(context);
         var delayMs = ParseDelayMilliseconds(context);
         if (delayMs < 0) return CreateValidationFailure();
         await Task.Delay(delayMs);
         stopwatch.Stop();
-        return await CreateSuccessResult(delayMs, stopwatch, context);
+        return await CreateSuccessResult(delayMs, stopwatch, context, contextBefore);
     }
 
     private StepResult HandleExecutionError(Exception ex, Stopwatch stopwatch)
     {
         stopwatch.Stop();
+        LogDebugInformation(new TestExecutionContext(), new Dictionary<string, object>(), stopwatch, false);
         return StepResult.CreateFailure($"Wait step failed: {ex.Message}", stopwatch.ElapsedMilliseconds);
     }
 
-    private async Task<StepResult> CreateSuccessResult(int delayMs, Stopwatch stopwatch, IExecutionContext context)
+    private async Task<StepResult> CreateSuccessResult(int delayMs, Stopwatch stopwatch, IExecutionContext context, Dictionary<string, object> contextBefore)
     {
         var resultData = CreateResultData(delayMs, stopwatch.ElapsedMilliseconds);
         StoreResultInContext(context, resultData);
         
         // Process assertions after storing result data
         var assertionResults = await ProcessAssertionsAsync(context);
+        
+        // Log debug information
+        LogDebugInformation(context, contextBefore, stopwatch, true, assertionResults);
         
         var result = StepResult.CreateSuccess(resultData, stopwatch.ElapsedMilliseconds);
         result.AssertionResults = assertionResults;
@@ -124,5 +129,15 @@ public class WaitStep : BaseStep
     private StepResult CreateValidationFailure()
     {
         return StepResult.CreateFailure("Invalid ms value: must be a positive integer");
+    }
+
+    protected override string GetStepDescription()
+    {
+        if (Configuration.TryGetProperty("ms", out var msProperty))
+        {
+            var msValue = msProperty.ValueKind == JsonValueKind.Number ? msProperty.GetInt32().ToString() : msProperty.GetString() ?? "unknown";
+            return $"Wait {msValue}ms";
+        }
+        return "Wait for specified time";
     }
 }

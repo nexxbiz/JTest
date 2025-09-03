@@ -869,6 +869,6 @@ public class TemplateProviderTests
         
         // Verify that the inner step execution is captured in template details
         Assert.Contains("**Step Execution Details:**", output);
-        Assert.Contains("**HttpStep** (call-api): Success", output);
+        Assert.Contains("**http** (call-api): Success", output);
     }
 }

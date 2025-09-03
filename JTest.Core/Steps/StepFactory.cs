@@ -53,6 +53,9 @@ public class StepFactory
             _ => throw new ArgumentException($"Unknown step type: {stepType}")
         };
         
+        // Set debug logger for all steps
+        step.SetDebugLogger(_debugLogger);
+        
         // Set step ID if provided
         if (jsonElement.TryGetProperty("id", out var idElement))
         {
