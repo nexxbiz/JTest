@@ -50,6 +50,7 @@ public class StepFactory
             "http" => new HttpStep(_httpClient, _debugLogger),
             "wait" => new WaitStep(),
             "use" => new UseStep(_templateProvider, this, _debugLogger),
+            "assert" => new AssertStep(),
             _ => throw new ArgumentException($"Unknown step type: {stepType}")
         };
         
