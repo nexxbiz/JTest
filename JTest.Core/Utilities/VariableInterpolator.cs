@@ -74,7 +74,7 @@ public static class VariableInterpolator
             foreach (var token in innerTokens)
             {
                 var path = ExtractPath(token);
-                var resolvedValue = ResolveJsonPath(path, context);
+                var resolvedValue = ResolveJsonPath(path, context, depth);
                 var replacement = ConvertToString(resolvedValue);
 
                 // Check if the replacement itself contains tokens and resolve recursively
@@ -248,7 +248,7 @@ public static class VariableInterpolator
     private static object ResolveSingleTokenRecursive(Match match, IExecutionContext context, int depth)
     {
         var path = ExtractPath(match.Value);
-        var result = ResolveJsonPath(path, context);
+        var result = ResolveJsonPath(path, context, depth);
         
         // If the result is a string that contains tokens, resolve them recursively
         if (result is string stringResult && TokenRegex.IsMatch(stringResult))
@@ -272,7 +272,7 @@ public static class VariableInterpolator
     private static string ReplaceTokenRecursive(string input, Match match, IExecutionContext context, int depth)
     {
         var path = ExtractPath(match.Value);
-        var value = ResolveJsonPath(path, context);
+        var value = ResolveJsonPath(path, context, depth);
         var replacement = ConvertToString(value);
         
         // Check if the replacement contains tokens and resolve recursively
@@ -313,36 +313,42 @@ public static class VariableInterpolator
 
     private static object ResolveJsonPath(string path, IExecutionContext context)
     {
-        try { return ExecuteJsonPath(path, context); }
+        try { return ExecuteJsonPath(path, context, 0); }
         catch (Exception) { LogPathError(path, context); return string.Empty; }
     }
 
-    private static object ExecuteJsonPath(string path, IExecutionContext context)
+    private static object ResolveJsonPath(string path, IExecutionContext context, int depth)
+    {
+        try { return ExecuteJsonPath(path, context, depth); }
+        catch (Exception) { LogPathError(path, context); return string.Empty; }
+    }
+
+    private static object ExecuteJsonPath(string path, IExecutionContext context, int depth)
     {
         var jsonPath = JsonPath.Parse(path);
         var jsonNode = JsonSerializer.SerializeToNode(context.Variables);
         var result = jsonPath.Evaluate(jsonNode);
         if (result.Matches == null || !result.Matches.Any()) return HandleMissingPath(path, context);
-        return ExtractValue(result.Matches.First().Value);
+        return ExtractValue(result.Matches.First().Value, context, depth);
     }
 
-    private static object ExtractValue(object? value)
+    private static object ExtractValue(object? value, IExecutionContext context, int depth)
     {
         return value switch
         {
-            JsonNode node => ExtractFromJsonNode(node),
+            JsonNode node => ExtractFromJsonNode(node, context, depth),
             JsonElement element => ExtractFromJsonElement(element),
             _ => value ?? string.Empty
         };
     }
 
-    private static object ExtractFromJsonNode(JsonNode node)
+    private static object ExtractFromJsonNode(JsonNode node, IExecutionContext context, int depth)
     {
         return node switch
         {
             JsonValue value => ExtractPrimitiveValue(value),
-            JsonObject => node,
-            JsonArray => node,
+            JsonObject jsonObj => ResolveTokensInJsonObject(jsonObj, context, depth),
+            JsonArray jsonArray => ResolveTokensInJsonArray(jsonArray, context, depth),
             _ => node.ToString()
         };
     }
@@ -361,6 +367,83 @@ public static class VariableInterpolator
         {
             return value.ToString();
         }
+    }
+
+    /// <summary>
+    /// Recursively resolves tokens in a JsonObject by converting it to a Dictionary and resolving each value
+    /// </summary>
+    private static object ResolveTokensInJsonObject(JsonObject jsonObj, IExecutionContext context, int depth)
+    {
+        // Prevent infinite recursion
+        if (depth >= MaxNestingDepth)
+        {
+            context.Log.Add($"Warning: Maximum token resolution depth ({MaxNestingDepth}) reached while resolving JsonObject");
+            return jsonObj;
+        }
+
+        var resolvedDict = new Dictionary<string, object>();
+        
+        foreach (var kvp in jsonObj)
+        {
+            var key = kvp.Key;
+            var value = kvp.Value;
+            
+            if (value == null)
+            {
+                resolvedDict[key] = null!;
+                continue;
+            }
+            
+            // Recursively resolve the value
+            var resolvedValue = ExtractValue(value, context, depth);
+            
+            // If the resolved value is a string containing tokens, resolve those too
+            if (resolvedValue is string stringValue && TokenRegex.IsMatch(stringValue))
+            {
+                resolvedValue = ResolveVariableTokensInternal(stringValue, context, depth + 1);
+            }
+            
+            resolvedDict[key] = resolvedValue;
+        }
+        
+        return resolvedDict;
+    }
+
+    /// <summary>
+    /// Recursively resolves tokens in a JsonArray by converting it to an array and resolving each element
+    /// </summary>
+    private static object ResolveTokensInJsonArray(JsonArray jsonArray, IExecutionContext context, int depth)
+    {
+        // Prevent infinite recursion
+        if (depth >= MaxNestingDepth)
+        {
+            context.Log.Add($"Warning: Maximum token resolution depth ({MaxNestingDepth}) reached while resolving JsonArray");
+            return jsonArray;
+        }
+
+        var resolvedList = new List<object>();
+        
+        foreach (var element in jsonArray)
+        {
+            if (element == null)
+            {
+                resolvedList.Add(null!);
+                continue;
+            }
+            
+            // Recursively resolve the element
+            var resolvedValue = ExtractValue(element, context, depth);
+            
+            // If the resolved value is a string containing tokens, resolve those too
+            if (resolvedValue is string stringValue && TokenRegex.IsMatch(stringValue))
+            {
+                resolvedValue = ResolveVariableTokensInternal(stringValue, context, depth + 1);
+            }
+            
+            resolvedList.Add(resolvedValue);
+        }
+        
+        return resolvedList.ToArray();
     }
 
     private static object ExtractFromJsonElement(JsonElement element)

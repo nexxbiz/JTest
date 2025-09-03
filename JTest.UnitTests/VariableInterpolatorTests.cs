@@ -64,8 +64,15 @@ public class VariableInterpolatorTests
 
         // Assert
         Assert.NotNull(result);
-        // The result should be a JsonObject when complex objects are returned
-        Assert.True(result is JsonObject || result.GetType().Name.Contains("Json"));
+        // The result should be a Dictionary when complex objects are returned (converted for token resolution)
+        Assert.True(result is Dictionary<string, object> || result is JsonObject || result.GetType().Name.Contains("Json"));
+        
+        // Verify the content is accessible
+        if (result is Dictionary<string, object> dict)
+        {
+            Assert.Equal("John", dict["name"]);
+            Assert.Equal(30, dict["age"]);
+        }
     }
 
     [Fact]
@@ -390,5 +397,40 @@ public class VariableInterpolatorTests
         
         var nestedContext = caseContext["nested"] as Dictionary<string, object>;
         Assert.Equal("https://api.test.com/api", nestedContext!["apiUrl"]);
+    }
+
+    [Fact]
+    public void ResolveVariableTokens_WithComplexObjectContainingTokens_ShouldResolveNestedTokens()
+    {
+        // Arrange - This test validates the exact issue reported in the problem statement
+        var context = new TestExecutionContext();
+        
+        // Set up case data
+        var caseData = new Dictionary<string, object>
+        {
+            ["isTrue"] = false
+        };
+        context.SetCase(caseData);
+        
+        // Set up workflowbody that contains tokens (this is the issue scenario)
+        context.Variables["workflowbody"] = new Dictionary<string, object>
+        {
+            ["isTrue"] = "{{$.case.isTrue}}"
+        };
+        
+        // Act - Resolve the workflowbody token
+        var result = VariableInterpolator.ResolveVariableTokens("{{$.workflowbody}}", context);
+        
+        // Assert - The returned object should have tokens resolved
+        Assert.NotNull(result);
+        Assert.True(result is Dictionary<string, object>);
+        
+        var resultDict = result as Dictionary<string, object>;
+        Assert.Equal(false, resultDict!["isTrue"]); // Should be resolved to false, not "{{$.case.isTrue}}"
+        
+        // Verify that the JSON representation doesn't contain unresolved tokens
+        var resultJson = System.Text.Json.JsonSerializer.Serialize(result);
+        Assert.DoesNotContain("{{$.case.isTrue}}", resultJson);
+        Assert.Contains("false", resultJson);
     }
 }
