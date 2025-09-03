@@ -12,18 +12,207 @@ namespace JTest.Core.Utilities;
 /// </summary>
 public static class VariableInterpolator
 {
-    private static readonly Regex TokenRegex = new(@"\{\{\s*\$\.[^}]+\s*\}\}", RegexOptions.Compiled);
+    // Updated regex to properly handle nested braces by counting brace pairs
+    private static readonly Regex TokenRegex = new(@"\{\{\s*\$\.(?:[^{}]|\{[^{}]*\})*\s*\}\}", RegexOptions.Compiled);
+    private const int MaxNestingDepth = 10; // Prevent infinite recursion
 
     /// <summary>
     /// Resolves variable tokens in the input string using the provided execution context
+    /// Supports nested tokens by resolving from innermost to outermost
     /// </summary>
     public static object ResolveVariableTokens(string input, IExecutionContext context)
     {
         if (input == null) return string.Empty;
-        var matches = TokenRegex.Matches(input);
-        if (matches.Count == 0) return input;
-        if (IsSingleTokenInput(input, matches)) return ResolveSingleToken(matches[0], context);
-        return ResolveMultipleTokens(input, matches, context);
+
+        // Resolve nested tokens iteratively from innermost to outermost
+        var resolvedInput = ResolveNestedTokens(input, context);
+
+        var matches = TokenRegex.Matches(resolvedInput);
+        if (matches.Count == 0) return resolvedInput;
+        if (IsSingleTokenInput(resolvedInput, matches)) return ResolveSingleToken(matches[0], context);
+        return ResolveMultipleTokens(resolvedInput, matches, context);
+    }
+
+    /// <summary>
+    /// Resolves nested tokens by finding the innermost tokens first and working outward
+    /// Uses a custom parser to properly handle nested braces
+    /// </summary>
+    private static string ResolveNestedTokens(string input, IExecutionContext context)
+    {
+        var current = input;
+        var depth = 0;
+
+        while (depth < MaxNestingDepth)
+        {
+            var innerTokens = FindInnermostTokensWithProperNesting(current);
+            if (innerTokens.Count == 0) break; // No more tokens to resolve
+
+            var hasChanges = false;
+            foreach (var token in innerTokens)
+            {
+                var path = ExtractPath(token);
+                var resolvedValue = ResolveJsonPath(path, context);
+                var replacement = ConvertToString(resolvedValue);
+
+                if (replacement != token)
+                {
+                    current = current.Replace(token, replacement);
+                    hasChanges = true;
+                }
+            }
+
+            if (!hasChanges) break; // No tokens were resolved, avoid infinite loop
+            depth++;
+        }
+
+        if (depth >= MaxNestingDepth)
+        {
+            context.Log.Add($"Warning: Maximum nesting depth ({MaxNestingDepth}) reached while resolving tokens in: {input}");
+        }
+
+        return current;
+    }
+
+    /// <summary>
+    /// Finds tokens with proper nested brace handling using a custom parser
+    /// </summary>
+    private static List<string> FindInnermostTokensWithProperNesting(string input)
+    {
+        var tokens = new List<string>();
+        var i = 0;
+
+        while (i < input.Length)
+        {
+            // Look for start of token
+            if (i < input.Length - 1 && input[i] == '{' && input[i + 1] == '{')
+            {
+                var tokenStart = i;
+                var tokenEnd = FindMatchingClosingBraces(input, i);
+
+                if (tokenEnd != -1)
+                {
+                    var token = input.Substring(tokenStart, tokenEnd - tokenStart + 2);
+
+                    // Check if this token starts with $. (our variable pattern)
+                    if (token.TrimStart('{', ' ').StartsWith("$."))
+                    {
+                        // Check if this is an innermost token (doesn't contain other tokens)
+                        if (IsInnermostTokenCustom(token))
+                        {
+                            tokens.Add(token);
+                        }
+                    }
+
+                    i = tokenEnd + 2; // Move past this token
+                }
+                else
+                {
+                    i++; // Move to next character if no matching closing braces
+                }
+            }
+            else
+            {
+                i++;
+            }
+        }
+
+        return tokens;
+    }
+
+    /// <summary>
+    /// Finds the matching closing braces for a token starting at the given position
+    /// </summary>
+    private static int FindMatchingClosingBraces(string input, int start)
+    {
+        if (start >= input.Length - 1 || input[start] != '{' || input[start + 1] != '{')
+            return -1;
+
+        var braceCount = 1; // We've seen the opening {{
+        var i = start + 2; // Start after the opening {{
+
+        while (i < input.Length - 1 && braceCount > 0)
+        {
+            if (input[i] == '{' && input[i + 1] == '{')
+            {
+                braceCount++;
+                i += 2;
+            }
+            else if (input[i] == '}' && input[i + 1] == '}')
+            {
+                braceCount--;
+                if (braceCount == 0)
+                {
+                    return i; // Return position of first } in }}
+                }
+                i += 2;
+            }
+            else
+            {
+                i++;
+            }
+        }
+
+        return -1; // No matching closing braces found
+    }
+
+    /// <summary>
+    /// Checks if a token is innermost (doesn't contain other tokens within it)
+    /// </summary>
+    private static bool IsInnermostTokenCustom(string token)
+    {
+        // Remove the outer {{ and }} to check the content
+        var content = token.Substring(2, token.Length - 4);
+
+        // Look for inner {{ patterns in the content
+        var innerStart = content.IndexOf("{{");
+        return innerStart == -1; // If no inner {{ found, it's innermost
+    }
+
+    /// <summary>
+    /// Finds innermost tokens that don't contain other tokens within them
+    /// (Legacy method kept for compatibility with simpler cases)
+    /// </summary>
+    private static List<Match> FindInnermostTokens(string input)
+    {
+        var allMatches = TokenRegex.Matches(input).Cast<Match>().ToList();
+        var innermostTokens = new List<Match>();
+
+        foreach (var match in allMatches)
+        {
+            if (IsInnermostToken(match, allMatches))
+            {
+                innermostTokens.Add(match);
+            }
+        }
+
+        return innermostTokens;
+    }
+
+    /// <summary>
+    /// Determines if a token is innermost by checking if no other tokens are contained within it
+    /// (Legacy method kept for compatibility)
+    /// </summary>
+    private static bool IsInnermostToken(Match candidate, List<Match> allMatches)
+    {
+        var candidateStart = candidate.Index;
+        var candidateEnd = candidate.Index + candidate.Length;
+
+        // Check if any other token is completely contained within this token
+        foreach (var other in allMatches)
+        {
+            if (other == candidate) continue;
+
+            var otherStart = other.Index;
+            var otherEnd = other.Index + other.Length;
+
+            // If another token is completely inside this one, this is not innermost
+            if (otherStart > candidateStart && otherEnd < candidateEnd)
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private static bool IsSingleTokenInput(string input, MatchCollection matches)
@@ -135,7 +324,7 @@ public static class VariableInterpolator
     private static string ConvertToString(object value)
     {
         if (value == null) return string.Empty;
-        
+
         // Use invariant culture for numeric types to ensure consistent decimal formatting
         return value switch
         {

@@ -7,6 +7,11 @@
       "commandName": "Project",
       "commandLineArgs": "debug if-else-tests.json",
       "workingDirectory": "C:\\Users\\FransvanEk\\OneDrive - nexxbiz accelerating value delivery\\Documenten\\Documents\\Designs\\Testing QA\\tests"
+    },
+    "if-else-debug-v2": {
+      "commandName": "Project",
+      "commandLineArgs": "debug if-else-testsv2.json",
+      "workingDirectory": "C:\\Users\\FransvanEk\\OneDrive - nexxbiz accelerating value delivery\\Documenten\\Documents\\Designs\\Testing QA\\tests"
     }
   }
 }
