@@ -1,5 +1,7 @@
+using System.Diagnostics;
 using System.Text.Json;
 using JTest.Core.Assertions;
+using JTest.Core.Debugging;
 using JTest.Core.Execution;
 using JTest.Core.Utilities;
 
@@ -24,6 +26,19 @@ public abstract class BaseStep : IStep
     /// Gets the step configuration JSON element
     /// </summary>
     protected JsonElement Configuration { get; private set; }
+    
+    /// <summary>
+    /// Gets the debug logger instance for this step
+    /// </summary>
+    protected IDebugLogger? DebugLogger { get; private set; }
+    
+    /// <summary>
+    /// Sets the debug logger for this step
+    /// </summary>
+    public void SetDebugLogger(IDebugLogger? debugLogger)
+    {
+        DebugLogger = debugLogger;
+    }
     
     /// <summary>
     /// Sets the step configuration
@@ -145,5 +160,133 @@ public abstract class BaseStep : IStep
             // Simple variable name
             context.Variables[targetPath] = value;
         }
+    }
+    
+    /// <summary>
+    /// Logs debug information for step execution
+    /// </summary>
+    protected virtual void LogDebugInformation(IExecutionContext context, Dictionary<string, object> contextBefore, Stopwatch stopwatch, bool success, List<AssertionResult>? assertionResults = null)
+    {
+        if (DebugLogger == null) return;
+        
+        var stepInfo = CreateStepDebugInfo(context, stopwatch, success);
+        var contextChanges = DetectContextChanges(contextBefore, context.Variables);
+        
+        DebugLogger.LogStepExecution(stepInfo);
+        DebugLogger.LogContextChanges(contextChanges);
+        if (assertionResults != null && assertionResults.Count > 0)
+        {
+            DebugLogger.LogAssertionResults(assertionResults);
+        }
+        DebugLogger.LogRuntimeContext(context.Variables);
+    }
+    
+    /// <summary>
+    /// Creates step debug information using context values for test and step numbers
+    /// </summary>
+    protected virtual StepDebugInfo CreateStepDebugInfo(IExecutionContext context, Stopwatch stopwatch, bool success)
+    {
+        return new StepDebugInfo
+        {
+            TestNumber = context.TestNumber,
+            StepNumber = context.StepNumber,
+            StepType = Type,
+            StepId = Id ?? "",
+            Enabled = true,
+            Result = success ? "Success" : "Failed",
+            Duration = stopwatch.Elapsed,
+            Description = GetStepDescription()
+        };
+    }
+    
+    /// <summary>
+    /// Gets the step description for debug output. Override in derived classes for custom descriptions.
+    /// </summary>
+    protected virtual string GetStepDescription()
+    {
+        return "";
+    }
+    
+    /// <summary>
+    /// Detects context changes between before and after step execution
+    /// </summary>
+    protected virtual ContextChanges DetectContextChanges(Dictionary<string, object> before, Dictionary<string, object> after)
+    {
+        var changes = new ContextChanges();
+        
+        DetectAddedVariables(before, after, changes);
+        DetectModifiedVariables(before, after, changes);
+        GenerateAvailableExpressions(after, changes);
+        
+        return changes;
+    }
+
+    /// <summary>
+    /// Detects variables that were added during step execution
+    /// </summary>
+    protected virtual void DetectAddedVariables(Dictionary<string, object> before, Dictionary<string, object> after, ContextChanges changes)
+    {
+        foreach (var kvp in after)
+        {
+            if (!before.ContainsKey(kvp.Key))
+            {
+                var description = DescribeValue(kvp.Value);
+                changes.Added.Add($"`$.{kvp.Key}` = {description}");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Detects variables that were modified during step execution
+    /// </summary>
+    protected virtual void DetectModifiedVariables(Dictionary<string, object> before, Dictionary<string, object> after, ContextChanges changes)
+    {
+        foreach (var kvp in after)
+        {
+            if (before.ContainsKey(kvp.Key) && !ReferenceEquals(before[kvp.Key], kvp.Value))
+            {
+                var description = DescribeValue(kvp.Value);
+                changes.Modified.Add($"`$.{kvp.Key}` = {description}");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Generates available JSONPath expressions for the context
+    /// </summary>
+    protected virtual void GenerateAvailableExpressions(Dictionary<string, object> context, ContextChanges changes)
+    {
+        foreach (var key in context.Keys)
+        {
+            changes.Available.Add($"$.{key}");
+        }
+    }
+
+    /// <summary>
+    /// Creates a description of a variable value for debug output
+    /// </summary>
+    protected virtual string DescribeValue(object value)
+    {
+        if (value == null) return "null";
+        
+        return value switch
+        {
+            string str when str.Length <= 50 => $"\"{str}\"",
+            string str => $"\"{str[..47]}...\"",
+            bool b => b.ToString().ToLowerInvariant(),
+            int or long or double or float or decimal => value.ToString() ?? "null",
+            Dictionary<string, object> dict => $"{{object with {dict.Count} properties}}",
+            Array array => $"[array with {array.Length} items]",
+            System.Collections.IList list => $"[array with {list.Count} items]",
+            _ => $"{{object of type {value.GetType().Name}}}"
+        };
+    }
+    
+    /// <summary>
+    /// Creates a copy of the context variables for change detection
+    /// </summary>
+    protected virtual Dictionary<string, object> CloneContext(IExecutionContext context)
+    {
+        return new Dictionary<string, object>(context.Variables);
     }
 }

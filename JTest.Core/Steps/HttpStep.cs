@@ -16,12 +16,12 @@ namespace JTest.Core.Steps;
 public class HttpStep : BaseStep
 {
     private readonly HttpClient _httpClient;
-    private readonly IDebugLogger? _debugLogger;
 
     public HttpStep(HttpClient httpClient, IDebugLogger? debugLogger = null)
     {
         _httpClient = httpClient;
-        _debugLogger = debugLogger;
+        // Set debug logger using base class method
+        SetDebugLogger(debugLogger);
     }
 
     public override string Type => "http";
@@ -257,104 +257,6 @@ public class HttpStep : BaseStep
             .Concat(response.Content.Headers)
             .Select(h => new { name = h.Key, value = string.Join(", ", h.Value) })
             .ToArray();
-    }
-
-    private Dictionary<string, object> CloneContext(IExecutionContext context)
-    {
-        return new Dictionary<string, object>(context.Variables);
-    }
-
-    private void LogDebugInformation(IExecutionContext context, Dictionary<string, object> contextBefore, Stopwatch stopwatch, bool success, List<AssertionResult> assertionResults)
-    {
-        if (_debugLogger == null) return;
-        
-        var stepInfo = CreateStepDebugInfo(stopwatch, success);
-        var contextChanges = DetectContextChanges(contextBefore, context.Variables);
-        
-        _debugLogger.LogStepExecution(stepInfo);
-        _debugLogger.LogContextChanges(contextChanges);
-        _debugLogger.LogAssertionResults(assertionResults);
-        _debugLogger.LogRuntimeContext(context.Variables);
-    }
-
-    private StepDebugInfo CreateStepDebugInfo(Stopwatch stopwatch, bool success)
-    {
-        return new StepDebugInfo
-        {
-            TestNumber = 1, // TODO: Get from context
-            StepNumber = 1, // TODO: Get from context  
-            StepType = "HttpStep",
-            StepId = Id ?? "",
-            Enabled = true,
-            Result = success ? "Success" : "Failed",
-            Duration = stopwatch.Elapsed,
-            Description = ""
-        };
-    }
-
-    private ContextChanges DetectContextChanges(Dictionary<string, object> before, Dictionary<string, object> after)
-    {
-        var changes = new ContextChanges();
-        
-        DetectAddedVariables(before, after, changes);
-        DetectModifiedVariables(before, after, changes);
-        GenerateAvailableExpressions(after, changes);
-        
-        return changes;
-    }
-
-    private void DetectAddedVariables(Dictionary<string, object> before, Dictionary<string, object> after, ContextChanges changes)
-    {
-        foreach (var kvp in after)
-        {
-            if (!before.ContainsKey(kvp.Key))
-            {
-                var description = DescribeValue(kvp.Value);
-                changes.Added.Add($"`$.{kvp.Key}` = {description}");
-            }
-        }
-    }
-
-    private void DetectModifiedVariables(Dictionary<string, object> before, Dictionary<string, object> after, ContextChanges changes)
-    {
-        foreach (var kvp in after)
-        {
-            if (before.ContainsKey(kvp.Key) && !object.Equals(before[kvp.Key], kvp.Value))
-            {
-                var beforeDesc = DescribeValue(before[kvp.Key]);
-                var afterDesc = DescribeValue(kvp.Value);
-                changes.Modified.Add($"`$.{kvp.Key}`: {beforeDesc} → {afterDesc}");
-            }
-        }
-    }
-
-    private void GenerateAvailableExpressions(Dictionary<string, object> context, ContextChanges changes)
-    {
-        foreach (var key in context.Keys)
-        {
-            changes.Available.Add($"$.{key}");
-        }
-    }
-
-    private string DescribeValue(object value)
-    {
-        if (value == null) return "null";
-        if (value is string str) return $"\"{str}\"";
-        
-        // Handle anonymous types and complex objects
-        var type = value.GetType();
-        if (type.IsAnonymousType() || value is IDictionary<string, object> || value is Dictionary<string, object>)
-        {
-            // Try to count properties if possible
-            if (value is IDictionary<string, object> dict)
-                return $"{{object with {dict.Count} properties}}";
-            
-            // For anonymous types, estimate property count
-            var properties = type.GetProperties();
-            return $"{{object with {properties.Length} properties}}";
-        }
-        
-        return value.ToString() ?? "unknown";
     }
 }
 

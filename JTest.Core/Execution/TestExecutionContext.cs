@@ -21,6 +21,16 @@ public class TestExecutionContext : IExecutionContext
     public IList<string> Log { get; } = new List<string>();
 
     /// <summary>
+    /// Gets or sets the current test number
+    /// </summary>
+    public int TestNumber { get; set; } = 1;
+
+    /// <summary>
+    /// Gets or sets the current step number within the test
+    /// </summary>
+    public int StepNumber { get; set; } = 1;
+
+    /// <summary>
     /// Sets the case context variables for the current dataset iteration
     /// </summary>
     /// <param name="caseData">The case variables to set in the context</param>

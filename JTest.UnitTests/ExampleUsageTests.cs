@@ -1,4 +1,5 @@
 using System.Text.Json;
+using JTest.Core.Debugging;
 using JTest.Core.Execution;
 using JTest.Core.Models;
 using JTest.Core.Steps;
@@ -237,6 +238,8 @@ public class MockHttpStep : IStep
     
     public bool ValidateConfiguration(JsonElement configuration) => true;
     
+    public void SetDebugLogger(IDebugLogger? debugLogger) { }
+    
     public Task<StepResult> ExecuteAsync(IExecutionContext context)
     {
         // Simulate successful HTTP response
@@ -276,6 +279,8 @@ public class MockWaitStep : IStep
     public string? Id { get; set; }
     
     public bool ValidateConfiguration(JsonElement configuration) => true;
+    
+    public void SetDebugLogger(IDebugLogger? debugLogger) { }
     
     public Task<StepResult> ExecuteAsync(IExecutionContext context)
     {

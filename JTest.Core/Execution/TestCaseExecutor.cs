@@ -29,8 +29,9 @@ public class TestCaseExecutor
     /// </summary>
     /// <param name="testCase">The test case to execute</param>
     /// <param name="baseContext">The base execution context with environment and global variables</param>
+    /// <param name="testNumber">The test number for debug logging</param>
     /// <returns>List of test case results (one per dataset, or one if no datasets)</returns>
-    public async Task<List<JTestCaseResult>> ExecuteAsync(JTestCase testCase, TestExecutionContext baseContext)
+    public async Task<List<JTestCaseResult>> ExecuteAsync(JTestCase testCase, TestExecutionContext baseContext, int testNumber = 1)
     {
         var results = new List<JTestCaseResult>();
 
@@ -38,13 +39,14 @@ public class TestCaseExecutor
         {
             // Execute test case once without dataset - use cloned context for isolation
             var executionContext = CloneContext(baseContext);
+            executionContext.TestNumber = testNumber;
             var result = await ExecuteTestCaseAsync(testCase, executionContext, null);
             results.Add(result);
         }
         else
         {
             // Execute test case multiple times with datasets
-            results.AddRange(await RunTestWithDatasetsAsync(testCase, baseContext));
+            results.AddRange(await RunTestWithDatasetsAsync(testCase, baseContext, testNumber));
         }
 
         return results;
@@ -53,7 +55,7 @@ public class TestCaseExecutor
     /// <summary>
     /// Runs the test case multiple times with each dataset
     /// </summary>
-    private async Task<List<JTestCaseResult>> RunTestWithDatasetsAsync(JTestCase testCase, TestExecutionContext baseContext)
+    private async Task<List<JTestCaseResult>> RunTestWithDatasetsAsync(JTestCase testCase, TestExecutionContext baseContext, int testNumber)
     {
         var results = new List<JTestCaseResult>();
         
@@ -67,6 +69,7 @@ public class TestCaseExecutor
         {
             // Prepare context for this iteration with proper variable scoping
             var iterationContext = PrepareIterationContext(baseContext, originalVariables, sharedGlobals);
+            iterationContext.TestNumber = testNumber;
             
             var result = await ExecuteTestCaseAsync(testCase, iterationContext, dataset);
             results.Add(result);
@@ -106,10 +109,14 @@ public class TestCaseExecutor
             }
 
             // Execute the test steps
+            int stepNumber = 1;
             foreach (var stepConfig in testCase.Steps)
             {
                 try
                 {
+                    // Set current step number
+                    executionContext.StepNumber = stepNumber;
+                    
                     // Create step instance from configuration
                     var step = _stepFactory.CreateStep(stepConfig);
                     var stepResult = await step.ExecuteAsync(executionContext);
@@ -121,6 +128,8 @@ public class TestCaseExecutor
                         result.ErrorMessage = stepResult.ErrorMessage;
                         break;
                     }
+                    
+                    stepNumber++;
                 }
                 catch (Exception ex)
                 {

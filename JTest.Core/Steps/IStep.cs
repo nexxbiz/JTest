@@ -1,4 +1,5 @@
 using System.Text.Json;
+using JTest.Core.Debugging;
 using JTest.Core.Execution;
 
 namespace JTest.Core.Steps;
@@ -27,4 +28,9 @@ public interface IStep
     /// Validates the step configuration from JSON
     /// </summary>
     bool ValidateConfiguration(JsonElement configuration);
+    
+    /// <summary>
+    /// Sets the debug logger for this step
+    /// </summary>
+    void SetDebugLogger(IDebugLogger? debugLogger);
 }
