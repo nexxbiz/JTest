@@ -88,13 +88,10 @@ public class DebugLoggerTests
         logger.LogRuntimeContext(context);
         var output = logger.GetOutput();
         
-        Assert.Contains("<details>", output);
-        Assert.Contains("<summary>Runtime Context (Click to expand)</summary>", output);
-        Assert.Contains("```json", output);
-        Assert.Contains("\"env\":", output);
-        Assert.Contains("\"this\":", output);
-        Assert.Contains("```", output);
-        Assert.Contains("</details>", output);
+        // Since runtime context is no longer displayed per requirements
+        // ("don't show the runtime context... any more anywhere"), 
+        // this test should expect empty output
+        Assert.Equal("", output.Trim());
     }
 
     [Fact]
@@ -155,8 +152,9 @@ public class DebugLoggerTests
         Assert.Contains("**Added:**", output);
         Assert.Contains("**Modified:**", output);
         Assert.DoesNotContain("**For Assertions:**", output); // Improved: clutter removed
-        Assert.Contains("<details>", output);
-        Assert.Contains("Runtime Context", output);
+        // Runtime context no longer displayed per requirements
+        Assert.DoesNotContain("<details>", output);
+        Assert.DoesNotContain("Runtime Context", output);
     }
 
     [Fact]
@@ -226,14 +224,11 @@ public class DebugLoggerTests
         logger.LogAssertionResults(assertionResults);
         var output = logger.GetOutput();
         
-        Assert.Contains("**Assertion Results:**", output);
-        Assert.Contains("**EQUALS** - PASSED", output);
-        Assert.Contains("  - Description: Check status code", output);
-        Assert.Contains("  - Actual: `200`", output);
-        Assert.Contains("  - Expected: `200`", output);
-        Assert.Contains("**EXISTS** - PASSED", output);
-        Assert.Contains("  - Description: Check response body exists", output);
-        Assert.Contains("  - Actual: `response data`", output);
+        // Updated to match new improved assertion format
+        Assert.Contains("**Assertions:**", output);
+        Assert.Contains("- Check status code : PASSED ✅", output);
+        Assert.Contains("- Check response body exists : PASSED ✅", output);
+        // New format doesn't show details for successful assertions
     }
 
     [Fact]
@@ -260,14 +255,12 @@ public class DebugLoggerTests
         logger.LogAssertionResults(assertionResults);
         var output = logger.GetOutput();
         
-        Assert.Contains("**Assertion Results:**", output);
-        Assert.Contains("**EQUALS** - FAILED", output);
-        Assert.Contains("  - Description: Check status code", output);
-        Assert.Contains("  - Actual: `404`", output);
-        Assert.Contains("  - Expected: `200`", output);
-        Assert.Contains("  - Error: Expected 200 but got 404", output);
-        Assert.Contains("**EXISTS** - FAILED", output);
-        Assert.Contains("  - Error: Value is null", output);
+        // Updated to match new improved assertion format
+        Assert.Contains("**Assertions:**", output);
+        Assert.Contains("- Check status code : got `404` : expected `200` : FAILED ❌", output);
+        Assert.Contains("- Error: Expected 200 but got 404", output);
+        Assert.Contains("- Check required field : got `null` : FAILED ❌", output);
+        Assert.Contains("- Error: Value is null", output);
     }
 
     [Fact]
@@ -312,10 +305,12 @@ public class DebugLoggerTests
         Assert.Contains("**Duration:** 332,74ms", output);
         Assert.Contains("**Added:**", output);
         Assert.DoesNotContain("**For Assertions:**", output); // Improved: clutter removed
-        Assert.Contains("**Assertion Results:**", output);
-        Assert.Contains("**EQUALS** - PASSED", output);
-        Assert.Contains("<details>", output);
-        Assert.Contains("Runtime Context", output);
+        // Updated to match new improved assertion format  
+        Assert.Contains("**Assertions:**", output);
+        Assert.Contains("-  : PASSED ✅", output); // No description or operation set in test data
+        // Runtime context no longer displayed per requirements
+        Assert.DoesNotContain("<details>", output);
+        Assert.DoesNotContain("Runtime Context", output);
         
         // Print the complete debug output for demonstration
         Console.WriteLine("=== COMPLETE DEBUG MARKDOWN OUTPUT ===");

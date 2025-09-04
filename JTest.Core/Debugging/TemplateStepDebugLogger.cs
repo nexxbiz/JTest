@@ -1,4 +1,5 @@
 using JTest.Core.Assertions;
+using JTest.Core.Models;
 
 namespace JTest.Core.Debugging;
 
@@ -53,6 +54,11 @@ public class TemplateStepDebugLogger : IDebugLogger
             var lastStep = _capturedSteps.Last();
             lastStep.AssertionResults = new List<AssertionResult>(assertionResults);
         }
+    }
+    
+    public void LogTestSummary(List<JTestCaseResult> testResults)
+    {
+        // Template logger doesn't output summaries
     }
     
     /// <summary>

@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using JTest.Core.Assertions;
+using JTest.Core.Models;
 
 namespace JTest.Core.Debugging;
 
@@ -11,14 +12,16 @@ namespace JTest.Core.Debugging;
 public class MarkdownDebugLogger : IDebugLogger
 {
     private readonly StringBuilder _output = new();
+    private readonly SecurityMasker _securityMasker = new();
     private bool _headerWritten = false;
+    private readonly List<AssertionResult> _allAssertionResults = new();
 
     public void LogStepExecution(StepDebugInfo stepInfo)
     {
         // Write header only once per debug session
         if (!_headerWritten)
         {
-            WriteDebugReportHeader(stepInfo.TestFileName);
+            WriteDebugReportHeader(stepInfo);
             _headerWritten = true;
         }
 
@@ -35,36 +38,137 @@ public class MarkdownDebugLogger : IDebugLogger
     public void LogContextChanges(ContextChanges changes)
     {
         WriteContextChanges(changes);
-        // Removed: WriteAssertionGuidance(changes); - removes clutter from output
+        // Note: No longer showing JSONPath clutter as per requirements
     }
 
     public void LogRuntimeContext(Dictionary<string, object> context)
     {
-        WriteRuntimeContext(context);
+        // Note: No longer showing runtime context as per requirements
+        // This method is now a no-op
     }
 
     public void LogAssertionResults(List<AssertionResult> assertionResults)
     {
+        _allAssertionResults.AddRange(assertionResults);
         WriteAssertionResults(assertionResults);
     }
 
-    public string GetOutput() => _output.ToString();
-
-    private void WriteStepHeader(StepDebugInfo stepInfo)
+    public void LogTestSummary(List<JTestCaseResult> testResults)
     {
+        if (!testResults.Any()) return;
+
         _output.AppendLine();
-        _output.AppendLine($"## Test {stepInfo.TestNumber}, Step {stepInfo.StepNumber}: {stepInfo.StepType}");
+        _output.AppendLine("---");
         _output.AppendLine();
+        _output.AppendLine("# Test Execution Summary");
+        _output.AppendLine();
+
+        var totalTests = testResults.Count;
+        var successfulTests = testResults.Count(r => r.Success);
+        var failedTests = totalTests - successfulTests;
+        
+        // Overall statistics
+        _output.AppendLine($"**Total Tests:** {totalTests}");
+        _output.AppendLine($"**Successful:** {successfulTests} ✅");
+        _output.AppendLine($"**Failed:** {failedTests} ❌");
+        _output.AppendLine();
+
+        // Collect all failed assertions across all tests
+        var failedAssertions = new List<(string testName, AssertionResult assertion)>();
+        
+        foreach (var testResult in testResults)
+        {
+            foreach (var stepResult in testResult.StepResults)
+            {
+                if (stepResult.AssertionResults?.Any() == true)
+                {
+                    var failedStepAssertions = stepResult.AssertionResults.Where(a => !a.Success);
+                    foreach (var assertion in failedStepAssertions)
+                    {
+                        failedAssertions.Add((testResult.TestCaseName, assertion));
+                    }
+                }
+            }
+        }
+
+        if (failedAssertions.Any())
+        {
+            _output.AppendLine("## Failed Assertions");
+            _output.AppendLine();
+            
+            foreach (var (testName, assertion) in failedAssertions)
+            {
+                var description = assertion.Description ?? $"{assertion.Operation} assertion";
+                var actualDisplay = FormatAssertionValue(assertion.ActualValue ?? "null");
+                var expectedDisplay = FormatAssertionValue(assertion.ExpectedValue ?? "null");
+                
+                _output.AppendLine($"**Test:** {testName}");
+                
+                if (assertion.ExpectedValue != null)
+                {
+                    _output.AppendLine($"**Assert:** {description} : got `{actualDisplay}` : expected `{expectedDisplay}` ❌");
+                }
+                else
+                {
+                    _output.AppendLine($"**Assert:** {description} : got `{actualDisplay}` ❌");
+                }
+                
+                if (!string.IsNullOrEmpty(assertion.ErrorMessage))
+                {
+                    _output.AppendLine($"**Error:** {assertion.ErrorMessage}");
+                }
+                _output.AppendLine();
+            }
+        }
+        else if (failedTests > 0)
+        {
+            _output.AppendLine("## Failed Tests");
+            _output.AppendLine();
+            
+            var failedTestResults = testResults.Where(r => !r.Success);
+            foreach (var testResult in failedTestResults)
+            {
+                _output.AppendLine($"**Test:** {testResult.TestCaseName}");
+                if (!string.IsNullOrEmpty(testResult.ErrorMessage))
+                {
+                    _output.AppendLine($"**Error:** {testResult.ErrorMessage}");
+                }
+                _output.AppendLine();
+            }
+        }
+
+        if (failedTests == 0)
+        {
+            _output.AppendLine("🎉 **All tests passed successfully!**");
+            _output.AppendLine();
+        }
     }
 
-    private void WriteDebugReportHeader(string testFileName)
+    public string GetOutput() 
     {
-        if (string.IsNullOrEmpty(testFileName))
-            testFileName = "test-file.json";
+        var rawOutput = _output.ToString();
+        return _securityMasker.ApplyMasking(rawOutput);
+    }
 
-        _output.AppendLine($"# Debug Report for {testFileName}");
+    private void WriteDebugReportHeader(StepDebugInfo stepInfo)
+    {
+        var fileName = !string.IsNullOrEmpty(stepInfo.TestFileName) ? stepInfo.TestFileName : "test-file.json";
+        
+        _output.AppendLine($"# Debug Report for {fileName}");
         _output.AppendLine($"**Generated:** {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
-        _output.AppendLine($"**Test File:** {testFileName}");
+        _output.AppendLine($"**Test File:** {fileName}");
+        
+        // Add test suite information if available
+        if (!string.IsNullOrEmpty(stepInfo.TestSuiteName))
+        {
+            _output.AppendLine($"**Test Suite:** {stepInfo.TestSuiteName}");
+        }
+        
+        if (!string.IsNullOrEmpty(stepInfo.TestSuiteDescription))
+        {
+            _output.AppendLine($"**Suite Description:** {stepInfo.TestSuiteDescription}");
+        }
+        
         _output.AppendLine();
         _output.AppendLine("---");
         _output.AppendLine();
@@ -74,7 +178,7 @@ public class MarkdownDebugLogger : IDebugLogger
     {
         _output.AppendLine();
         
-        // Enhanced test identification
+        // Enhanced test identification with names and descriptions
         if (!string.IsNullOrEmpty(stepInfo.TestName))
         {
             _output.AppendLine($"## Test {stepInfo.TestNumber} - {stepInfo.TestName}");
@@ -145,23 +249,6 @@ public class MarkdownDebugLogger : IDebugLogger
         _output.AppendLine();
     }
 
-    private void WriteAssertionGuidance(ContextChanges changes)
-    {
-        if (changes.Available.Any())
-        {
-            _output.AppendLine("**For Assertions:** You can now reference these JSONPath expressions:");
-            WriteAvailableExpressions(changes.Available);
-            _output.AppendLine();
-        }
-    }
-
-    private void WriteRuntimeContext(Dictionary<string, object> context)
-    {
-        WriteDetailsHeader();
-        WriteJsonContent(context);
-        WriteDetailsFooter();
-    }
-
     private void WriteAssertionResults(List<AssertionResult> assertionResults)
     {
         if (!assertionResults.Any()) return;
@@ -211,28 +298,6 @@ public class MarkdownDebugLogger : IDebugLogger
         _output.AppendLine();
     }
 
-    private void WriteAssertionResult(AssertionResult result)
-    {
-        var status = result.Success ? "PASSED" : "FAILED";
-        var statusIcon = result.Success ? "✅" : "❌";
-
-        _output.AppendLine($"**{result.Operation.ToUpperInvariant()}** - {status} {statusIcon}");
-
-        if (!string.IsNullOrEmpty(result.Description))
-            _output.AppendLine($"  - Description: {result.Description}");
-
-        if (result.ActualValue != null)
-            _output.AppendLine($"  - Actual: `{FormatAssertionValue(result.ActualValue)}`");
-
-        if (result.ExpectedValue != null)
-            _output.AppendLine($"  - Expected: `{FormatAssertionValue(result.ExpectedValue)}`");
-
-        if (!result.Success && !string.IsNullOrEmpty(result.ErrorMessage))
-            _output.AppendLine($"  - Error: {result.ErrorMessage}");
-
-        _output.AppendLine();
-    }
-
     private string FormatAssertionValue(object value)
     {
         return value switch
@@ -242,26 +307,6 @@ public class MarkdownDebugLogger : IDebugLogger
             JsonElement jsonElement => jsonElement.ToString(),
             _ => value.ToString() ?? "null"
         };
-    }
-
-    private void WriteDetailsHeader()
-    {
-        _output.AppendLine("<details>");
-        _output.AppendLine("<summary>Runtime Context (Click to expand)</summary>");
-        _output.AppendLine();
-    }
-
-    private void WriteJsonContent(Dictionary<string, object> context)
-    {
-        _output.AppendLine("```json");
-        _output.AppendLine(FormatContextAsJson(context));
-        _output.AppendLine("```");
-        _output.AppendLine();
-    }
-
-    private void WriteDetailsFooter()
-    {
-        _output.AppendLine("</details>");
     }
 
     private string FormatDuration(TimeSpan duration)
@@ -289,78 +334,6 @@ public class MarkdownDebugLogger : IDebugLogger
         _output.AppendLine("**Modified:**");
         foreach (var variable in modified)
             _output.AppendLine($"- {variable}");
-    }
-
-    private void WriteAvailableExpressions(List<string> available)
-    {
-        foreach (var expr in available)
-        {
-            _output.AppendLine($"- `{expr}` or `{{{{ {expr} }}}}`");
-            // Only show examples for complex object paths, not simple values
-            if (expr.Contains("execute-workflow") || expr.Contains("workflow") && !expr.EndsWith("Id"))
-                WriteExampleUsage(expr);
-        }
-    }
-
-    private void WriteExampleUsage(string expression)
-    {
-        _output.AppendLine($"  - Example: `{expression}.status`");
-    }
-
-    private string FormatContextAsJson(Dictionary<string, object> context)
-    {
-        var options = new JsonSerializerOptions
-        {
-            WriteIndented = true,
-            Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
-        };
-        return JsonSerializer.Serialize(context, options);
-    }
-
-    private void WriteTemplateExecutionDetails(TemplateExecutionInfo templateInfo)
-    {
-        _output.AppendLine("### Template Execution Details");
-        _output.AppendLine();
-
-        _output.AppendLine($"**Template:** {templateInfo.TemplateName}");
-        _output.AppendLine($"**Steps Executed:** {templateInfo.StepsExecuted}");
-        _output.AppendLine();
-
-        // Input parameters
-        if (templateInfo.InputParameters.Any())
-        {
-            _output.AppendLine("**Input Parameters:**");
-            foreach (var param in templateInfo.InputParameters)
-            {
-                var valueDesc = DescribeValue(param.Value);
-                _output.AppendLine($"- `{param.Key}`: {valueDesc}");
-            }
-            _output.AppendLine();
-        }
-
-        // Template outputs
-        if (templateInfo.OutputValues.Any())
-        {
-            _output.AppendLine("**Template Outputs:**");
-            foreach (var output in templateInfo.OutputValues)
-            {
-                var valueDesc = DescribeValue(output.Value);
-                _output.AppendLine($"- `{output.Key}`: {valueDesc}");
-            }
-            _output.AppendLine();
-        }
-
-        // Saved variables
-        if (templateInfo.SavedVariables.Any())
-        {
-            _output.AppendLine("**Variables Saved:**");
-            foreach (var saved in templateInfo.SavedVariables)
-            {
-                var valueDesc = DescribeValue(saved.Value);
-                _output.AppendLine($"- `{saved.Key}`: {valueDesc}");
-            }
-            _output.AppendLine();
-        }
     }
 
     private void WriteTemplateExecutionDetailsCollapsible(TemplateExecutionInfo templateInfo)
@@ -411,8 +384,9 @@ public class MarkdownDebugLogger : IDebugLogger
         _output.AppendLine("**Input Parameters:**");
         foreach (var param in inputParameters)
         {
-            var maskedValue = MaskSecurityValue(param.Key, param.Value);
-            _output.AppendLine($"- `{param.Key}`: {maskedValue}");
+            var maskedValue = _securityMasker.RegisterForMasking(param.Key, param.Value);
+            var valueDesc = DescribeValue(maskedValue);
+            _output.AppendLine($"- `{param.Key}`: {valueDesc}");
         }
         _output.AppendLine();
     }
@@ -440,31 +414,8 @@ public class MarkdownDebugLogger : IDebugLogger
         foreach (var saved in savedVariables)
         {
             WriteSavedVariableWithDetails(saved.Key, saved.Value);
-            
-            // Add detailed section for complex objects  
-            if (IsComplexObject(saved.Value))
-            {
-                WriteObjectDetails(saved.Key, saved.Value, "Saved Variable");
-            }
         }
         _output.AppendLine();
-    }
-
-    private string MaskSecurityValue(string key, object value)
-    {
-        // List of parameter names that should be masked for security
-        var securityKeys = new[] { "password", "token", "secret", "key", "credential", "auth", "authorization" };
-        
-        if (securityKeys.Any(sk => key.ToLowerInvariant().Contains(sk)))
-        {
-            if (value is string str && !string.IsNullOrEmpty(str))
-            {
-                return "\"***masked***\"";
-            }
-            return "***masked***";
-        }
-        
-        return DescribeValue(value);
     }
 
     private bool IsComplexObject(object value)
@@ -491,7 +442,20 @@ public class MarkdownDebugLogger : IDebugLogger
         _output.AppendLine($"  <summary>View {key} details ({section})</summary>");
         _output.AppendLine();
         _output.AppendLine("  ```json");
-        _output.AppendLine($"  {FormatObjectAsJson(value)}");
+        var jsonContent = FormatObjectAsJson(value);
+        // Fix indentation by ensuring all lines are properly indented
+        var lines = jsonContent.Split('\n');
+        foreach (var line in lines)
+        {
+            if (!string.IsNullOrWhiteSpace(line))
+            {
+                _output.AppendLine($"  {line}");
+            }
+            else
+            {
+                _output.AppendLine();
+            }
+        }
         _output.AppendLine("  ```");
         _output.AppendLine("  </details>");
     }
@@ -525,7 +489,8 @@ public class MarkdownDebugLogger : IDebugLogger
         // For simple values, show them inline
         if (value is string str)
         {
-            _output.AppendLine($"- `{key}`: \"{str}\"");
+            var maskedValue = _securityMasker.RegisterForMasking(key, str);
+            _output.AppendLine($"- `{key}`: {DescribeValue(maskedValue)}");
             return;
         }
 
@@ -543,7 +508,20 @@ public class MarkdownDebugLogger : IDebugLogger
             _output.AppendLine($"  <summary>View {key} details</summary>");
             _output.AppendLine();
             _output.AppendLine("  ```json");
-            _output.AppendLine($"  {FormatObjectAsJson(value)}");
+            var jsonContent = FormatObjectAsJson(value);
+            // Fix indentation by ensuring all lines are properly indented  
+            var lines = jsonContent.Split('\n');
+            foreach (var line in lines)
+            {
+                if (!string.IsNullOrWhiteSpace(line))
+                {
+                    _output.AppendLine($"  {line}");
+                }
+                else
+                {
+                    _output.AppendLine();
+                }
+            }
             _output.AppendLine("  ```");
             _output.AppendLine("  </details>");
             return;
@@ -556,7 +534,19 @@ public class MarkdownDebugLogger : IDebugLogger
             _output.AppendLine($"  <summary>View {key} details</summary>");
             _output.AppendLine();
             _output.AppendLine("  ```json");
-            _output.AppendLine($"  {FormatObjectAsJson(value)}");
+            var jsonContent = FormatObjectAsJson(value);
+            var lines = jsonContent.Split('\n');
+            foreach (var line in lines)
+            {
+                if (!string.IsNullOrWhiteSpace(line))
+                {
+                    _output.AppendLine($"  {line}");
+                }
+                else
+                {
+                    _output.AppendLine();
+                }
+            }
             _output.AppendLine("  ```");
             _output.AppendLine("  </details>");
             return;
@@ -569,7 +559,19 @@ public class MarkdownDebugLogger : IDebugLogger
             _output.AppendLine($"  <summary>View {key} details</summary>");
             _output.AppendLine();
             _output.AppendLine("  ```json");
-            _output.AppendLine($"  {FormatObjectAsJson(value)}");
+            var jsonContent = FormatObjectAsJson(value);
+            var lines = jsonContent.Split('\n');
+            foreach (var line in lines)
+            {
+                if (!string.IsNullOrWhiteSpace(line))
+                {
+                    _output.AppendLine($"  {line}");
+                }
+                else
+                {
+                    _output.AppendLine();
+                }
+            }
             _output.AppendLine("  ```");
             _output.AppendLine("  </details>");
             return;
@@ -584,7 +586,19 @@ public class MarkdownDebugLogger : IDebugLogger
             _output.AppendLine($"  <summary>View {key} details</summary>");
             _output.AppendLine();
             _output.AppendLine("  ```json");
-            _output.AppendLine($"  {FormatObjectAsJson(value)}");
+            var jsonContent = FormatObjectAsJson(value);
+            var lines = jsonContent.Split('\n');
+            foreach (var line in lines)
+            {
+                if (!string.IsNullOrWhiteSpace(line))
+                {
+                    _output.AppendLine($"  {line}");
+                }
+                else
+                {
+                    _output.AppendLine();
+                }
+            }
             _output.AppendLine("  ```");
             _output.AppendLine("  </details>");
         }

@@ -30,6 +30,16 @@ public class StepDebugInfo
     public string TestDescription { get; set; } = string.Empty;
     
     /// <summary>
+    /// Test suite name for better identification
+    /// </summary>
+    public string TestSuiteName { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// Test suite description for context
+    /// </summary>
+    public string TestSuiteDescription { get; set; } = string.Empty;
+    
+    /// <summary>
     /// Template execution details (populated for UseStep)
     /// </summary>
     public TemplateExecutionInfo? TemplateExecution { get; set; }
