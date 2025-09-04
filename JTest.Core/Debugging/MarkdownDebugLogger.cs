@@ -11,10 +11,18 @@ namespace JTest.Core.Debugging;
 public class MarkdownDebugLogger : IDebugLogger
 {
     private readonly StringBuilder _output = new();
+    private bool _headerWritten = false;
 
     public void LogStepExecution(StepDebugInfo stepInfo)
     {
-        WriteStepHeader(stepInfo);
+        // Write header only once per debug session
+        if (!_headerWritten)
+        {
+            WriteDebugReportHeader(stepInfo.TestFileName);
+            _headerWritten = true;
+        }
+
+        WriteTestStepHeader(stepInfo);
         WriteStepDetails(stepInfo);
 
         // Add template execution details for UseStep in a collapsible section
@@ -46,6 +54,55 @@ public class MarkdownDebugLogger : IDebugLogger
     {
         _output.AppendLine();
         _output.AppendLine($"## Test {stepInfo.TestNumber}, Step {stepInfo.StepNumber}: {stepInfo.StepType}");
+        _output.AppendLine();
+    }
+
+    private void WriteDebugReportHeader(string testFileName)
+    {
+        if (string.IsNullOrEmpty(testFileName))
+            testFileName = "test-file.json";
+
+        _output.AppendLine($"# Debug Report for {testFileName}");
+        _output.AppendLine($"**Generated:** {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+        _output.AppendLine($"**Test File:** {testFileName}");
+        _output.AppendLine();
+        _output.AppendLine("---");
+        _output.AppendLine();
+    }
+
+    private void WriteTestStepHeader(StepDebugInfo stepInfo)
+    {
+        _output.AppendLine();
+        
+        // Enhanced test identification
+        if (!string.IsNullOrEmpty(stepInfo.TestName))
+        {
+            _output.AppendLine($"## Test {stepInfo.TestNumber} - {stepInfo.TestName}");
+            if (!string.IsNullOrEmpty(stepInfo.TestDescription))
+            {
+                _output.AppendLine(stepInfo.TestDescription);
+            }
+            _output.AppendLine();
+            
+            // Show step info with template name for UseStep
+            if (stepInfo.StepType.Equals("UseStep", StringComparison.OrdinalIgnoreCase) && stepInfo.TemplateExecution != null)
+            {
+                _output.AppendLine($"**Step:** use {stepInfo.TemplateExecution.TemplateName}");
+            }
+            else if (!string.IsNullOrEmpty(stepInfo.StepId))
+            {
+                _output.AppendLine($"**Step:** {stepInfo.StepId}");
+            }
+            else
+            {
+                _output.AppendLine($"**Step:** {stepInfo.StepType}");
+            }
+        }
+        else
+        {
+            // Fallback to original format if test name not available
+            _output.AppendLine($"## Test {stepInfo.TestNumber}, Step {stepInfo.StepNumber}: {stepInfo.StepType}");
+        }
         _output.AppendLine();
     }
 
@@ -109,13 +166,48 @@ public class MarkdownDebugLogger : IDebugLogger
     {
         if (!assertionResults.Any()) return;
 
-        _output.AppendLine("**Assertion Results:**");
+        _output.AppendLine("**Assertions:**");
         _output.AppendLine();
 
         foreach (var result in assertionResults)
         {
-            WriteAssertionResult(result);
+            WriteImprovedAssertionResult(result);
         }
+        _output.AppendLine();
+    }
+
+    private void WriteImprovedAssertionResult(AssertionResult result)
+    {
+        var status = result.Success ? "PASSED" : "FAILED";
+        var statusIcon = result.Success ? "✅" : "❌";
+
+        // Enhanced description with actual vs expected format
+        var description = result.Description ?? $"{result.Operation} assertion";
+        
+        if (result.Success)
+        {
+            _output.AppendLine($"- {description} : {status} {statusIcon}");
+        }
+        else
+        {
+            var actualDisplay = FormatAssertionValue(result.ActualValue ?? "null");
+            var expectedDisplay = FormatAssertionValue(result.ExpectedValue ?? "null");
+            
+            if (result.ExpectedValue != null)
+            {
+                _output.AppendLine($"- {description} : got `{actualDisplay}` : expected `{expectedDisplay}` : {status} {statusIcon}");
+            }
+            else
+            {
+                _output.AppendLine($"- {description} : got `{actualDisplay}` : {status} {statusIcon}");
+            }
+            
+            if (!string.IsNullOrEmpty(result.ErrorMessage))
+            {
+                _output.AppendLine($"  - Error: {result.ErrorMessage}");
+            }
+        }
+        
         _output.AppendLine();
     }
 
@@ -281,39 +373,22 @@ public class MarkdownDebugLogger : IDebugLogger
         _output.AppendLine($"**Steps Executed:** {templateInfo.StepsExecuted}");
         _output.AppendLine();
 
-        // Input parameters
+        // Input parameters with security masking
         if (templateInfo.InputParameters.Any())
         {
-            _output.AppendLine("**Input Parameters:**");
-            foreach (var param in templateInfo.InputParameters)
-            {
-                var valueDesc = DescribeValue(param.Value);
-                _output.AppendLine($"- `{param.Key}`: {valueDesc}");
-            }
-            _output.AppendLine();
+            WriteTemplateInputParameters(templateInfo.InputParameters);
         }
 
         // Template outputs
         if (templateInfo.OutputValues.Any())
         {
-            _output.AppendLine("**Template Outputs:**");
-            foreach (var output in templateInfo.OutputValues)
-            {
-                var valueDesc = DescribeValue(output.Value);
-                _output.AppendLine($"- `{output.Key}`: {valueDesc}");
-            }
-            _output.AppendLine();
+            WriteTemplateOutputs(templateInfo.OutputValues);
         }
 
         // Saved variables with detailed content
         if (templateInfo.SavedVariables.Any())
         {
-            _output.AppendLine("**Variables Saved:**");
-            foreach (var saved in templateInfo.SavedVariables)
-            {
-                WriteSavedVariableWithDetails(saved.Key, saved.Value);
-            }
-            _output.AppendLine();
+            WriteTemplateSavedVariables(templateInfo.SavedVariables);
         }
 
         // Step execution details
@@ -329,6 +404,96 @@ public class MarkdownDebugLogger : IDebugLogger
 
         _output.AppendLine("</details>");
         _output.AppendLine();
+    }
+
+    private void WriteTemplateInputParameters(Dictionary<string, object> inputParameters)
+    {
+        _output.AppendLine("**Input Parameters:**");
+        foreach (var param in inputParameters)
+        {
+            var maskedValue = MaskSecurityValue(param.Key, param.Value);
+            _output.AppendLine($"- `{param.Key}`: {maskedValue}");
+        }
+        _output.AppendLine();
+    }
+
+    private void WriteTemplateOutputs(Dictionary<string, object> outputValues)
+    {
+        _output.AppendLine("**Template Outputs:**");
+        foreach (var output in outputValues)
+        {
+            var valueDesc = DescribeValue(output.Value);
+            _output.AppendLine($"- `{output.Key}`: {valueDesc}");
+            
+            // Add detailed section for complex objects
+            if (IsComplexObject(output.Value))
+            {
+                WriteObjectDetails(output.Key, output.Value, "Template Output");
+            }
+        }
+        _output.AppendLine();
+    }
+
+    private void WriteTemplateSavedVariables(Dictionary<string, object> savedVariables)
+    {
+        _output.AppendLine("**Saved variables:**");
+        foreach (var saved in savedVariables)
+        {
+            WriteSavedVariableWithDetails(saved.Key, saved.Value);
+            
+            // Add detailed section for complex objects  
+            if (IsComplexObject(saved.Value))
+            {
+                WriteObjectDetails(saved.Key, saved.Value, "Saved Variable");
+            }
+        }
+        _output.AppendLine();
+    }
+
+    private string MaskSecurityValue(string key, object value)
+    {
+        // List of parameter names that should be masked for security
+        var securityKeys = new[] { "password", "token", "secret", "key", "credential", "auth", "authorization" };
+        
+        if (securityKeys.Any(sk => key.ToLowerInvariant().Contains(sk)))
+        {
+            if (value is string str && !string.IsNullOrEmpty(str))
+            {
+                return "\"***masked***\"";
+            }
+            return "***masked***";
+        }
+        
+        return DescribeValue(value);
+    }
+
+    private bool IsComplexObject(object value)
+    {
+        return value is Dictionary<string, object> || 
+               value is Array || 
+               value is System.Collections.IList ||
+               (value != null && !IsSimpleType(value.GetType()));
+    }
+
+    private bool IsSimpleType(Type type)
+    {
+        return type.IsPrimitive || 
+               type == typeof(string) || 
+               type == typeof(decimal) || 
+               type == typeof(DateTime) || 
+               type == typeof(DateTimeOffset) ||
+               type == typeof(Guid);
+    }
+
+    private void WriteObjectDetails(string key, object value, string section)
+    {
+        _output.AppendLine($"  <details>");
+        _output.AppendLine($"  <summary>View {key} details ({section})</summary>");
+        _output.AppendLine();
+        _output.AppendLine("  ```json");
+        _output.AppendLine($"  {FormatObjectAsJson(value)}");
+        _output.AppendLine("  ```");
+        _output.AppendLine("  </details>");
     }
 
     private string DescribeValue(object value)
