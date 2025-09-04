@@ -48,8 +48,14 @@ public class HttpStep : BaseStep
         {
             stopwatch.Stop();
             context.Log.Add($"HTTP request failed: {ex.Message}");
-            LogDebugInformation(context, contextBefore, stopwatch, false, new List<AssertionResult>());
-            return StepResult.CreateFailure(ex.Message, stopwatch.ElapsedMilliseconds);
+            
+            // Still process assertions even when HTTP request fails - this provides valuable debugging info
+            var assertionResults = await ProcessAssertionsAsync(context);
+            LogDebugInformation(context, contextBefore, stopwatch, false, assertionResults);
+            
+            var result = StepResult.CreateFailure(ex.Message, stopwatch.ElapsedMilliseconds);
+            result.AssertionResults = assertionResults;
+            return result;
         }
     }
 

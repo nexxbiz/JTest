@@ -22,25 +22,32 @@ public class WaitStep : BaseStep
     public override async Task<StepResult> ExecuteAsync(IExecutionContext context)
     {
         var stopwatch = Stopwatch.StartNew();
+        var contextBefore = CloneContext(context);
         try { return await ExecuteWaitLogic(context, stopwatch); }
-        catch (Exception ex) { return HandleExecutionError(ex, stopwatch); }
+        catch (Exception ex) { return HandleExecutionError(ex, stopwatch, context, contextBefore); }
     }
 
     private async Task<StepResult> ExecuteWaitLogic(IExecutionContext context, Stopwatch stopwatch)
     {
         var contextBefore = CloneContext(context);
         var delayMs = ParseDelayMilliseconds(context);
-        if (delayMs < 0) return CreateValidationFailure();
+        if (delayMs < 0) return await CreateValidationFailure(context, contextBefore, stopwatch);
         await Task.Delay(delayMs);
         stopwatch.Stop();
         return await CreateSuccessResult(delayMs, stopwatch, context, contextBefore);
     }
 
-    private StepResult HandleExecutionError(Exception ex, Stopwatch stopwatch)
+    private StepResult HandleExecutionError(Exception ex, Stopwatch stopwatch, IExecutionContext context, Dictionary<string, object> contextBefore)
     {
         stopwatch.Stop();
-        LogDebugInformation(new TestExecutionContext(), new Dictionary<string, object>(), stopwatch, false);
-        return StepResult.CreateFailure($"Wait step failed: {ex.Message}", stopwatch.ElapsedMilliseconds);
+        
+        // Still process assertions even when wait step fails
+        var assertionResults = ProcessAssertionsAsync(context).Result;
+        LogDebugInformation(context, contextBefore, stopwatch, false, assertionResults);
+        
+        var result = StepResult.CreateFailure($"Wait step failed: {ex.Message}", stopwatch.ElapsedMilliseconds);
+        result.AssertionResults = assertionResults;
+        return result;
     }
 
     private async Task<StepResult> CreateSuccessResult(int delayMs, Stopwatch stopwatch, IExecutionContext context, Dictionary<string, object> contextBefore)
@@ -118,9 +125,17 @@ public class WaitStep : BaseStep
         };
     }
 
-    private StepResult CreateValidationFailure()
+    private async Task<StepResult> CreateValidationFailure(IExecutionContext context, Dictionary<string, object> contextBefore, Stopwatch stopwatch)
     {
-        return StepResult.CreateFailure("Invalid ms value: must be a positive integer");
+        stopwatch.Stop();
+        
+        // Still process assertions even when validation fails
+        var assertionResults = await ProcessAssertionsAsync(context);
+        LogDebugInformation(context, contextBefore, stopwatch, false, assertionResults);
+        
+        var result = StepResult.CreateFailure("Invalid ms value: must be a positive integer");
+        result.AssertionResults = assertionResults;
+        return result;
     }
 
     protected override string GetStepDescription()

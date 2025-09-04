@@ -64,8 +64,14 @@ public class UseStep : BaseStep
         {
             stopwatch.Stop();
             context.Log.Add($"Template execution failed: {ex.Message}");
-            LogDebugInformation(context, contextBefore, stopwatch, false, templateInfo);
-            return StepResult.CreateFailure(ex.Message, stopwatch.ElapsedMilliseconds);
+            
+            // Still process assertions even when template execution fails  
+            var assertionResults = await ProcessAssertionsAsync(context);
+            LogDebugInformation(context, contextBefore, stopwatch, false, assertionResults);
+            
+            var result = StepResult.CreateFailure(ex.Message, stopwatch.ElapsedMilliseconds);
+            result.AssertionResults = assertionResults;
+            return result;
         }
     }
 
