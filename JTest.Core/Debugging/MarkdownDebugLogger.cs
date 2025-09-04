@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using JTest.Core.Assertions;
+using JTest.Core.Models;
 
 namespace JTest.Core.Debugging;
 
@@ -50,6 +51,97 @@ public class MarkdownDebugLogger : IDebugLogger
     {
         _allAssertionResults.AddRange(assertionResults);
         WriteAssertionResults(assertionResults);
+    }
+
+    public void LogTestSummary(List<JTestCaseResult> testResults)
+    {
+        if (!testResults.Any()) return;
+
+        _output.AppendLine();
+        _output.AppendLine("---");
+        _output.AppendLine();
+        _output.AppendLine("# Test Execution Summary");
+        _output.AppendLine();
+
+        var totalTests = testResults.Count;
+        var successfulTests = testResults.Count(r => r.Success);
+        var failedTests = totalTests - successfulTests;
+        
+        // Overall statistics
+        _output.AppendLine($"**Total Tests:** {totalTests}");
+        _output.AppendLine($"**Successful:** {successfulTests} ✅");
+        _output.AppendLine($"**Failed:** {failedTests} ❌");
+        _output.AppendLine();
+
+        // Collect all failed assertions across all tests
+        var failedAssertions = new List<(string testName, AssertionResult assertion)>();
+        
+        foreach (var testResult in testResults)
+        {
+            foreach (var stepResult in testResult.StepResults)
+            {
+                if (stepResult.AssertionResults?.Any() == true)
+                {
+                    var failedStepAssertions = stepResult.AssertionResults.Where(a => !a.Success);
+                    foreach (var assertion in failedStepAssertions)
+                    {
+                        failedAssertions.Add((testResult.TestCaseName, assertion));
+                    }
+                }
+            }
+        }
+
+        if (failedAssertions.Any())
+        {
+            _output.AppendLine("## Failed Assertions");
+            _output.AppendLine();
+            
+            foreach (var (testName, assertion) in failedAssertions)
+            {
+                var description = assertion.Description ?? $"{assertion.Operation} assertion";
+                var actualDisplay = FormatAssertionValue(assertion.ActualValue ?? "null");
+                var expectedDisplay = FormatAssertionValue(assertion.ExpectedValue ?? "null");
+                
+                _output.AppendLine($"**Test:** {testName}");
+                
+                if (assertion.ExpectedValue != null)
+                {
+                    _output.AppendLine($"**Assert:** {description} : got `{actualDisplay}` : expected `{expectedDisplay}` ❌");
+                }
+                else
+                {
+                    _output.AppendLine($"**Assert:** {description} : got `{actualDisplay}` ❌");
+                }
+                
+                if (!string.IsNullOrEmpty(assertion.ErrorMessage))
+                {
+                    _output.AppendLine($"**Error:** {assertion.ErrorMessage}");
+                }
+                _output.AppendLine();
+            }
+        }
+        else if (failedTests > 0)
+        {
+            _output.AppendLine("## Failed Tests");
+            _output.AppendLine();
+            
+            var failedTestResults = testResults.Where(r => !r.Success);
+            foreach (var testResult in failedTestResults)
+            {
+                _output.AppendLine($"**Test:** {testResult.TestCaseName}");
+                if (!string.IsNullOrEmpty(testResult.ErrorMessage))
+                {
+                    _output.AppendLine($"**Error:** {testResult.ErrorMessage}");
+                }
+                _output.AppendLine();
+            }
+        }
+
+        if (failedTests == 0)
+        {
+            _output.AppendLine("🎉 **All tests passed successfully!**");
+            _output.AppendLine();
+        }
     }
 
     public string GetOutput() 

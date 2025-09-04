@@ -1,6 +1,8 @@
 using JTest.Core.Debugging;
 using JTest.Core.Assertions;
 using JTest.Core.Execution;
+using JTest.Core.Models;
+using JTest.Core.Steps;
 
 namespace JTest.UnitTests;
 
@@ -253,5 +255,121 @@ public class TemplateDebugImprovementTests
         // Assert - Clutter message should be removed (improvement)
         Assert.DoesNotContain("For Assertions: You can now reference these JSONPath expressions:", output);
         Assert.Contains("**Context Changes:**", output); // But context changes still shown
+    }
+
+    [Fact]
+    public void MarkdownDebugLogger_LogTestSummary_WithFailedAssertions_ShowsFailureDetails()
+    {
+        // Arrange
+        var logger = new MarkdownDebugLogger();
+        
+        var testResults = new List<JTestCaseResult>
+        {
+            new JTestCaseResult
+            {
+                TestCaseName = "Authentication Test",
+                Success = false,
+                StepResults = new List<StepResult>
+                {
+                    new StepResult
+                    {
+                        Success = false,
+                        AssertionResults = new List<AssertionResult>
+                        {
+                            new AssertionResult(false)
+                            {
+                                Operation = "equals",
+                                Description = "Token should be valid",
+                                ActualValue = "invalid",
+                                ExpectedValue = "valid",
+                                ErrorMessage = "Token validation failed"
+                            }
+                        }
+                    }
+                }
+            },
+            new JTestCaseResult
+            {
+                TestCaseName = "Data Processing Test",
+                Success = true,
+                StepResults = new List<StepResult>
+                {
+                    new StepResult
+                    {
+                        Success = true,
+                        AssertionResults = new List<AssertionResult>
+                        {
+                            new AssertionResult(true)
+                            {
+                                Operation = "exists",
+                                Description = "Data should exist"
+                            }
+                        }
+                    }
+                }
+            }
+        };
+
+        // Act
+        logger.LogTestSummary(testResults);
+        var output = logger.GetOutput();
+
+        // Assert
+        Console.WriteLine("=== TEST SUMMARY OUTPUT ===");
+        Console.WriteLine(output);
+        Console.WriteLine("=== END OUTPUT ===");
+        
+        // Should contain summary statistics
+        Assert.Contains("# Test Execution Summary", output);
+        Assert.Contains("**Total Tests:** 2", output);
+        Assert.Contains("**Successful:** 1 ✅", output);
+        Assert.Contains("**Failed:** 1 ❌", output);
+        
+        // Should contain failed assertion details
+        Assert.Contains("## Failed Assertions", output);
+        Assert.Contains("**Test:** Authentication Test", output);
+        Assert.Contains("**Assert:** Token should be valid : got `invalid` : expected `valid` ❌", output);
+        Assert.Contains("**Error:** Token validation failed", output);
+    }
+    
+    [Fact]
+    public void MarkdownDebugLogger_LogTestSummary_WithAllPassingTests_ShowsSuccessMessage()
+    {
+        // Arrange
+        var logger = new MarkdownDebugLogger();
+        
+        var testResults = new List<JTestCaseResult>
+        {
+            new JTestCaseResult
+            {
+                TestCaseName = "Test 1",
+                Success = true,
+                StepResults = new List<StepResult>
+                {
+                    new StepResult
+                    {
+                        Success = true,
+                        AssertionResults = new List<AssertionResult>
+                        {
+                            new AssertionResult(true)
+                            {
+                                Operation = "equals",
+                                Description = "Should pass"
+                            }
+                        }
+                    }
+                }
+            }
+        };
+
+        // Act
+        logger.LogTestSummary(testResults);
+        var output = logger.GetOutput();
+
+        // Assert
+        Assert.Contains("🎉 **All tests passed successfully!**", output);
+        Assert.Contains("**Total Tests:** 1", output);
+        Assert.Contains("**Successful:** 1 ✅", output);
+        Assert.Contains("**Failed:** 0 ❌", output);
     }
 }
