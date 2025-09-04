@@ -855,6 +855,16 @@ public static class AssertionProcessor
 
         var actualValue = GetAssertionValue(assertionElement, "actualValue", context);
         var expectedValue = GetAssertionValue(assertionElement, "expectedValue", context);
+        
+        // Extract description if provided
+        var description = "";
+        if (assertionElement.TryGetProperty("description", out var descElement))
+        {
+            description = descElement.GetString() ?? "";
+            // Resolve any variable tokens in the description
+            var resolvedDescription = VariableInterpolator.ResolveVariableTokens(description, context);
+            description = resolvedDescription?.ToString() ?? description;
+        }
 
         // Enhanced validation for cardinality mismatches
         var cardinalityError = ValidateCardinality(operationType, actualValue, expectedValue);
@@ -863,7 +873,12 @@ public static class AssertionProcessor
             return new AssertionResult(false, cardinalityError);
         }
 
-        return operation.Execute(actualValue, expectedValue);
+        var result = operation.Execute(actualValue, expectedValue);
+        
+        // Set the description on the result
+        result.Description = description;
+        
+        return result;
     }
 
     private static object? GetAssertionValue(JsonElement assertionElement, string propertyName, IExecutionContext context)
