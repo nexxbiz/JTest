@@ -2,6 +2,7 @@
 using System.Text.Json;
 using JTest.Core;
 using JTest.Core.Debugging;
+using JTest.Core.Models;
 
 namespace JTest;
 
@@ -39,12 +40,13 @@ public class JTestCli
 USAGE:
     jtest <COMMAND> [OPTIONS]
     jtest <testfile.json> [OPTIONS]     # Direct test execution
+    jtest <pattern> [OPTIONS]           # Wildcard execution (*.json, tests/*.json)
 
 COMMANDS:
-    run <testfile>                      Run test file
+    run <testfile|pattern>              Run test file(s) - supports wildcards
     export <format> <testfile> [output] Export tests to other frameworks
-    debug <testfile>                    Run with verbose debug output and markdown log
-    validate <testfile>                 Validate test file syntax
+    debug <testfile|pattern>            Run with verbose debug output and markdown log - supports wildcards
+    validate <testfile|pattern>         Validate test file(s) syntax - supports wildcards
     create <testname> [output]          Create a new test template
     --help, -h                          Show this help message
 
@@ -59,23 +61,30 @@ RUNTIME OPTIONS:
     --globals-file <path.json>          Load globals from JSON file
 
 EXAMPLES:
-    # Run a test file
+    # Run a single test file
     jtest run my_api_tests.json
     jtest my_api_tests.json                     # Shorthand
 
+    # Run multiple test files with wildcards
+    jtest run *.json                            # All JSON files in current directory
+    jtest run tests/*.json                      # All JSON files in tests directory
+    jtest run api-*.json                        # All files starting with 'api-'
+
     # Run with environment variables
-    jtest run tests.json --env baseUrl=https://api.prod.com
+    jtest run tests/*.json --env baseUrl=https://api.prod.com
     jtest run tests.json --env-file prod.json
 
-    # Export to other frameworks
+    # Export to other frameworks (single file only)
     jtest export postman tests.json
     jtest export karate tests.json my_tests
 
     # Validate test files
-    jtest validate tests.json
+    jtest validate tests.json               # Single file
+    jtest validate *.json                   # All JSON files
 
     # Debug mode with verbose output
     jtest debug tests.json
+    jtest debug tests/*.json                # Debug all test files in tests directory
     jtest debug tests.json --env verbosity=Verbose
 
     # Create a new test template
@@ -243,6 +252,58 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
         return command.ToLower() is "run" or "export" or "debug" or "validate" or "create" or "--help" or "-h";
     }
 
+    /// <summary>
+    /// Expands wildcard patterns to actual file paths
+    /// </summary>
+    /// <param name="pattern">File pattern (e.g., "*.json", "tests/*.json")</param>
+    /// <returns>List of matching file paths</returns>
+    private List<string> ExpandWildcardPattern(string pattern)
+    {
+        var files = new List<string>();
+        
+        try
+        {
+            // If it's not a pattern (no wildcards), treat as single file
+            if (!pattern.Contains('*') && !pattern.Contains('?'))
+            {
+                files.Add(pattern);
+                return files;
+            }
+            
+            // Handle wildcard patterns
+            var directory = Path.GetDirectoryName(pattern);
+            var fileName = Path.GetFileName(pattern);
+            
+            // If no directory specified, use current directory
+            if (string.IsNullOrEmpty(directory))
+            {
+                directory = ".";
+            }
+            
+            // Ensure directory exists
+            if (!Directory.Exists(directory))
+            {
+                Console.Error.WriteLine($"Warning: Directory not found: {directory}");
+                return files;
+            }
+            
+            // Get matching files
+            var matchingFiles = Directory.GetFiles(directory, fileName, SearchOption.TopDirectoryOnly);
+            files.AddRange(matchingFiles.OrderBy(f => f));
+            
+            if (files.Count == 0)
+            {
+                Console.WriteLine($"Warning: No files found matching pattern: {pattern}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Error expanding pattern '{pattern}': {ex.Message}");
+        }
+        
+        return files;
+    }
+
     private async Task<int> RunCommand(string command, List<string> args)
     {
         if (args.Count == 0)
@@ -252,16 +313,16 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
             return 1;
         }
 
-        var testFile = args[0];
+        var pattern = args[0];
+        var testFiles = ExpandWildcardPattern(pattern);
         
-        if (!File.Exists(testFile))
+        if (testFiles.Count == 0)
         {
-            Console.Error.WriteLine($"Error: Test file not found: {testFile}");
+            Console.Error.WriteLine($"Error: No test files found matching pattern: {pattern}");
             return 1;
         }
 
-        Console.WriteLine($"Running test file: {testFile}");
-        
+        // Display environment and global variables once
         if (_envVars.Count > 0)
         {
             Console.WriteLine("Environment variables:");
@@ -280,63 +341,91 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
             }
         }
 
-        try
+        var allResults = new List<JTestCaseResult>();
+        var processedFiles = 0;
+        var failedFiles = 0;
+
+        foreach (var testFile in testFiles)
         {
-            // Read and execute the test file
-            var jsonContent = await File.ReadAllTextAsync(testFile);
-            
-            // Convert string dictionaries to object dictionaries
-            var environment = _envVars.ToDictionary(kvp => kvp.Key, kvp => (object)kvp.Value);
-            var globals = _globals.ToDictionary(kvp => kvp.Key, kvp => (object)kvp.Value);
-            
-            var results = await _testRunner.RunTestAsync(jsonContent, environment, globals);
-            
-            // Display results
-            var totalSuccess = 0;
-            var totalFailed = 0;
-            
-            foreach (var result in results)
+            if (!File.Exists(testFile))
             {
-                Console.WriteLine($"\nTest: {result.TestCaseName}");
-                if (result.Dataset != null)
-                {
-                    Console.WriteLine($"Dataset: {result.Dataset.Name ?? "unnamed"}");
-                }
-                Console.WriteLine($"Status: {(result.Success ? "PASSED" : "FAILED")}");
-                Console.WriteLine($"Duration: {result.DurationMs}ms");
-                Console.WriteLine($"Steps executed: {result.StepResults.Count}");
-                
-                if (!result.Success && !string.IsNullOrEmpty(result.ErrorMessage))
-                {
-                    Console.WriteLine($"Error: {result.ErrorMessage}");
-                }
-                
-                if (result.Success)
-                    totalSuccess++;
-                else
-                    totalFailed++;
+                Console.Error.WriteLine($"Error: Test file not found: {testFile}");
+                failedFiles++;
+                continue;
             }
+
+            Console.WriteLine($"\n{'='*60}");
+            Console.WriteLine($"Running test file: {testFile}");
+            Console.WriteLine($"{'='*60}");
             
-            Console.WriteLine($"\n=== TEST SUMMARY ===");
-            Console.WriteLine($"Total tests: {results.Count}");
-            Console.WriteLine($"Passed: {totalSuccess}");
-            Console.WriteLine($"Failed: {totalFailed}");
-            
-            if (totalFailed > 0)
+            try
             {
-                Console.WriteLine("Test execution completed with failures.");
-                return 1;
+                // Read and execute the test file
+                var jsonContent = await File.ReadAllTextAsync(testFile);
+                
+                // Convert string dictionaries to object dictionaries
+                var environment = _envVars.ToDictionary(kvp => kvp.Key, kvp => (object)kvp.Value);
+                var globals = _globals.ToDictionary(kvp => kvp.Key, kvp => (object)kvp.Value);
+                
+                var results = await _testRunner.RunTestAsync(jsonContent, environment, globals);
+                allResults.AddRange(results);
+                
+                // Display results for this file
+                var fileSuccess = 0;
+                var fileFailed = 0;
+                
+                foreach (var result in results)
+                {
+                    Console.WriteLine($"\nTest: {result.TestCaseName}");
+                    if (result.Dataset != null)
+                    {
+                        Console.WriteLine($"Dataset: {result.Dataset.Name ?? "unnamed"}");
+                    }
+                    Console.WriteLine($"Status: {(result.Success ? "PASSED" : "FAILED")}");
+                    Console.WriteLine($"Duration: {result.DurationMs}ms");
+                    Console.WriteLine($"Steps executed: {result.StepResults.Count}");
+                    
+                    if (!result.Success && !string.IsNullOrEmpty(result.ErrorMessage))
+                    {
+                        Console.WriteLine($"Error: {result.ErrorMessage}");
+                    }
+                    
+                    if (result.Success)
+                        fileSuccess++;
+                    else
+                        fileFailed++;
+                }
+                
+                Console.WriteLine($"\nFile Summary - {Path.GetFileName(testFile)}: {fileSuccess} passed, {fileFailed} failed");
+                processedFiles++;
             }
-            else
+            catch (Exception ex)
             {
-                Console.WriteLine("Test execution completed successfully.");
-                return 0;
+                Console.Error.WriteLine($"Error executing test file {testFile}: {ex.Message}");
+                failedFiles++;
             }
         }
-        catch (Exception ex)
+        
+        // Display overall summary
+        Console.WriteLine($"\n{'='*60}");
+        Console.WriteLine($"OVERALL TEST SUMMARY");
+        Console.WriteLine($"{'='*60}");
+        Console.WriteLine($"Files processed: {processedFiles}");
+        Console.WriteLine($"Files failed: {failedFiles}");
+        Console.WriteLine($"Total tests: {allResults.Count}");
+        Console.WriteLine($"Passed: {allResults.Count(r => r.Success)}");
+        Console.WriteLine($"Failed: {allResults.Count(r => !r.Success)}");
+        
+        var totalFailed = allResults.Count(r => !r.Success) + failedFiles;
+        if (totalFailed > 0)
         {
-            Console.Error.WriteLine($"Error executing test: {ex.Message}");
+            Console.WriteLine("Test execution completed with failures.");
             return 1;
+        }
+        else
+        {
+            Console.WriteLine("Test execution completed successfully.");
+            return 0;
         }
     }
 
@@ -395,162 +484,206 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
             return 1;
         }
 
-        var testFile = args[0];
+        var pattern = args[0];
+        var testFiles = ExpandWildcardPattern(pattern);
         
-        if (!File.Exists(testFile))
+        if (testFiles.Count == 0)
         {
-            Console.Error.WriteLine($"Error: Test file not found: {testFile}");
+            Console.Error.WriteLine($"Error: No test files found matching pattern: {pattern}");
             return 1;
         }
 
-        // Generate output markdown file name
-        var outputFile = Path.ChangeExtension(testFile, ".md");
+        var processedFiles = 0;
+        var failedFiles = 0;
+        var allOutputFiles = new List<string>();
 
-        Console.WriteLine($"Running test file in debug mode: {testFile}");
-        Console.WriteLine("Debug mode: ON");
-        Console.WriteLine("Verbose output: ON");
-        Console.WriteLine("Markdown logging: ON");
-        Console.WriteLine($"Debug output will be saved to: {outputFile}");
-
-        var markdownContent = new StringBuilder();
-        
-        // Add header to markdown file
-        markdownContent.AppendLine($"# Debug Report for {Path.GetFileName(testFile)}");
-        markdownContent.AppendLine();
-        markdownContent.AppendLine($"**Generated:** {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
-        markdownContent.AppendLine($"**Test File:** {testFile}");
-        markdownContent.AppendLine();
-
-        if (_envVars.Count > 0)
+        foreach (var testFile in testFiles)
         {
-            Console.WriteLine("\nEnvironment variables loaded");
-            markdownContent.AppendLine("## Environment Variables");
-            foreach (var kvp in _envVars)
+            if (!File.Exists(testFile))
             {
-                markdownContent.AppendLine($"- **{kvp.Key}**: {kvp.Value}");
+                Console.Error.WriteLine($"Error: Test file not found: {testFile}");
+                failedFiles++;
+                continue;
             }
+
+            // Generate output markdown file name for each test file
+            var outputFile = Path.ChangeExtension(testFile, ".md");
+            allOutputFiles.Add(outputFile);
+
+            Console.WriteLine($"\n{'='*60}");
+            Console.WriteLine($"Running test file in debug mode: {testFile}");
+            Console.WriteLine("Debug mode: ON");
+            Console.WriteLine("Verbose output: ON");
+            Console.WriteLine("Markdown logging: ON");
+            Console.WriteLine($"Debug output will be saved to: {outputFile}");
+            Console.WriteLine($"{'='*60}");
+
+            var markdownContent = new StringBuilder();
+            
+            // Add header to markdown file
+            markdownContent.AppendLine($"# Debug Report for {Path.GetFileName(testFile)}");
             markdownContent.AppendLine();
-        }
-
-        if (_globals.Count > 0)
-        {
-            Console.WriteLine("Global variables loaded");
-            markdownContent.AppendLine("## Global Variables");
-            foreach (var kvp in _globals)
-            {
-                markdownContent.AppendLine($"- **{kvp.Key}**: {kvp.Value}");
-            }
+            markdownContent.AppendLine($"**Generated:** {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+            markdownContent.AppendLine($"**Test File:** {testFile}");
             markdownContent.AppendLine();
-        }
 
-        try
-        {
-            // Read and execute the test file with debug logging
-            var jsonContent = await File.ReadAllTextAsync(testFile);
-            
-            // Convert string dictionaries to object dictionaries
-            var environment = _envVars.ToDictionary(kvp => kvp.Key, kvp => (object)kvp.Value);
-            var globals = _globals.ToDictionary(kvp => kvp.Key, kvp => (object)kvp.Value);
-            
-            // Create debug logger
-            var debugLogger = new MarkdownDebugLogger();
-            
-            var results = await _testRunner.RunTestAsync(jsonContent, environment, globals, debugLogger);
-            
-            Console.WriteLine("\nTest execution completed");
-            
-            // Add debug output to markdown content
-            markdownContent.AppendLine("## Test Execution");
-            var debugOutput = debugLogger.GetOutput();
-            if (!string.IsNullOrEmpty(debugOutput))
+            if (_envVars.Count > 0)
             {
-                markdownContent.AppendLine(debugOutput);
-            }
-            
-            // Calculate results summary
-            var totalSuccess = 0;
-            var totalFailed = 0;
-            var errorMessages = new List<string>();
-            
-            foreach (var result in results)
-            {
-                if (result.Success)
-                    totalSuccess++;
-                else
-                    totalFailed++;
-                    
-                if (!result.Success && !string.IsNullOrEmpty(result.ErrorMessage))
+                Console.WriteLine("\nEnvironment variables loaded");
+                markdownContent.AppendLine("## Environment Variables");
+                foreach (var kvp in _envVars)
                 {
-                    errorMessages.Add($"ERROR in {result.TestCaseName}: {result.ErrorMessage}");
-                }
-            }
-            
-            // Add summary to markdown
-            markdownContent.AppendLine("## Summary");
-            markdownContent.AppendLine($"- **Total tests:** {results.Count}");
-            markdownContent.AppendLine($"- **Passed:** {totalSuccess}");
-            markdownContent.AppendLine($"- **Failed:** {totalFailed}");
-            markdownContent.AppendLine();
-            
-            if (errorMessages.Any())
-            {
-                markdownContent.AppendLine("## Errors");
-                foreach (var error in errorMessages)
-                {
-                    markdownContent.AppendLine($"- {error}");
+                    markdownContent.AppendLine($"- **{kvp.Key}**: {kvp.Value}");
                 }
                 markdownContent.AppendLine();
             }
-            
-            // Write markdown content to file
-            await File.WriteAllTextAsync(outputFile, markdownContent.ToString());
-            
-            // Display console summary
-            Console.WriteLine($"Total tests: {results.Count}");
-            Console.WriteLine($"Passed: {totalSuccess}");
-            Console.WriteLine($"Failed: {totalFailed}");
-            
-            if (errorMessages.Any())
+
+            if (_globals.Count > 0)
             {
-                Console.WriteLine("\nErrors occurred during execution:");
-                foreach (var error in errorMessages)
+                Console.WriteLine("Global variables loaded");
+                markdownContent.AppendLine("## Global Variables");
+                foreach (var kvp in _globals)
                 {
-                    Console.WriteLine($"  {error}");
+                    markdownContent.AppendLine($"- **{kvp.Key}**: {kvp.Value}");
                 }
+                markdownContent.AppendLine();
             }
-            
-            Console.WriteLine($"\nDetailed debug report saved to: {outputFile}");
-            
-            if (totalFailed > 0)
-            {
-                Console.WriteLine("Debug execution completed with failures.");
-                return 1;
-            }
-            else
-            {
-                Console.WriteLine("Debug execution completed successfully.");
-                return 0;
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.Error.WriteLine($"\nERROR: {ex.Message}");
-            
-            // Still try to save what we have to the markdown file
-            markdownContent.AppendLine("## Error");
-            markdownContent.AppendLine($"Execution failed with error: {ex.Message}");
-            
+
             try
             {
+                // Read and execute the test file with debug logging
+                var jsonContent = await File.ReadAllTextAsync(testFile);
+                
+                // Convert string dictionaries to object dictionaries
+                var environment = _envVars.ToDictionary(kvp => kvp.Key, kvp => (object)kvp.Value);
+                var globals = _globals.ToDictionary(kvp => kvp.Key, kvp => (object)kvp.Value);
+                
+                // Create debug logger
+                var debugLogger = new MarkdownDebugLogger();
+                
+                var results = await _testRunner.RunTestAsync(jsonContent, environment, globals, debugLogger);
+                
+                Console.WriteLine("\nTest execution completed");
+                
+                // Add debug output to markdown content
+                markdownContent.AppendLine("## Test Execution");
+                var debugOutput = debugLogger.GetOutput();
+                if (!string.IsNullOrEmpty(debugOutput))
+                {
+                    markdownContent.AppendLine(debugOutput);
+                }
+                
+                // Calculate results summary
+                var totalSuccess = 0;
+                var totalFailed = 0;
+                var errorMessages = new List<string>();
+                
+                foreach (var result in results)
+                {
+                    if (result.Success)
+                        totalSuccess++;
+                    else
+                        totalFailed++;
+                        
+                    if (!result.Success && !string.IsNullOrEmpty(result.ErrorMessage))
+                    {
+                        errorMessages.Add($"ERROR in {result.TestCaseName}: {result.ErrorMessage}");
+                    }
+                }
+                
+                // Add summary to markdown
+                markdownContent.AppendLine("## Summary");
+                markdownContent.AppendLine($"- **Total tests:** {results.Count}");
+                markdownContent.AppendLine($"- **Passed:** {totalSuccess}");
+                markdownContent.AppendLine($"- **Failed:** {totalFailed}");
+                markdownContent.AppendLine();
+                
+                if (errorMessages.Any())
+                {
+                    markdownContent.AppendLine("## Errors");
+                    foreach (var error in errorMessages)
+                    {
+                        markdownContent.AppendLine($"- {error}");
+                    }
+                    markdownContent.AppendLine();
+                }
+                
+                // Write markdown content to file
                 await File.WriteAllTextAsync(outputFile, markdownContent.ToString());
-                Console.WriteLine($"Partial debug report saved to: {outputFile}");
+                
+                // Display console summary
+                Console.WriteLine($"Total tests: {results.Count}");
+                Console.WriteLine($"Passed: {totalSuccess}");
+                Console.WriteLine($"Failed: {totalFailed}");
+                
+                if (errorMessages.Any())
+                {
+                    Console.WriteLine("\nErrors occurred during execution:");
+                    foreach (var error in errorMessages)
+                    {
+                        Console.WriteLine($"  {error}");
+                    }
+                }
+                
+                Console.WriteLine($"Detailed debug report saved to: {outputFile}");
+                
+                if (totalFailed > 0)
+                {
+                    failedFiles++;
+                }
+                else
+                {
+                    processedFiles++;
+                }
             }
-            catch
+            catch (Exception ex)
             {
-                // Ignore file write errors in error handling
+                Console.Error.WriteLine($"\nERROR: {ex.Message}");
+                
+                // Still try to save what we have to the markdown file
+                markdownContent.AppendLine("## Error");
+                markdownContent.AppendLine($"Execution failed with error: {ex.Message}");
+                
+                try
+                {
+                    await File.WriteAllTextAsync(outputFile, markdownContent.ToString());
+                    Console.WriteLine($"Partial debug report saved to: {outputFile}");
+                }
+                catch
+                {
+                    // Ignore file write errors in error handling
+                }
+                
+                failedFiles++;
             }
-            
+        }
+        
+        // Display overall summary
+        Console.WriteLine($"\n{'='*60}");
+        Console.WriteLine($"DEBUG SUMMARY");
+        Console.WriteLine($"{'='*60}");
+        Console.WriteLine($"Files processed successfully: {processedFiles}");
+        Console.WriteLine($"Files failed: {failedFiles}");
+        Console.WriteLine($"Debug reports generated: {allOutputFiles.Count}");
+        
+        if (allOutputFiles.Any())
+        {
+            Console.WriteLine("\nGenerated debug reports:");
+            foreach (var outputFile in allOutputFiles)
+            {
+                Console.WriteLine($"  - {outputFile}");
+            }
+        }
+        
+        if (failedFiles > 0)
+        {
+            Console.WriteLine("Debug execution completed with failures.");
             return 1;
+        }
+        else
+        {
+            Console.WriteLine("Debug execution completed successfully.");
+            return 0;
         }
     }
 
@@ -598,46 +731,86 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
             return 1;
         }
 
-        var testFile = args[0];
+        var pattern = args[0];
+        var testFiles = ExpandWildcardPattern(pattern);
         
-        if (!File.Exists(testFile))
+        if (testFiles.Count == 0)
         {
-            Console.Error.WriteLine($"Error: Test file not found: {testFile}");
+            Console.Error.WriteLine($"Error: No test files found matching pattern: {pattern}");
             return 1;
         }
 
-        Console.WriteLine($"Validating test file: {testFile}");
+        var processedFiles = 0;
+        var validFiles = 0;
+        var invalidFiles = 0;
 
-        try
+        foreach (var testFile in testFiles)
         {
-            var json = await File.ReadAllTextAsync(testFile);
-            
-            // Basic JSON syntax validation
-            JsonDocument.Parse(json);
-            Console.WriteLine("Valid JSON syntax");
-            
-            // JTEST schema validation using TestRunner
-            if (_testRunner.ValidateTestDefinition(json))
+            if (!File.Exists(testFile))
             {
-                Console.WriteLine("Valid JTEST schema");
-                Console.WriteLine("Validation completed successfully.");
-                return 0;
+                Console.Error.WriteLine($"Error: Test file not found: {testFile}");
+                invalidFiles++;
+                continue;
             }
-            else
+
+            Console.WriteLine($"\n{'='*50}");
+            Console.WriteLine($"Validating test file: {testFile}");
+            Console.WriteLine($"{'='*50}");
+
+            try
             {
-                Console.Error.WriteLine("Invalid JTEST schema: Missing required properties (name, flow)");
-                return 1;
+                var json = await File.ReadAllTextAsync(testFile);
+                
+                // Basic JSON syntax validation
+                JsonDocument.Parse(json);
+                Console.WriteLine("Valid JSON syntax");
+                
+                // JTEST schema validation using TestRunner
+                if (_testRunner.ValidateTestDefinition(json))
+                {
+                    Console.WriteLine("Valid JTEST schema");
+                    Console.WriteLine($"✓ {Path.GetFileName(testFile)} - Valid");
+                    validFiles++;
+                }
+                else
+                {
+                    Console.Error.WriteLine("Invalid JTEST schema: Missing required properties (name, flow)");
+                    Console.WriteLine($"✗ {Path.GetFileName(testFile)} - Invalid schema");
+                    invalidFiles++;
+                }
+                processedFiles++;
+            }
+            catch (JsonException ex)
+            {
+                Console.Error.WriteLine($"Invalid JSON syntax: {ex.Message}");
+                Console.WriteLine($"✗ {Path.GetFileName(testFile)} - Invalid JSON");
+                invalidFiles++;
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"Validation error: {ex.Message}");
+                Console.WriteLine($"✗ {Path.GetFileName(testFile)} - Error");
+                invalidFiles++;
             }
         }
-        catch (JsonException ex)
+        
+        // Display overall summary
+        Console.WriteLine($"\n{'='*50}");
+        Console.WriteLine($"VALIDATION SUMMARY");
+        Console.WriteLine($"{'='*50}");
+        Console.WriteLine($"Files processed: {processedFiles}");
+        Console.WriteLine($"Valid files: {validFiles}");
+        Console.WriteLine($"Invalid files: {invalidFiles}");
+        
+        if (invalidFiles > 0)
         {
-            Console.Error.WriteLine($"Invalid JSON syntax: {ex.Message}");
+            Console.WriteLine("Validation completed with errors.");
             return 1;
         }
-        catch (Exception ex)
+        else
         {
-            Console.Error.WriteLine($"Validation error: {ex.Message}");
-            return 1;
+            Console.WriteLine("All files are valid.");
+            return 0;
         }
     }
 
