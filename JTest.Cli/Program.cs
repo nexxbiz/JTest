@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+﻿using System.Text;
+using System.Text.Json;
 using JTest.Core;
 using JTest.Core.Debugging;
 
@@ -402,27 +403,44 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
             return 1;
         }
 
+        // Generate output markdown file name
+        var outputFile = Path.ChangeExtension(testFile, ".md");
+
         Console.WriteLine($"Running test file in debug mode: {testFile}");
         Console.WriteLine("Debug mode: ON");
         Console.WriteLine("Verbose output: ON");
         Console.WriteLine("Markdown logging: ON");
+        Console.WriteLine($"Debug output will be saved to: {outputFile}");
+
+        var markdownContent = new StringBuilder();
+        
+        // Add header to markdown file
+        markdownContent.AppendLine($"# Debug Report for {Path.GetFileName(testFile)}");
+        markdownContent.AppendLine();
+        markdownContent.AppendLine($"**Generated:** {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+        markdownContent.AppendLine($"**Test File:** {testFile}");
+        markdownContent.AppendLine();
 
         if (_envVars.Count > 0)
         {
-            Console.WriteLine("\n## Environment Variables");
+            Console.WriteLine("\nEnvironment variables loaded");
+            markdownContent.AppendLine("## Environment Variables");
             foreach (var kvp in _envVars)
             {
-                Console.WriteLine($"- **{kvp.Key}**: {kvp.Value}");
+                markdownContent.AppendLine($"- **{kvp.Key}**: {kvp.Value}");
             }
+            markdownContent.AppendLine();
         }
 
         if (_globals.Count > 0)
         {
-            Console.WriteLine("\n## Global Variables");
+            Console.WriteLine("Global variables loaded");
+            markdownContent.AppendLine("## Global Variables");
             foreach (var kvp in _globals)
             {
-                Console.WriteLine($"- **{kvp.Key}**: {kvp.Value}");
+                markdownContent.AppendLine($"- **{kvp.Key}**: {kvp.Value}");
             }
+            markdownContent.AppendLine();
         }
 
         try
@@ -439,18 +457,20 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
             
             var results = await _testRunner.RunTestAsync(jsonContent, environment, globals, debugLogger);
             
-            Console.WriteLine("\n## Test Execution");
+            Console.WriteLine("\nTest execution completed");
             
-            // Display debug output
+            // Add debug output to markdown content
+            markdownContent.AppendLine("## Test Execution");
             var debugOutput = debugLogger.GetOutput();
             if (!string.IsNullOrEmpty(debugOutput))
             {
-                Console.WriteLine(debugOutput);
+                markdownContent.AppendLine(debugOutput);
             }
             
-            // Display results summary
+            // Calculate results summary
             var totalSuccess = 0;
             var totalFailed = 0;
+            var errorMessages = new List<string>();
             
             foreach (var result in results)
             {
@@ -461,29 +481,75 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
                     
                 if (!result.Success && !string.IsNullOrEmpty(result.ErrorMessage))
                 {
-                    Console.WriteLine($"\nERROR in {result.TestCaseName}: {result.ErrorMessage}");
+                    errorMessages.Add($"ERROR in {result.TestCaseName}: {result.ErrorMessage}");
                 }
             }
             
-            Console.WriteLine($"\n## Summary");
-            Console.WriteLine($"- **Total tests:** {results.Count}");
-            Console.WriteLine($"- Passed: {totalSuccess}");
-            Console.WriteLine($"- Failed: {totalFailed}");
+            // Add summary to markdown
+            markdownContent.AppendLine("## Summary");
+            markdownContent.AppendLine($"- **Total tests:** {results.Count}");
+            markdownContent.AppendLine($"- **Passed:** {totalSuccess}");
+            markdownContent.AppendLine($"- **Failed:** {totalFailed}");
+            markdownContent.AppendLine();
+            
+            if (errorMessages.Any())
+            {
+                markdownContent.AppendLine("## Errors");
+                foreach (var error in errorMessages)
+                {
+                    markdownContent.AppendLine($"- {error}");
+                }
+                markdownContent.AppendLine();
+            }
+            
+            // Write markdown content to file
+            await File.WriteAllTextAsync(outputFile, markdownContent.ToString());
+            
+            // Display console summary
+            Console.WriteLine($"Total tests: {results.Count}");
+            Console.WriteLine($"Passed: {totalSuccess}");
+            Console.WriteLine($"Failed: {totalFailed}");
+            
+            if (errorMessages.Any())
+            {
+                Console.WriteLine("\nErrors occurred during execution:");
+                foreach (var error in errorMessages)
+                {
+                    Console.WriteLine($"  {error}");
+                }
+            }
+            
+            Console.WriteLine($"\nDetailed debug report saved to: {outputFile}");
             
             if (totalFailed > 0)
             {
-                Console.WriteLine("\nDebug execution completed with failures.");
+                Console.WriteLine("Debug execution completed with failures.");
                 return 1;
             }
             else
             {
-                Console.WriteLine("\nDebug execution completed successfully.");
+                Console.WriteLine("Debug execution completed successfully.");
                 return 0;
             }
         }
         catch (Exception ex)
         {
             Console.Error.WriteLine($"\nERROR: {ex.Message}");
+            
+            // Still try to save what we have to the markdown file
+            markdownContent.AppendLine("## Error");
+            markdownContent.AppendLine($"Execution failed with error: {ex.Message}");
+            
+            try
+            {
+                await File.WriteAllTextAsync(outputFile, markdownContent.ToString());
+                Console.WriteLine($"Partial debug report saved to: {outputFile}");
+            }
+            catch
+            {
+                // Ignore file write errors in error handling
+            }
+            
             return 1;
         }
     }

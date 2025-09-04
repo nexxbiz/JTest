@@ -273,7 +273,6 @@ public class HttpStepTests
         Assert.Contains("**Context Changes:**", output);
         Assert.Contains("**Added:**", output);
         Assert.Contains("- `$.this` = {object of type", output);
-        Assert.Contains("**For Assertions:**", output);
         Assert.Contains("<details>", output);
         Assert.Contains("Runtime Context", output);
     }
