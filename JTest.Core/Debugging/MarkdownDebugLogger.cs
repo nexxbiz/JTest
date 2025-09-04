@@ -348,29 +348,21 @@ public class MarkdownDebugLogger : IDebugLogger
         var description = result.Description ?? $"{result.Operation} assertion";
         
         // Include comprehensive details as requested in the problem statement
-        _output.AppendLine($"**Test:** {_currentTestCaseName}");
-        _output.AppendLine($"**Test Case:** {_currentTestCaseName}");
-        _output.AppendLine($"**Assert Name:** {result.Operation}");
-        _output.AppendLine($"**Description:** {description}");
-        _output.AppendLine($"**Status:** {status} {statusIcon}");
+        _output.AppendLine($"**Assert Name:** {result.Operation}").AppendLine();
+        _output.AppendLine($"**Description:** {description}").AppendLine();
+        _output.AppendLine($"**Status:** {status} {statusIcon}").AppendLine();
         
         if (result.ActualValue != null)
         {
             var actualDisplay = FormatAssertionValue(result.ActualValue);
-            _output.AppendLine($"**Actual Value:** `{actualDisplay}`");
+            _output.AppendLine($"**Actual Value:** `{actualDisplay}`").AppendLine();
         }
         
         if (result.ExpectedValue != null)
         {
             var expectedDisplay = FormatAssertionValue(result.ExpectedValue);
-            _output.AppendLine($"**Expected Value:** `{expectedDisplay}`");
+            _output.AppendLine($"**Expected Value:** `{expectedDisplay}`").AppendLine();
         }
-        
-        if (!result.Success && !string.IsNullOrEmpty(result.ErrorMessage))
-        {
-            _output.AppendLine($"**Error:** {result.ErrorMessage}");
-        }
-        
         _output.AppendLine();
     }
 

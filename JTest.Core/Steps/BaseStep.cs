@@ -186,6 +186,7 @@ public abstract class BaseStep : IStep
         {
             DebugLogger.LogAssertionResults(assertionResults);
         }
+        
         DebugLogger.LogRuntimeContext(context.Variables);
     }
     
