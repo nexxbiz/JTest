@@ -15,9 +15,21 @@ public class MarkdownDebugLogger : IDebugLogger
     private readonly SecurityMasker _securityMasker = new();
     private bool _headerWritten = false;
     private readonly List<AssertionResult> _allAssertionResults = new();
+    
+    // Store current test context information for assertion logging
+    private string _currentTestName = string.Empty;
+    private string _currentTestCaseName = string.Empty;
+    private int _currentTestNumber = 1;
+    private int _currentStepNumber = 1;
 
     public void LogStepExecution(StepDebugInfo stepInfo)
     {
+        // Store current test context for assertion logging
+        _currentTestName = stepInfo.TestName;
+        _currentTestCaseName = stepInfo.TestName; // For now, using TestName as TestCaseName
+        _currentTestNumber = stepInfo.TestNumber;
+        _currentStepNumber = stepInfo.StepNumber;
+        
         // Write header only once per debug session
         if (!_headerWritten)
         {
@@ -56,6 +68,12 @@ public class MarkdownDebugLogger : IDebugLogger
     public void LogTestSummary(List<JTestCaseResult> testResults)
     {
         if (!testResults.Any()) return;
+        
+        // Store current test case name from the first result for assertion context
+        if (testResults.Count > 0)
+        {
+            _currentTestCaseName = testResults[0].TestCaseName;
+        }
 
         _output.AppendLine();
         _output.AppendLine("---");
@@ -326,31 +344,31 @@ public class MarkdownDebugLogger : IDebugLogger
         var status = result.Success ? "PASSED" : "FAILED";
         var statusIcon = result.Success ? "✅" : "❌";
 
-        // Enhanced description with actual vs expected format
+        // Enhanced description with test context information
         var description = result.Description ?? $"{result.Operation} assertion";
         
-        if (result.Success)
+        // Include comprehensive details as requested in the problem statement
+        _output.AppendLine($"**Test:** {_currentTestCaseName}");
+        _output.AppendLine($"**Test Case:** {_currentTestCaseName}");
+        _output.AppendLine($"**Assert Name:** {result.Operation}");
+        _output.AppendLine($"**Description:** {description}");
+        _output.AppendLine($"**Status:** {status} {statusIcon}");
+        
+        if (result.ActualValue != null)
         {
-            _output.AppendLine($"- {description} : {status} {statusIcon}");
+            var actualDisplay = FormatAssertionValue(result.ActualValue);
+            _output.AppendLine($"**Actual Value:** `{actualDisplay}`");
         }
-        else
+        
+        if (result.ExpectedValue != null)
         {
-            var actualDisplay = FormatAssertionValue(result.ActualValue ?? "null");
-            var expectedDisplay = FormatAssertionValue(result.ExpectedValue ?? "null");
-            
-            if (result.ExpectedValue != null)
-            {
-                _output.AppendLine($"- {description} : got `{actualDisplay}` : expected `{expectedDisplay}` : {status} {statusIcon}");
-            }
-            else
-            {
-                _output.AppendLine($"- {description} : got `{actualDisplay}` : {status} {statusIcon}");
-            }
-            
-            if (!string.IsNullOrEmpty(result.ErrorMessage))
-            {
-                _output.AppendLine($"  - Error: {result.ErrorMessage}");
-            }
+            var expectedDisplay = FormatAssertionValue(result.ExpectedValue);
+            _output.AppendLine($"**Expected Value:** `{expectedDisplay}`");
+        }
+        
+        if (!result.Success && !string.IsNullOrEmpty(result.ErrorMessage))
+        {
+            _output.AppendLine($"**Error:** {result.ErrorMessage}");
         }
         
         _output.AppendLine();

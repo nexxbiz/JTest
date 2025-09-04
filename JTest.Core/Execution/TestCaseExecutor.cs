@@ -98,6 +98,9 @@ public class TestCaseExecutor
 
         try
         {
+            // Set the test case name in the execution context
+            executionContext.TestCaseName = testCase.Name;
+            
             // Set case data if dataset is provided
             if (dataset != null)
             {

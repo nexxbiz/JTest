@@ -24,4 +24,9 @@ public interface IExecutionContext
     /// Gets the current step number within the test
     /// </summary>
     int StepNumber { get; }
+    
+    /// <summary>
+    /// Gets the current test case name
+    /// </summary>
+    string TestCaseName { get; }
 }

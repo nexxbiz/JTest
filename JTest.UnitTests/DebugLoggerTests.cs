@@ -224,11 +224,16 @@ public class DebugLoggerTests
         logger.LogAssertionResults(assertionResults);
         var output = logger.GetOutput();
         
-        // Updated to match new improved assertion format
+        // Updated to match new comprehensive assertion format
         Assert.Contains("**Assertions:**", output);
-        Assert.Contains("- Check status code : PASSED ✅", output);
-        Assert.Contains("- Check response body exists : PASSED ✅", output);
-        // New format doesn't show details for successful assertions
+        Assert.Contains("**Assert Name:** equals", output);
+        Assert.Contains("**Description:** Check status code", output);
+        Assert.Contains("**Status:** PASSED ✅", output);
+        Assert.Contains("**Actual Value:** `200`", output);
+        Assert.Contains("**Expected Value:** `200`", output);
+        Assert.Contains("**Assert Name:** exists", output);
+        Assert.Contains("**Description:** Check response body exists", output);
+        Assert.Contains("**Actual Value:** `response data`", output);
     }
 
     [Fact]
@@ -255,12 +260,17 @@ public class DebugLoggerTests
         logger.LogAssertionResults(assertionResults);
         var output = logger.GetOutput();
         
-        // Updated to match new improved assertion format
+        // Updated to match new comprehensive assertion format
         Assert.Contains("**Assertions:**", output);
-        Assert.Contains("- Check status code : got `404` : expected `200` : FAILED ❌", output);
-        Assert.Contains("- Error: Expected 200 but got 404", output);
-        Assert.Contains("- Check required field : got `null` : FAILED ❌", output);
-        Assert.Contains("- Error: Value is null", output);
+        Assert.Contains("**Assert Name:** equals", output);
+        Assert.Contains("**Description:** Check status code", output);
+        Assert.Contains("**Status:** FAILED ❌", output);
+        Assert.Contains("**Actual Value:** `404`", output);
+        Assert.Contains("**Expected Value:** `200`", output);
+        Assert.Contains("**Error:** Expected 200 but got 404", output);
+        Assert.Contains("**Assert Name:** exists", output);
+        Assert.Contains("**Description:** Check required field", output);
+        Assert.Contains("**Error:** Value is null", output);
     }
 
     [Fact]
@@ -288,6 +298,7 @@ public class DebugLoggerTests
             new AssertionResult(true)
             {
                 Operation = "equals",
+                Description = "Test assertion",
                 ActualValue = 200,
                 ExpectedValue = 200
             }
@@ -305,9 +316,11 @@ public class DebugLoggerTests
         Assert.Contains("**Duration:** 332,74ms", output);
         Assert.Contains("**Added:**", output);
         Assert.DoesNotContain("**For Assertions:**", output); // Improved: clutter removed
-        // Updated to match new improved assertion format  
+        // Updated to match new comprehensive assertion format  
         Assert.Contains("**Assertions:**", output);
-        Assert.Contains("-  : PASSED ✅", output); // No description or operation set in test data
+        Assert.Contains("**Assert Name:** equals", output);
+        Assert.Contains("**Description:** Test assertion", output);
+        Assert.Contains("**Status:** PASSED ✅", output);
         // Runtime context no longer displayed per requirements
         Assert.DoesNotContain("<details>", output);
         Assert.DoesNotContain("Runtime Context", output);

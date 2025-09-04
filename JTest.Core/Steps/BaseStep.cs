@@ -203,7 +203,8 @@ public abstract class BaseStep : IStep
             Enabled = true,
             Result = success ? "Success" : "Failed",
             Duration = stopwatch.Elapsed,
-            Description = GetStepDescription()
+            Description = GetStepDescription(),
+            TestName = context.TestCaseName // Use TestCaseName as TestName for now
         };
     }
     

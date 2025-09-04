@@ -31,6 +31,11 @@ public class TestExecutionContext : IExecutionContext
     /// Gets or sets the current step number within the test
     /// </summary>
     public int StepNumber { get; set; } = 1;
+    
+    /// <summary>
+    /// Gets or sets the current test case name
+    /// </summary>
+    public string TestCaseName { get; set; } = string.Empty;
 
     /// <summary>
     /// Sets the case context variables for the current dataset iteration
