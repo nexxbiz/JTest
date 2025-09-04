@@ -331,6 +331,14 @@ public class MarkdownDebugLogger : IDebugLogger
 
         _output.AppendLine("**Assertions:**");
         _output.AppendLine();
+        
+        // Add test context information if available (for comprehensive debugging)
+        if (!string.IsNullOrEmpty(_currentTestName))
+        {
+            _output.AppendLine($"**Test:** {_currentTestName}");
+            _output.AppendLine($"**Test Case:** {_currentTestCaseName}");
+            _output.AppendLine();
+        }
 
         foreach (var result in assertionResults)
         {
@@ -339,8 +347,39 @@ public class MarkdownDebugLogger : IDebugLogger
         _output.AppendLine();
     }
 
-    private void WriteImprovedAssertionResult(AssertionResult result)
+    /// <summary>
+    /// Formats assertion results to markdown string - reusable for both main and template assertion logging
+    /// </summary>
+    public static string FormatAssertionResultsToMarkdown(List<AssertionResult> assertionResults, string indentPrefix = "", string testName = "", string testCaseName = "")
     {
+        if (!assertionResults.Any()) return "";
+
+        var output = new StringBuilder();
+        output.AppendLine($"{indentPrefix}**Assertions:**");
+        output.AppendLine();
+        
+        // Add test context information if available (for comprehensive debugging)
+        if (!string.IsNullOrEmpty(testName))
+        {
+            output.AppendLine($"{indentPrefix}**Test:** {testName}");
+            output.AppendLine($"{indentPrefix}**Test Case:** {testCaseName}");
+            output.AppendLine();
+        }
+
+        foreach (var result in assertionResults)
+        {
+            output.Append(FormatAssertionResultToMarkdown(result, indentPrefix));
+        }
+
+        return output.ToString();
+    }
+
+    /// <summary>
+    /// Formats a single assertion result to markdown string - reusable formatting logic
+    /// </summary>
+    public static string FormatAssertionResultToMarkdown(AssertionResult result, string indentPrefix = "")
+    {
+        var output = new StringBuilder();
         var status = result.Success ? "PASSED" : "FAILED";
         var statusIcon = result.Success ? "✅" : "❌";
 
@@ -348,25 +387,45 @@ public class MarkdownDebugLogger : IDebugLogger
         var description = result.Description ?? $"{result.Operation} assertion";
         
         // Include comprehensive details as requested in the problem statement
-        _output.AppendLine($"**Assert Name:** {result.Operation}").AppendLine();
-        _output.AppendLine($"**Description:** {description}").AppendLine();
-        _output.AppendLine($"**Status:** {status} {statusIcon}").AppendLine();
+        output.AppendLine($"{indentPrefix}**Assert Name:** {result.Operation}").AppendLine();
+        output.AppendLine($"{indentPrefix}**Description:** {description}").AppendLine();
+        output.AppendLine($"{indentPrefix}**Status:** {status} {statusIcon}").AppendLine();
         
         if (result.ActualValue != null)
         {
-            var actualDisplay = FormatAssertionValue(result.ActualValue);
-            _output.AppendLine($"**Actual Value:** `{actualDisplay}`").AppendLine();
+            var actualDisplay = FormatAssertionValueStatic(result.ActualValue);
+            output.AppendLine($"{indentPrefix}**Actual Value:** `{actualDisplay}`").AppendLine();
         }
         
         if (result.ExpectedValue != null)
         {
-            var expectedDisplay = FormatAssertionValue(result.ExpectedValue);
-            _output.AppendLine($"**Expected Value:** `{expectedDisplay}`").AppendLine();
+            var expectedDisplay = FormatAssertionValueStatic(result.ExpectedValue);
+            output.AppendLine($"{indentPrefix}**Expected Value:** `{expectedDisplay}`").AppendLine();
         }
-        _output.AppendLine();
+        
+        // Include error message if present (important for failing assertions)
+        if (!string.IsNullOrEmpty(result.ErrorMessage))
+        {
+            output.AppendLine($"{indentPrefix}**Error:** {result.ErrorMessage}").AppendLine();
+        }
+        
+        output.AppendLine();
+
+        return output.ToString();
+    }
+
+    private void WriteImprovedAssertionResult(AssertionResult result)
+    {
+        // Use the new shared formatting method
+        _output.Append(FormatAssertionResultToMarkdown(result));
     }
 
     private string FormatAssertionValue(object value)
+    {
+        return FormatAssertionValueStatic(value);
+    }
+
+    private static string FormatAssertionValueStatic(object value)
     {
         return value switch
         {
@@ -439,6 +498,21 @@ public class MarkdownDebugLogger : IDebugLogger
             foreach (var stepDetail in templateInfo.StepExecutionDetails)
             {
                 _output.AppendLine($"- **{stepDetail.StepType}** ({stepDetail.StepId}): {stepDetail.Result} in {FormatDuration(stepDetail.Duration)}");
+                
+                // Add assertion details for each step if they exist
+                if (stepDetail.AssertionResults?.Any() == true)
+                {
+                    var assertionContent = FormatAssertionResultsToMarkdown(stepDetail.AssertionResults, "  ");
+                    // Remove the extra newlines and format for nested display
+                    var lines = assertionContent.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+                    foreach (var line in lines)
+                    {
+                        if (!string.IsNullOrWhiteSpace(line))
+                        {
+                            _output.AppendLine($"  {line}");
+                        }
+                    }
+                }
             }
             _output.AppendLine();
         }
