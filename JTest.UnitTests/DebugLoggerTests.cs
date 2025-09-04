@@ -62,7 +62,7 @@ public class DebugLoggerTests
     }
 
     [Fact]
-    public void MarkdownDebugLogger_LogContextChanges_GeneratesAssertionGuidance()
+    public void MarkdownDebugLogger_LogContextChanges_DoesNotGenerateAssertionGuidanceClutter()
     {
         var logger = new MarkdownDebugLogger();
         var changes = CreateTestContextChanges();
@@ -70,11 +70,13 @@ public class DebugLoggerTests
         logger.LogContextChanges(changes);
         var output = logger.GetOutput();
         
-        Assert.Contains("**For Assertions:** You can now reference these JSONPath expressions:", output);
-        Assert.Contains("- `$.execute-workflow` or `{{ $.execute-workflow }}`", output);
-        Assert.Contains("  - Example: `$.execute-workflow.status`", output);
-        Assert.Contains("- `$.workflowInstanceId` or `{{ $.workflowInstanceId }}`", output);
-        Assert.Contains("- `$.this` or `{{ $.this }}`", output);
+        // Verify that the clutter is removed (improvement)
+        Assert.DoesNotContain("**For Assertions:** You can now reference these JSONPath expressions:", output);
+        
+        // But context changes are still properly reported
+        Assert.Contains("**Context Changes:**", output);
+        Assert.Contains("**Added:**", output);
+        Assert.Contains("**Modified:**", output);
     }
 
     [Fact]
@@ -146,22 +148,15 @@ public class DebugLoggerTests
         
         var output = logger.GetOutput();
         
-        // Verify complete output structure matches sample
+        // Verify complete output structure matches improved sample
         Assert.Contains("## Test 1, Step 1: HttpStep", output);
         Assert.Contains("**Step ID:** execute-workflow", output);
         Assert.Contains("**Duration:** 332,74ms", output);
         Assert.Contains("**Added:**", output);
         Assert.Contains("**Modified:**", output);
-        Assert.Contains("**For Assertions:**", output);
+        Assert.DoesNotContain("**For Assertions:**", output); // Improved: clutter removed
         Assert.Contains("<details>", output);
         Assert.Contains("Runtime Context", output);
-        
-        // Verify assertion guidance format matches sample exactly
-        Assert.Contains("- `$.execute-workflow` or `{{ $.execute-workflow }}`", output);
-        Assert.Contains("  - Example: `$.execute-workflow.status`", output);
-        Assert.Contains("- `$.workflowInstanceId` or `{{ $.workflowInstanceId }}`", output);
-        Assert.DoesNotContain("$.workflowInstanceId.status", output); // No example for ID fields
-        Assert.Contains("- `$.this` or `{{ $.this }}`", output);
     }
 
     [Fact]
@@ -312,11 +307,11 @@ public class DebugLoggerTests
         
         var output = logger.GetOutput();
         
-        // Verify complete output structure includes assertion results
+        // Verify complete output structure includes assertion results  
         Assert.Contains("## Test 1, Step 1: HttpStep", output);
         Assert.Contains("**Duration:** 332,74ms", output);
         Assert.Contains("**Added:**", output);
-        Assert.Contains("**For Assertions:**", output);
+        Assert.DoesNotContain("**For Assertions:**", output); // Improved: clutter removed
         Assert.Contains("**Assertion Results:**", output);
         Assert.Contains("**EQUALS** - PASSED", output);
         Assert.Contains("<details>", output);
