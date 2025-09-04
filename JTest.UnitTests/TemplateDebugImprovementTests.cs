@@ -15,6 +15,12 @@ public class TemplateDebugImprovementTests
         {
             TemplateName = "execute-workflow-and-get-activity",
             StepsExecuted = 2,
+            InputParameters = new Dictionary<string, object>
+            {
+                ["username"] = "testuser",
+                ["password"] = "secret123",
+                ["tokenUrl"] = "https://api.example.com/token"
+            },
             SavedVariables = new Dictionary<string, object>
             {
                 ["ifConditionResult"] = new Dictionary<string, object>
@@ -47,6 +53,9 @@ public class TemplateDebugImprovementTests
             Enabled = true,
             Result = "Success",
             Duration = TimeSpan.FromMilliseconds(500),
+            TestFileName = "set-variable-tests.json",
+            TestName = "Get tokens",
+            TestDescription = "Authenticate and store credentials globally",
             TemplateExecution = templateInfo
         };
 
@@ -54,13 +63,24 @@ public class TemplateDebugImprovementTests
         logger.LogStepExecution(stepInfo);
         var output = logger.GetOutput();
 
-        // Assert - Should have detailed content instead of just "{object with 8 properties}"
-        Assert.Contains("Variables Saved:", output);
+        // Print the actual output for debugging
+        Console.WriteLine("=== ACTUAL OUTPUT ===");
+        Console.WriteLine(output);
+        Console.WriteLine("=== END OUTPUT ===");
+
+        // Assert - Should have improved header and formatting
+        Assert.Contains("Debug Report for set-variable-tests.json", output);
+        Assert.Contains("Test 1 - Get tokens", output);
+        Assert.Contains("Authenticate and store credentials globally", output);
+        Assert.Contains("**Step:** use execute-workflow-and-get-activity", output); // Fixed formatting
+        Assert.Contains("**Input Parameters:**", output);
+        Assert.Contains("***masked***", output); // Security masking (password should be masked)
+        Assert.Contains("Saved variables:", output); // Updated to lowercase
         Assert.Contains("ifConditionResult", output);
         
         // Current behavior shows truncated info - we want to change this
         // This test documents the current behavior we want to improve
-        Console.WriteLine("Current output:");
+        Console.WriteLine("Enhanced output:");
         Console.WriteLine(output);
     }
 
@@ -99,13 +119,13 @@ public class TemplateDebugImprovementTests
         logger.LogAssertionResults(assertionResults);
         var output = logger.GetOutput();
 
-        // Assert - Should show detailed assertion info with test scenario context
-        Assert.Contains("Assertion Results:", output);
-        Assert.Contains("**EQUALS** - PASSED", output);
-        Assert.Contains("**EXISTS** - FAILED", output);
+        // Assert - Should show improved assertion format
+        Assert.Contains("**Assertions:**", output);
+        Assert.Contains("Activity condition should match expected value for false condition path : PASSED ✅", output);
+        Assert.Contains("Workflow instance ID should exist for false condition path : got `null` : FAILED ❌", output);
         Assert.Contains("false condition path", output);
         
-        Console.WriteLine("Current assertion output:");
+        Console.WriteLine("Improved assertion output:");
         Console.WriteLine(output);
     }
 
@@ -196,7 +216,7 @@ public class TemplateDebugImprovementTests
         Console.WriteLine("=== END OUTPUT ===");
 
         // 1. Detailed saved variables (not just "{object with X properties}")
-        Assert.Contains("Variables Saved:", output);
+        Assert.Contains("Saved variables:", output);
         Assert.Contains("ifConditionResult", output);
         Assert.Contains("View ifConditionResult details", output);
         Assert.Contains("activityExecution", output);
@@ -204,8 +224,8 @@ public class TemplateDebugImprovementTests
         Assert.Contains("b961ee5b6f66b01c", output);
 
         // 2. Enhanced assertion reporting with test scenario context
-        Assert.Contains("**EQUALS** - PASSED ✅", output);
-        Assert.Contains("**EXISTS** - PASSED ✅", output);
+        Assert.Contains("Activity condition should match expected value for false condition path : PASSED ✅", output);
+        Assert.Contains("Workflow instance ID should exist for false condition path : PASSED ✅", output);
         Assert.Contains("false condition path", output);
         
         // 3. No JSONPath clutter

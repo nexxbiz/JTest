@@ -15,6 +15,21 @@ public class StepDebugInfo
     public string Description { get; set; } = string.Empty;
     
     /// <summary>
+    /// Test file name for header generation
+    /// </summary>
+    public string TestFileName { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// Test name for better identification
+    /// </summary>
+    public string TestName { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// Test description for context
+    /// </summary>
+    public string TestDescription { get; set; } = string.Empty;
+    
+    /// <summary>
     /// Template execution details (populated for UseStep)
     /// </summary>
     public TemplateExecutionInfo? TemplateExecution { get; set; }
