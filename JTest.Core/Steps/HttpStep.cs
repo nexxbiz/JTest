@@ -58,7 +58,7 @@ public class HttpStep : BaseStep
         return Configuration.TryGetProperty("method", out _) && 
                Configuration.TryGetProperty("url", out _);
     }
-
+    
     private async Task<object> PerformHttpRequest(IExecutionContext context, Stopwatch stopwatch)
     {
         var request = BuildHttpRequest(context);

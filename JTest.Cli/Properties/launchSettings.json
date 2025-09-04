@@ -12,6 +12,11 @@
       "commandName": "Project",
       "commandLineArgs": "debug if-else-testsv2.json",
       "workingDirectory": "C:\\Users\\FransvanEk\\OneDrive - nexxbiz accelerating value delivery\\Documenten\\Documents\\Designs\\Testing QA\\tests"
+    },
+    "set variable tests debug": {
+      "commandName": "Project",
+      "commandLineArgs": "debug set-variable-tests.json",
+      "workingDirectory": "C:\\Users\\FransvanEk\\OneDrive - nexxbiz accelerating value delivery\\Documenten\\Documents\\Designs\\Testing QA\\tests"
     }
   }
 }
