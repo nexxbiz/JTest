@@ -382,17 +382,7 @@ public class MarkdownDebugLogger : IDebugLogger
         _output.AppendLine();
         _output.AppendLine("**Added:**");
         foreach (var variable in added)
-        {
             _output.AppendLine($"- {variable}");
-            // Show detailed content in expandable section
-            _output.AppendLine($"  <details>");
-            _output.AppendLine($"  <summary>View {variable} details</summary>");
-            _output.AppendLine();
-            _output.AppendLine("  ```json");
-            _output.AppendLine("  // Full variable content would be displayed here");
-            _output.AppendLine("  ```");
-            _output.AppendLine("  </details>");
-        }
     }
 
     private void WriteModifiedVariables(List<string> modified)
@@ -401,17 +391,7 @@ public class MarkdownDebugLogger : IDebugLogger
         _output.AppendLine();
         _output.AppendLine("**Modified:**");
         foreach (var variable in modified)
-        {
             _output.AppendLine($"- {variable}");
-            // Show detailed content in expandable section
-            _output.AppendLine($"  <details>");
-            _output.AppendLine($"  <summary>View {variable} details</summary>");
-            _output.AppendLine();
-            _output.AppendLine("  ```json");
-            _output.AppendLine("  // Full variable content would be displayed here");
-            _output.AppendLine("  ```");
-            _output.AppendLine("  </details>");
-        }
     }
 
     private void WriteTemplateExecutionDetailsCollapsible(TemplateExecutionInfo templateInfo)
@@ -488,7 +468,7 @@ public class MarkdownDebugLogger : IDebugLogger
 
     private void WriteTemplateSavedVariables(Dictionary<string, object> savedVariables)
     {
-        _output.AppendLine("**Saved variables:**");
+        _output.AppendLine("**Variables Saved:**");
         foreach (var saved in savedVariables)
         {
             WriteSavedVariableWithDetails(saved.Key, saved.Value);
