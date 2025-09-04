@@ -76,7 +76,7 @@ public class TemplateDebugImprovementTests
         Assert.Contains("Authenticate and store credentials globally", output);
         Assert.Contains("**Step:** use execute-workflow-and-get-activity", output); // Fixed formatting
         Assert.Contains("**Input Parameters:**", output);
-        Assert.Contains("***masked***", output); // Security masking (password should be masked)
+        Assert.Contains("\"masked\"", output); // Security masking (password should be masked)
         Assert.Contains("Saved variables:", output); // Updated to lowercase
         Assert.Contains("ifConditionResult", output);
         

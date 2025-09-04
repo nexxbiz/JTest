@@ -29,14 +29,14 @@ public class SecurityMasker
             if (value is string str && !string.IsNullOrEmpty(str))
             {
                 // For strings, add both quoted and unquoted versions for masking
-                _maskingPairs.Add((str, "***masked***"));
-                _maskingPairs.Add(($"\"{str}\"", "\"***masked***\""));
-                return "\"***masked***\"";
+                _maskingPairs.Add((str, "masked"));
+                _maskingPairs.Add(($"\"{str}\"", "\"masked\""));
+                return "\"masked\"";
             }
             else
             {
-                _maskingPairs.Add((originalValue, "***masked***"));
-                return "***masked***";
+                _maskingPairs.Add((originalValue, "masked"));
+                return "masked";
             }
         }
         
