@@ -27,7 +27,7 @@ public class MarkdownDebugLogger : IDebugLogger
     public void LogContextChanges(ContextChanges changes)
     {
         WriteContextChanges(changes);
-        WriteAssertionGuidance(changes);
+        // Removed: WriteAssertionGuidance(changes); - removes clutter from output
     }
 
     public void LogRuntimeContext(Dictionary<string, object> context)
@@ -122,8 +122,9 @@ public class MarkdownDebugLogger : IDebugLogger
     private void WriteAssertionResult(AssertionResult result)
     {
         var status = result.Success ? "PASSED" : "FAILED";
+        var statusIcon = result.Success ? "✅" : "❌";
 
-        _output.AppendLine($"**{result.Operation.ToUpperInvariant()}** - {status}");
+        _output.AppendLine($"**{result.Operation.ToUpperInvariant()}** - {status} {statusIcon}");
 
         if (!string.IsNullOrEmpty(result.Description))
             _output.AppendLine($"  - Description: {result.Description}");
@@ -304,14 +305,13 @@ public class MarkdownDebugLogger : IDebugLogger
             _output.AppendLine();
         }
 
-        // Saved variables
+        // Saved variables with detailed content
         if (templateInfo.SavedVariables.Any())
         {
             _output.AppendLine("**Variables Saved:**");
             foreach (var saved in templateInfo.SavedVariables)
             {
-                var valueDesc = DescribeValue(saved.Value);
-                _output.AppendLine($"- `{saved.Key}`: {valueDesc}");
+                WriteSavedVariableWithDetails(saved.Key, saved.Value);
             }
             _output.AppendLine();
         }
@@ -344,5 +344,109 @@ public class MarkdownDebugLogger : IDebugLogger
             return $"{{object with {dict.Count} properties}}";
 
         return value.ToString() ?? "unknown";
+    }
+
+    /// <summary>
+    /// Writes a saved variable with detailed content in a collapsible section for complex objects
+    /// </summary>
+    private void WriteSavedVariableWithDetails(string key, object value)
+    {
+        if (value == null)
+        {
+            _output.AppendLine($"- `{key}`: null");
+            return;
+        }
+
+        // For simple values, show them inline
+        if (value is string str)
+        {
+            _output.AppendLine($"- `{key}`: \"{str}\"");
+            return;
+        }
+
+        if (value is int || value is double || value is float || value is decimal || value is long || value is bool)
+        {
+            _output.AppendLine($"- `{key}`: {value}");
+            return;
+        }
+
+        // For complex objects (dictionaries, arrays), show summary and detailed content
+        if (value is Dictionary<string, object> dict)
+        {
+            _output.AppendLine($"- `{key}`: {{object with {dict.Count} properties}}");
+            _output.AppendLine($"  <details>");
+            _output.AppendLine($"  <summary>View {key} details</summary>");
+            _output.AppendLine();
+            _output.AppendLine("  ```json");
+            _output.AppendLine($"  {FormatObjectAsJson(value)}");
+            _output.AppendLine("  ```");
+            _output.AppendLine("  </details>");
+            return;
+        }
+
+        if (value is Array array)
+        {
+            _output.AppendLine($"- `{key}`: [array with {array.Length} items]");
+            _output.AppendLine($"  <details>");
+            _output.AppendLine($"  <summary>View {key} details</summary>");
+            _output.AppendLine();
+            _output.AppendLine("  ```json");
+            _output.AppendLine($"  {FormatObjectAsJson(value)}");
+            _output.AppendLine("  ```");
+            _output.AppendLine("  </details>");
+            return;
+        }
+
+        if (value is System.Collections.IList list)
+        {
+            _output.AppendLine($"- `{key}`: [array with {list.Count} items]");
+            _output.AppendLine($"  <details>");
+            _output.AppendLine($"  <summary>View {key} details</summary>");
+            _output.AppendLine();
+            _output.AppendLine("  ```json");
+            _output.AppendLine($"  {FormatObjectAsJson(value)}");
+            _output.AppendLine("  ```");
+            _output.AppendLine("  </details>");
+            return;
+        }
+
+        // For other complex objects, try to serialize
+        try
+        {
+            var typeName = value.GetType().Name;
+            _output.AppendLine($"- `{key}`: {{object of type {typeName}}}");
+            _output.AppendLine($"  <details>");
+            _output.AppendLine($"  <summary>View {key} details</summary>");
+            _output.AppendLine();
+            _output.AppendLine("  ```json");
+            _output.AppendLine($"  {FormatObjectAsJson(value)}");
+            _output.AppendLine("  ```");
+            _output.AppendLine("  </details>");
+        }
+        catch
+        {
+            // Fallback to simple description if serialization fails
+            _output.AppendLine($"- `{key}`: {{object of type {value.GetType().Name}}}");
+        }
+    }
+
+    /// <summary>
+    /// Formats an object as JSON for detailed display
+    /// </summary>
+    private string FormatObjectAsJson(object value)
+    {
+        try
+        {
+            var options = new JsonSerializerOptions
+            {
+                WriteIndented = true,
+                Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+            };
+            return JsonSerializer.Serialize(value, options);
+        }
+        catch
+        {
+            return value.ToString() ?? "Unable to serialize";
+        }
     }
 }
