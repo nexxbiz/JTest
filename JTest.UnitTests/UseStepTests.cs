@@ -771,7 +771,7 @@ public class TemplateProviderTests
         
         // After the fix: nested templates should show outer template with inner step execution details
         var detailsCount = output.Split("<details>").Length - 1;
-        Assert.True(detailsCount >= 2, $"Expected at least 2 details sections but found {detailsCount}"); // Template details + Runtime context
+        Assert.True(detailsCount >= 1, $"Expected at least 1 details section but found {detailsCount}"); // Template details
         
         // Should contain only the outer template execution in the main template details section
         Assert.Contains("<summary>Template Execution Details (Click to expand)</summary>", output);

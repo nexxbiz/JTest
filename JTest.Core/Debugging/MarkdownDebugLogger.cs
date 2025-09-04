@@ -91,9 +91,82 @@ public class MarkdownDebugLogger : IDebugLogger
             }
         }
 
+        // Show detailed information for each test including all assertions
+        if (testResults.Any())
+        {
+            _output.AppendLine("## Test Details");
+            _output.AppendLine();
+            
+            foreach (var testResult in testResults)
+            {
+                var status = testResult.Success ? "✅ PASSED" : "❌ FAILED";
+                _output.AppendLine($"### {testResult.TestCaseName} - {status}");
+                _output.AppendLine();
+                
+                // Show all assertions for this test
+                var allTestAssertions = new List<AssertionResult>();
+                foreach (var stepResult in testResult.StepResults)
+                {
+                    if (stepResult.AssertionResults?.Any() == true)
+                    {
+                        allTestAssertions.AddRange(stepResult.AssertionResults);
+                    }
+                }
+                
+                if (allTestAssertions.Any())
+                {
+                    _output.AppendLine("**Assertions:**");
+                    foreach (var assertion in allTestAssertions)
+                    {
+                        var description = assertion.Description ?? $"{assertion.Operation} assertion";
+                        var actualDisplay = FormatAssertionValue(assertion.ActualValue ?? "null");
+                        var statusIcon = assertion.Success ? "✅" : "❌";
+                        var statusText = assertion.Success ? "PASSED" : "FAILED";
+                        
+                        if (assertion.Success)
+                        {
+                            _output.AppendLine($"- **{testResult.TestCaseName}** > {description} : {statusText} {statusIcon}");
+                        }
+                        else
+                        {
+                            if (assertion.ExpectedValue != null)
+                            {
+                                var expectedDisplay = FormatAssertionValue(assertion.ExpectedValue);
+                                _output.AppendLine($"- **{testResult.TestCaseName}** > {description} : got `{actualDisplay}` : expected `{expectedDisplay}` : {statusText} {statusIcon}");
+                            }
+                            else
+                            {
+                                _output.AppendLine($"- **{testResult.TestCaseName}** > {description} : got `{actualDisplay}` : {statusText} {statusIcon}");
+                            }
+                            
+                            if (!string.IsNullOrEmpty(assertion.ErrorMessage))
+                            {
+                                _output.AppendLine($"  - **Error:** {assertion.ErrorMessage}");
+                            }
+                        }
+                    }
+                    _output.AppendLine();
+                }
+                else if (!testResult.Success)
+                {
+                    _output.AppendLine("**Error Details:**");
+                    if (!string.IsNullOrEmpty(testResult.ErrorMessage))
+                    {
+                        _output.AppendLine($"- {testResult.ErrorMessage}");
+                    }
+                    else
+                    {
+                        _output.AppendLine($"- Test failed without specific assertion errors");
+                    }
+                    _output.AppendLine();
+                }
+            }
+        }
+        
+        // Show summary of failed assertions if any exist
         if (failedAssertions.Any())
         {
-            _output.AppendLine("## Failed Assertions");
+            _output.AppendLine("## Failed Assertions Summary");
             _output.AppendLine();
             
             foreach (var (testName, assertion) in failedAssertions)
@@ -103,6 +176,7 @@ public class MarkdownDebugLogger : IDebugLogger
                 var expectedDisplay = FormatAssertionValue(assertion.ExpectedValue ?? "null");
                 
                 _output.AppendLine($"**Test:** {testName}");
+                _output.AppendLine($"**TestCase:** {testName}");
                 
                 if (assertion.ExpectedValue != null)
                 {
@@ -116,22 +190,6 @@ public class MarkdownDebugLogger : IDebugLogger
                 if (!string.IsNullOrEmpty(assertion.ErrorMessage))
                 {
                     _output.AppendLine($"**Error:** {assertion.ErrorMessage}");
-                }
-                _output.AppendLine();
-            }
-        }
-        else if (failedTests > 0)
-        {
-            _output.AppendLine("## Failed Tests");
-            _output.AppendLine();
-            
-            var failedTestResults = testResults.Where(r => !r.Success);
-            foreach (var testResult in failedTestResults)
-            {
-                _output.AppendLine($"**Test:** {testResult.TestCaseName}");
-                if (!string.IsNullOrEmpty(testResult.ErrorMessage))
-                {
-                    _output.AppendLine($"**Error:** {testResult.ErrorMessage}");
                 }
                 _output.AppendLine();
             }
@@ -410,7 +468,7 @@ public class MarkdownDebugLogger : IDebugLogger
 
     private void WriteTemplateSavedVariables(Dictionary<string, object> savedVariables)
     {
-        _output.AppendLine("**Saved variables:**");
+        _output.AppendLine("**Variables Saved:**");
         foreach (var saved in savedVariables)
         {
             WriteSavedVariableWithDetails(saved.Key, saved.Value);

@@ -273,8 +273,9 @@ public class HttpStepTests
         Assert.Contains("**Context Changes:**", output);
         Assert.Contains("**Added:**", output);
         Assert.Contains("- `$.this` = {object of type", output);
-        Assert.Contains("<details>", output);
-        Assert.Contains("Runtime Context", output);
+        // Details sections are now only used for template executions, not regular steps
+        Assert.DoesNotContain("<details>", output);
+        Assert.DoesNotContain("Runtime Context", output);
     }
 
     [Fact]
