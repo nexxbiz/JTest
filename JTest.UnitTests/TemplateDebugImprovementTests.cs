@@ -92,12 +92,26 @@ public class TemplateDebugImprovementTests
         // Arrange
         var logger = new MarkdownDebugLogger();
         var context = new TestExecutionContext();
+        context.TestCaseName = "Execute workflow instance for if-else activity";
         context.SetCase(new Dictionary<string, object>
         {
             ["testScenario"] = "false condition path",
             ["expectedCondition"] = false,
             ["isTrue"] = false
         });
+
+        // Set up proper test context by logging a step execution first
+        var stepInfo = new StepDebugInfo
+        {
+            TestNumber = 1,
+            StepNumber = 1,
+            StepType = "AssertStep",
+            StepId = "test-assert",
+            Enabled = true,
+            Result = "Success",
+            Duration = TimeSpan.FromMilliseconds(100),
+            TestName = "Execute workflow instance for if-else activity"
+        };
 
         var assertionResults = new List<AssertionResult>
         {
@@ -117,14 +131,22 @@ public class TemplateDebugImprovementTests
             }
         };
 
-        // Act
+        // Act - Log step execution first to set context, then log assertions
+        logger.LogStepExecution(stepInfo);
         logger.LogAssertionResults(assertionResults);
         var output = logger.GetOutput();
 
-        // Assert - Should show improved assertion format
+        // Assert - Should show comprehensive assertion format with test context
         Assert.Contains("**Assertions:**", output);
-        Assert.Contains("Activity condition should match expected value for false condition path : PASSED ✅", output);
-        Assert.Contains("Workflow instance ID should exist for false condition path : got `null` : FAILED ❌", output);
+        Assert.Contains("**Test:** Execute workflow instance for if-else activity", output);
+        Assert.Contains("**Test Case:** Execute workflow instance for if-else activity", output);
+        Assert.Contains("**Assert Name:** equals", output);
+        Assert.Contains("**Description:** Activity condition should match expected value for false condition path", output);
+        Assert.Contains("**Status:** PASSED ✅", output);
+        Assert.Contains("**Assert Name:** exists", output);
+        Assert.Contains("**Description:** Workflow instance ID should exist for false condition path", output);
+        Assert.Contains("**Status:** FAILED ❌", output);
+        Assert.Contains("**Error:** Value is null", output);
         Assert.Contains("false condition path", output);
         
         Console.WriteLine("Improved assertion output:");

@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text.Json;
+using JTest.Core.Debugging;
 using JTest.Core.Execution;
 
 namespace JTest.Core.Steps;
@@ -9,6 +10,12 @@ namespace JTest.Core.Steps;
 /// </summary>
 public class AssertStep : BaseStep
 {
+    public AssertStep(IDebugLogger? debugLogger = null)
+    {
+        // Set debug logger using base class method
+        SetDebugLogger(debugLogger);
+    }
+
     public override string Type => "assert";
 
     public override bool ValidateConfiguration(JsonElement configuration)
