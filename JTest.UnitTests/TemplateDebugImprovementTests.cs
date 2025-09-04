@@ -77,7 +77,7 @@ public class TemplateDebugImprovementTests
         Assert.Contains("**Step:** use execute-workflow-and-get-activity", output); // Fixed formatting
         Assert.Contains("**Input Parameters:**", output);
         Assert.Contains("\"masked\"", output); // Security masking (password should be masked)
-        Assert.Contains("Saved variables:", output); // Updated to lowercase
+        Assert.Contains("**Variables Saved:**", output); // Updated to match actual output format
         Assert.Contains("ifConditionResult", output);
         
         // Current behavior shows truncated info - we want to change this
@@ -218,7 +218,7 @@ public class TemplateDebugImprovementTests
         Console.WriteLine("=== END OUTPUT ===");
 
         // 1. Detailed saved variables (not just "{object with X properties}")
-        Assert.Contains("Saved variables:", output);
+        Assert.Contains("**Variables Saved:**", output);
         Assert.Contains("ifConditionResult", output);
         Assert.Contains("View ifConditionResult details", output);
         Assert.Contains("activityExecution", output);

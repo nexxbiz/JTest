@@ -139,7 +139,7 @@ public class TemplateIntegrationTests
         Assert.Contains("Success", debugOutput);
         
         // Verify template outputs are properly logged in context
-        Assert.Contains("\"response\": \"Debug: hello world\"", debugOutput);
+        Assert.Contains("- `response`: \"Debug: hello world\"", debugOutput);
     }
 
     [Fact]
