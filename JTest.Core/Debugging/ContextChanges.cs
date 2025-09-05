@@ -8,15 +8,15 @@ public class ContextChanges
     /// <summary>
     /// Variable paths that were added
     /// </summary>
-    public List<string> Added { get; set; } = new();
-    
+    public Dictionary<string, object> Added { get; set; } = new();
+
     /// <summary>
     /// Variable paths that were modified
     /// </summary>
-    public List<string> Modified { get; set; } = new();
-    
+    public Dictionary<string, object> Modified { get; set; } = new();
+
     /// <summary>
     /// JSONPath expressions available for assertions
     /// </summary>
-    public List<string> Available { get; set; } = new();
+    public Dictionary<string, object> Available { get; set; } = new();
 }

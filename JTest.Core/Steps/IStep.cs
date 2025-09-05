@@ -1,6 +1,5 @@
-using System.Text.Json;
-using JTest.Core.Debugging;
 using JTest.Core.Execution;
+using System.Text.Json;
 
 namespace JTest.Core.Steps;
 
@@ -13,24 +12,26 @@ public interface IStep
     /// Gets the step type identifier
     /// </summary>
     string Type { get; }
-    
+
     /// <summary>
     /// Gets or sets the step ID for context storage
     /// </summary>
     string? Id { get; set; }
-    
+
     /// <summary>
     /// Executes the step with the provided context
     /// </summary>
     Task<StepResult> ExecuteAsync(IExecutionContext context);
-    
+
     /// <summary>
     /// Validates the step configuration from JSON
     /// </summary>
     bool ValidateConfiguration(JsonElement configuration);
-    
+
     /// <summary>
-    /// Sets the debug logger for this step
+    /// returns a string description for logging purposes
     /// </summary>
-    void SetDebugLogger(IDebugLogger? debugLogger);
+    /// <returns></returns>
+    string GetStepDescription();
+
 }

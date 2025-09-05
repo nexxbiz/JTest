@@ -1,9 +1,8 @@
-using System.Text.Json;
-using JTest.Core.Debugging;
 using JTest.Core.Execution;
 using JTest.Core.Models;
 using JTest.Core.Steps;
 using JTest.Core.Utilities;
+using System.Text.Json;
 
 namespace JTest.UnitTests;
 
@@ -17,7 +16,7 @@ public class ExampleUsageTests
     public async Task CompleteExample_OrderProcessingWithDatasets()
     {
         // This example demonstrates the exact JSON structure from the problem statement
-        
+
         // 1. Define the test case with datasets (as it would come from JSON)
         var testCaseJson = """
         {
@@ -113,13 +112,13 @@ public class ExampleUsageTests
         // Simulate variable resolution as would happen in HTTP steps
         var createOrderUrl = VariableInterpolator.ResolveVariableTokens(
             "{{$.env.baseUrl}}/orders", context);
-        
+
         var orderPayload = VariableInterpolator.ResolveVariableTokens(
             "{{$.case.orderPayload}}", context);
-        
+
         var getOrderUrl = VariableInterpolator.ResolveVariableTokens(
             "{{$.env.baseUrl}}/accounts/{{$.case.accountId}}/orders/ORDER123", context);
-        
+
         var expectedTotal = VariableInterpolator.ResolveVariableTokens(
             "{{$.case.expectedTotal}}", context);
 
@@ -127,7 +126,7 @@ public class ExampleUsageTests
         Assert.Equal("https://api.example.com/orders", createOrderUrl);
         Assert.NotNull(orderPayload);
         Assert.Contains(dataset.Case["accountId"].ToString()!, getOrderUrl.ToString());
-        
+
         // Compare the actual values, not the types
         var expectedTotalValue = dataset.Case["expectedTotal"];
         var resolvedTotalValue = expectedTotal;
@@ -148,15 +147,15 @@ public class ExampleUsageTests
         var context = new TestExecutionContext();
 
         // Environment variables (read-only configuration)
-        context.Variables["env"] = new 
-        { 
+        context.Variables["env"] = new
+        {
             baseUrl = "https://api.example.com",
             apiKey = "secret123"
         };
 
         // Global variables (shared across all tests)
-        context.Variables["globals"] = new 
-        { 
+        context.Variables["globals"] = new
+        {
             authToken = "bearer-token-xyz",
             sessionId = "session-abc"
         };
@@ -203,27 +202,27 @@ public class MockStepFactory : StepFactory
     {
         var json = JsonSerializer.Serialize(stepConfig);
         var jsonElement = JsonSerializer.Deserialize<JsonElement>(json);
-        
+
         if (!jsonElement.TryGetProperty("type", out var typeElement))
         {
             throw new ArgumentException("Step configuration must have a 'type' property");
         }
-        
+
         var stepType = typeElement.GetString();
-        
+
         IStep step = stepType?.ToLowerInvariant() switch
         {
             "http" => new MockHttpStep(),
             "wait" => new MockWaitStep(),
             _ => throw new ArgumentException($"Unknown step type: {stepType}")
         };
-        
+
         // Set step ID if provided
         if (jsonElement.TryGetProperty("id", out var idElement))
         {
             step.Id = idElement.GetString();
         }
-        
+
         return step;
     }
 }
@@ -235,11 +234,9 @@ public class MockHttpStep : IStep
 {
     public string Type => "http";
     public string? Id { get; set; }
-    
+
     public bool ValidateConfiguration(JsonElement configuration) => true;
-    
-    public void SetDebugLogger(IDebugLogger? debugLogger) { }
-    
+
     public Task<StepResult> ExecuteAsync(IExecutionContext context)
     {
         // Simulate successful HTTP response
@@ -250,23 +247,28 @@ public class MockHttpStep : IStep
             headers = new Dictionary<string, string>(),
             duration = 100
         };
-        
+
         // Store result in context if ID is set
         if (!string.IsNullOrEmpty(Id))
         {
             context.Variables[Id] = responseData;
         }
-        
+
         // Always store in 'this' context
         context.Variables["this"] = responseData;
-        
+
         // Save orderId for subsequent steps
         if (Id == "createOrder")
         {
             context.Variables["orderId"] = "ORDER123";
         }
-        
-        return Task.FromResult(StepResult.CreateSuccess(responseData, 100));
+
+        return Task.FromResult(StepResult.CreateSuccess(this,responseData, 100));
+    }
+
+    public string GetStepDescription()
+    {
+        return "Mock";
     }
 }
 
@@ -277,14 +279,17 @@ public class MockWaitStep : IStep
 {
     public string Type => "wait";
     public string? Id { get; set; }
-    
+
     public bool ValidateConfiguration(JsonElement configuration) => true;
-    
-    public void SetDebugLogger(IDebugLogger? debugLogger) { }
-    
+
     public Task<StepResult> ExecuteAsync(IExecutionContext context)
     {
         var resultData = new { delayMs = 1, executedAt = DateTime.UtcNow };
-        return Task.FromResult(StepResult.CreateSuccess(resultData, 1));
+        return Task.FromResult(StepResult.CreateSuccess(this, resultData, 1));
+    }
+
+    public string GetStepDescription()
+    {
+        return "Mock wait";
     }
 }

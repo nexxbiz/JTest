@@ -1,7 +1,7 @@
-using System.Globalization;
-using System.Text.Json;
 using JTest.Core.Assertions;
 using JTest.Core.Execution;
+using System.Globalization;
+using System.Text.Json;
 
 namespace JTest.UnitTests;
 
@@ -40,18 +40,18 @@ public class AssertionTests
     {
         // Save current culture
         var originalCulture = CultureInfo.CurrentCulture;
-        
+
         try
         {
             // Test with English culture (uses dot)
             CultureInfo.CurrentCulture = new CultureInfo("en-US");
             var assertion = new EqualsAssertion();
             var result1 = assertion.Execute(30.5, 30.5);
-            
+
             // Test with German culture (uses comma)
             CultureInfo.CurrentCulture = new CultureInfo("de-DE");
             var result2 = assertion.Execute(30.5, 30.5);
-            
+
             // Both should succeed regardless of culture
             Assert.True(result1.Success);
             Assert.True(result2.Success);
@@ -67,15 +67,15 @@ public class AssertionTests
     {
         // Save current culture
         var originalCulture = CultureInfo.CurrentCulture;
-        
+
         try
         {
             CultureInfo.CurrentCulture = new CultureInfo("de-DE");
             var assertion = new EqualsAssertion();
-            
+
             // Both values should be compared using invariant culture formatting
             var result = assertion.Execute(30.5, "30.5");
-            
+
             Assert.True(result.Success);
         }
         finally
@@ -89,15 +89,15 @@ public class AssertionTests
     {
         // Save current culture
         var originalCulture = CultureInfo.CurrentCulture;
-        
+
         try
         {
             CultureInfo.CurrentCulture = new CultureInfo("de-DE");
             var assertion = new GreaterThanAssertion();
-            
+
             // Act
             var result = assertion.Execute(30.5, 20.3);
-            
+
             // Assert
             Assert.True(result.Success);
         }
@@ -112,15 +112,15 @@ public class AssertionTests
     {
         // Save current culture
         var originalCulture = CultureInfo.CurrentCulture;
-        
+
         try
         {
             CultureInfo.CurrentCulture = new CultureInfo("de-DE");
             var assertion = new LessThanAssertion();
-            
+
             // Act
             var result = assertion.Execute(20.3, 30.5);
-            
+
             // Assert
             Assert.True(result.Success);
         }
@@ -163,7 +163,7 @@ public class AssertionTests
         // Arrange
         var context = new TestExecutionContext();
         context.Variables["response"] = new { status = 200 };
-        
+
         var assertionJson = """
         [
             {
@@ -173,7 +173,7 @@ public class AssertionTests
             }
         ]
         """;
-        
+
         var assertionsElement = JsonSerializer.Deserialize<JsonElement>(assertionJson);
 
         // Act
@@ -189,15 +189,15 @@ public class AssertionTests
     {
         // Save current culture
         var originalCulture = CultureInfo.CurrentCulture;
-        
+
         try
         {
             CultureInfo.CurrentCulture = new CultureInfo("de-DE");
-            
+
             // Arrange
             var context = new TestExecutionContext();
             context.Variables["response"] = new { duration = 30.5 };
-            
+
             var assertionJson = """
             [
                 {
@@ -207,7 +207,7 @@ public class AssertionTests
                 }
             ]
             """;
-            
+
             var assertionsElement = JsonSerializer.Deserialize<JsonElement>(assertionJson);
 
             // Act
@@ -228,7 +228,7 @@ public class AssertionTests
     {
         // Arrange
         var context = new TestExecutionContext();
-        
+
         var assertionJson = """
         [
             {
@@ -237,7 +237,7 @@ public class AssertionTests
             }
         ]
         """;
-        
+
         var assertionsElement = JsonSerializer.Deserialize<JsonElement>(assertionJson);
 
         // Act
@@ -276,7 +276,7 @@ public class AssertionTests
     }
 
     // New tests for all assertion operations
-    
+
     [Fact]
     public void NotEqualsAssertion_WithDifferentValues_ReturnsTrue()
     {
@@ -787,7 +787,7 @@ public class AssertionTests
     {
         // Arrange
         var context = new TestExecutionContext();
-        
+
         var assertionJson = """
         [
             {
@@ -797,7 +797,7 @@ public class AssertionTests
             }
         ]
         """;
-        
+
         var assertionsElement = JsonSerializer.Deserialize<JsonElement>(assertionJson);
 
         // Act

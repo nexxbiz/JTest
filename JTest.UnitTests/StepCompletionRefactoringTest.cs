@@ -1,7 +1,6 @@
-using System.Text.Json;
 using JTest.Core.Execution;
 using JTest.Core.Steps;
-using Xunit;
+using System.Text.Json;
 
 namespace JTest.UnitTests;
 
@@ -19,7 +18,7 @@ public class StepCompletionRefactoringTest
         var context = new TestExecutionContext();
         context.Variables["expectedValue"] = "success";
         context.Variables["actualValue"] = "failure"; // This will cause assertion to fail
-        
+
         // Create assertion configuration that should fail
         var assertionConfig = JsonDocument.Parse("""
         [
@@ -35,14 +34,14 @@ public class StepCompletionRefactoringTest
         await TestStepWithFailingAssertions_WaitStep(context, assertionConfig);
     }
 
-    [Fact] 
+    [Fact]
     public async Task StepTypes_UseCommonCompletionPattern_ConsistentBehavior()
     {
         // This test verifies that the refactored ProcessStepCompletionAsync method produces
         // consistent behavior across different step types by testing the basic execution flow.
-        
+
         var context = new TestExecutionContext();
-        
+
         // Test HttpStep basic execution (no assertions)
         var httpClient = new HttpClient(new TestHttpMessageHandler());
         var httpStep = new HttpStep(httpClient);
@@ -54,13 +53,13 @@ public class StepCompletionRefactoringTest
         """).RootElement;
         httpStep.ValidateConfiguration(httpConfig);
         var httpResult = await httpStep.ExecuteAsync(context);
-        
+
         // Verify consistent step result structure
         Assert.True(httpResult.Success);
         Assert.NotNull(httpResult.Data);
         Assert.NotNull(httpResult.AssertionResults);
         Assert.Empty(httpResult.AssertionResults); // No assertions configured
-        
+
         // Test WaitStep basic execution (no assertions) 
         var waitStep = new WaitStep();
         var waitConfig = JsonDocument.Parse("""
@@ -70,7 +69,7 @@ public class StepCompletionRefactoringTest
         """).RootElement;
         waitStep.ValidateConfiguration(waitConfig);
         var waitResult = await waitStep.ExecuteAsync(context);
-        
+
         // Verify consistent step result structure
         Assert.True(waitResult.Success);
         Assert.NotNull(waitResult.Data);
@@ -82,7 +81,7 @@ public class StepCompletionRefactoringTest
     {
         var httpClient = new HttpClient(new TestHttpMessageHandler());
         var httpStep = new HttpStep(httpClient);
-        
+
         var config = JsonDocument.Parse($$"""
         {
             "method": "GET",
@@ -90,11 +89,11 @@ public class StepCompletionRefactoringTest
             "assert": {{assertionConfig.GetRawText()}}
         }
         """).RootElement;
-        
+
         httpStep.ValidateConfiguration(config);
-        
+
         var result = await httpStep.ExecuteAsync(context);
-        
+
         // Verify common step completion behavior for failed assertions
         Assert.False(result.Success); // Step should fail due to assertion failure
         Assert.Equal("One or more assertions failed", result.ErrorMessage);
@@ -107,18 +106,18 @@ public class StepCompletionRefactoringTest
     private async Task TestStepWithFailingAssertions_WaitStep(TestExecutionContext context, JsonElement assertionConfig)
     {
         var waitStep = new WaitStep();
-        
+
         var config = JsonDocument.Parse($$"""
         {
             "ms": 1,
             "assert": {{assertionConfig.GetRawText()}}
         }
         """).RootElement;
-        
+
         waitStep.ValidateConfiguration(config);
-        
+
         var result = await waitStep.ExecuteAsync(context);
-        
+
         // Verify common step completion behavior for failed assertions
         Assert.False(result.Success); // Step should fail due to assertion failure
         Assert.Equal("One or more assertions failed", result.ErrorMessage);

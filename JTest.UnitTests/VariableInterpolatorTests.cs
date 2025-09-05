@@ -1,7 +1,7 @@
-using System.Globalization;
-using System.Text.Json.Nodes;
 using JTest.Core.Execution;
 using JTest.Core.Utilities;
+using System.Globalization;
+using System.Text.Json.Nodes;
 
 namespace JTest.UnitTests;
 
@@ -66,7 +66,7 @@ public class VariableInterpolatorTests
         Assert.NotNull(result);
         // The result should be a Dictionary when complex objects are returned (converted for token resolution)
         Assert.True(result is Dictionary<string, object> || result is JsonObject || result.GetType().Name.Contains("Json"));
-        
+
         // Verify the content is accessible
         if (result is Dictionary<string, object> dict)
         {
@@ -162,10 +162,12 @@ public class VariableInterpolatorTests
     {
         // Arrange
         var context = new TestExecutionContext();
-        context.Variables["response"] = new 
-        { 
-            body = new { 
-                data = new { 
+        context.Variables["response"] = new
+        {
+            body = new
+            {
+                data = new
+                {
                     id = 123,
                     attributes = new { name = "Test Item" }
                 }
@@ -215,12 +217,12 @@ public class VariableInterpolatorTests
     {
         // Save current culture
         var originalCulture = CultureInfo.CurrentCulture;
-        
+
         try
         {
             // Set to a culture that uses comma as decimal separator
             CultureInfo.CurrentCulture = new CultureInfo("de-DE"); // German culture uses comma
-            
+
             // Arrange
             var context = new TestExecutionContext();
             context.Variables["config"] = new { port = 8080, timeout = 30.5 };
@@ -238,7 +240,7 @@ public class VariableInterpolatorTests
             CultureInfo.CurrentCulture = originalCulture;
         }
     }
-    
+
     [Fact]
     public void ResolveVariableTokens_WithCaseData_ShouldReplaceAllTokens()
     {
@@ -251,18 +253,18 @@ public class VariableInterpolatorTests
             ["testScenario"] = "false condition path"
         };
         context.SetCase(caseData);
-        
+
         // This is the problematic input from the problem statement
         var input = "{{$.case.isTrue}}";
-        
+
         // Act
         var result = VariableInterpolator.ResolveVariableTokens(input, context);
-        
+
         // Assert - should resolve to the actual value, not remain as token
         Assert.Equal(false, result);
         Assert.NotEqual("{{$.case.isTrue}}", result);
     }
-    
+
     [Fact]
     public void ResolveVariableTokens_InComplexObject_ShouldReplaceAllTokens()
     {
@@ -275,18 +277,18 @@ public class VariableInterpolatorTests
             ["testScenario"] = "false condition path"
         };
         context.SetCase(caseData);
-        
+
         // Test a template string that might appear in JSON output
         var input = "Request: { \"isTrue\": \"{{$.case.isTrue}}\" }";
-        
+
         // Act
         var result = VariableInterpolator.ResolveVariableTokens(input, context);
-        
+
         // Assert
         Assert.Equal("Request: { \"isTrue\": \"False\" }", result);
         Assert.DoesNotContain("{{$.case.isTrue}}", result.ToString());
     }
-    
+
     [Fact]
     public void ResolveVariableTokens_WithNestedComplexPaths_ShouldReplaceCorrectly()
     {
@@ -304,18 +306,18 @@ public class VariableInterpolatorTests
             ["isTrue"] = false
         };
         context.SetCase(caseData);
-        
+
         // This simulates a complex nested scenario like in the problem statement
         var input = "{{$.workflowResponse.request.isTrue}}";
-        
+
         // Act
         var result = VariableInterpolator.ResolveVariableTokens(input, context);
-        
+
         // Assert - should resolve completely, not remain as nested token
         Assert.Equal(false, result); // With the fix, this should resolve to the actual value
         Assert.NotEqual("{{$.case.isTrue}}", result); // Should not be the intermediate unresolved token
     }
-    
+
     [Fact]
     public void ResolveVariableTokens_WithDoubleNesting_ShouldResolveCompletely()
     {
@@ -326,25 +328,25 @@ public class VariableInterpolatorTests
             ["isTrue"] = false
         };
         context.SetCase(caseData);
-        
+
         // Simulate the exact scenario - where a token contains another token that needs resolution
         // This is the bug: when a resolved value contains another token, it should be resolved further
         context.Variables["nested"] = new Dictionary<string, object>
         {
             ["template"] = "{{$.case.isTrue}}"
         };
-        
+
         var complexInput = "{{$.nested.template}}";
-        
+
         // Act
         var result = VariableInterpolator.ResolveVariableTokens(complexInput, context);
-        
+
         // Assert
         // This should resolve completely to "False", not remain as "{{$.case.isTrue}}"
         Assert.Equal(false, result); // This test should fail with current implementation
         Assert.NotEqual("{{$.case.isTrue}}", result); // This is the bug - it currently returns this
     }
-    
+
     [Fact]
     public void ResolveVariableTokens_WithCircularReference_ShouldPreventInfiniteLoop()
     {
@@ -352,22 +354,22 @@ public class VariableInterpolatorTests
         var context = new TestExecutionContext();
         context.Variables["a"] = "{{$.b}}";
         context.Variables["b"] = "{{$.a}}";
-        
+
         // Act
         var result = VariableInterpolator.ResolveVariableTokens("{{$.a}}", context);
-        
+
         // Assert - should not crash and should log warning
         Assert.NotNull(result);
         Assert.True(context.Log.Any(log => log.Contains("Maximum token resolution depth")));
     }
-    
+
     [Fact]
     public void SetCase_WithTokensInCaseData_ShouldResolveTokensAutomatically()
     {
         // Arrange - This test demonstrates the issue FransVanEk pointed out
         var context = new TestExecutionContext();
         context.Variables["env"] = new { baseUrl = "https://api.test.com" };
-        
+
         // Case data contains tokens that reference other variables
         var caseData = new Dictionary<string, object>
         {
@@ -378,23 +380,23 @@ public class VariableInterpolatorTests
                 ["apiUrl"] = "{{$.env.baseUrl}}/api"
             }
         };
-        
+
         // Act - Currently this just sets the case data without resolving tokens
         context.SetCase(caseData);
-        
+
         // Try to access the endpoint
         var resolvedEndpoint = VariableInterpolator.ResolveVariableTokens("{{$.case.endpoint}}", context);
         var resolvedNestedUrl = VariableInterpolator.ResolveVariableTokens("{{$.case.nested.apiUrl}}", context);
-        
+
         // Assert - This currently fails because tokens in case data are not resolved
         // The resolved endpoint should be the fully resolved URL, not the token
         Assert.Equal("https://api.test.com/users", resolvedEndpoint);
         Assert.Equal("https://api.test.com/api", resolvedNestedUrl);
-        
+
         // Verify the case data itself was modified to contain resolved values
         var caseContext = context.Variables["case"] as Dictionary<string, object>;
         Assert.Equal("https://api.test.com/users", caseContext!["endpoint"]);
-        
+
         var nestedContext = caseContext["nested"] as Dictionary<string, object>;
         Assert.Equal("https://api.test.com/api", nestedContext!["apiUrl"]);
     }
@@ -404,30 +406,30 @@ public class VariableInterpolatorTests
     {
         // Arrange - This test validates the exact issue reported in the problem statement
         var context = new TestExecutionContext();
-        
+
         // Set up case data
         var caseData = new Dictionary<string, object>
         {
             ["isTrue"] = false
         };
         context.SetCase(caseData);
-        
+
         // Set up workflowbody that contains tokens (this is the issue scenario)
         context.Variables["workflowbody"] = new Dictionary<string, object>
         {
             ["isTrue"] = "{{$.case.isTrue}}"
         };
-        
+
         // Act - Resolve the workflowbody token
         var result = VariableInterpolator.ResolveVariableTokens("{{$.workflowbody}}", context);
-        
+
         // Assert - The returned object should have tokens resolved
         Assert.NotNull(result);
         Assert.True(result is Dictionary<string, object>);
-        
+
         var resultDict = result as Dictionary<string, object>;
         Assert.Equal(false, resultDict!["isTrue"]); // Should be resolved to false, not "{{$.case.isTrue}}"
-        
+
         // Verify that the JSON representation doesn't contain unresolved tokens
         var resultJson = System.Text.Json.JsonSerializer.Serialize(result);
         Assert.DoesNotContain("{{$.case.isTrue}}", resultJson);

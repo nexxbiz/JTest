@@ -1,9 +1,9 @@
+using JTest.Core.Execution;
+using JTest.Core.Utilities;
 using System.Collections;
 using System.Globalization;
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using JTest.Core.Execution;
-using JTest.Core.Utilities;
 
 namespace JTest.Core.Assertions;
 
@@ -88,7 +88,7 @@ public class EqualsAssertion : IAssertionOperation
         // Convert both values to strings using culture-independent formatting
         var actualStr = ConvertToInvariantString(actual);
         var expectedStr = ConvertToInvariantString(expected);
-        
+
         return string.Equals(actualStr, expectedStr, StringComparison.Ordinal);
     }
 
@@ -132,7 +132,7 @@ public class ExistsAssertion : IAssertionOperation
 
     public AssertionResult Execute(object? actualValue, object? expectedValue)
     {
-        var exists = actualValue != null && 
+        var exists = actualValue != null &&
                     !string.IsNullOrEmpty(actualValue.ToString());
         var errorMessage = exists ? "" : "Value does not exist or is null/empty";
         return new AssertionResult(exists, errorMessage)
@@ -439,7 +439,7 @@ public class BetweenAssertion : IAssertionOperation
         try
         {
             var actual = Convert.ToDouble(actualValue, CultureInfo.InvariantCulture);
-            
+
             // Expected value should be an array with min and max values
             if (expectedValue is JsonElement jsonElement && jsonElement.ValueKind == JsonValueKind.Array)
             {
@@ -478,7 +478,7 @@ public class LengthAssertion : IAssertionOperation
         {
             var expectedLength = Convert.ToInt32(expectedValue, CultureInfo.InvariantCulture);
             var actualLength = GetLength(actualValue);
-            
+
             if (actualLength == -1)
             {
                 return new AssertionResult(false, "Cannot determine length of the provided value");
@@ -519,7 +519,7 @@ public class EmptyAssertion : IAssertionOperation
     public AssertionResult Execute(object? actualValue, object? expectedValue)
     {
         var length = GetLength(actualValue);
-        
+
         if (length == -1)
         {
             return new AssertionResult(false, "Cannot determine if the provided value is empty");
@@ -555,7 +555,7 @@ public class NotEmptyAssertion : IAssertionOperation
     public AssertionResult Execute(object? actualValue, object? expectedValue)
     {
         var length = GetLength(actualValue);
-        
+
         if (length == -1)
         {
             return new AssertionResult(false, "Cannot determine if the provided value is empty");
@@ -602,7 +602,7 @@ public class InAssertion : IAssertionOperation
         }
 
         var actualStr = actualValue?.ToString() ?? "";
-        var result = collection.Any(item => 
+        var result = collection.Any(item =>
         {
             var itemStr = item?.ToString() ?? "";
             return string.Equals(actualStr, itemStr, StringComparison.OrdinalIgnoreCase);
@@ -619,7 +619,7 @@ public class InAssertion : IAssertionOperation
         {
             IEnumerable<object> enumerable => enumerable,
             IEnumerable enumerable => enumerable.Cast<object>(),
-            JsonElement { ValueKind: JsonValueKind.Array } jsonArray => 
+            JsonElement { ValueKind: JsonValueKind.Array } jsonArray =>
                 jsonArray.EnumerateArray().Select(GetJsonElementValue),
             _ => null
         };
@@ -655,7 +655,7 @@ public class TypeAssertion : IAssertionOperation
 
         var expectedType = expectedValue.ToString()?.ToLowerInvariant() ?? "";
         var actualType = GetValueType(actualValue);
-        
+
         var result = string.Equals(actualType, expectedType, StringComparison.OrdinalIgnoreCase);
         var message = result ? "" : $"Expected type '{expectedType}' but got '{actualType}'";
         return new AssertionResult(result, message);
@@ -710,27 +710,27 @@ public class AssertionRegistry
         Register(new NotEqualsAssertion());
         Register(new ExistsAssertion());
         Register(new NotExistsAssertion());
-        
+
         // String operations
         Register(new ContainsAssertion());
         Register(new NotContainsAssertion());
         Register(new StartsWithAssertion());
         Register(new EndsWithAssertion());
         Register(new MatchesAssertion());
-        
+
         // Numeric operations
         Register(new GreaterThanAssertion());
         Register(new GreaterOrEqualAssertion());
         Register(new LessThanAssertion());
         Register(new LessOrEqualAssertion());
         Register(new BetweenAssertion());
-        
+
         // Collection operations
         Register(new LengthAssertion());
         Register(new EmptyAssertion());
         Register(new NotEmptyAssertion());
         Register(new InAssertion());
-        
+
         // Type checking
         Register(new TypeAssertion());
     }
@@ -838,9 +838,9 @@ public static class AssertionProcessor
         {
             var availableOps = Registry.GetAvailableOperations().ToList();
             var suggestions = Registry.GetSimilarOperations(operationType).ToList();
-            
+
             var errorMessage = $"Unknown assertion operation: '{operationType}'";
-            
+
             if (suggestions.Any())
             {
                 errorMessage += $". Did you mean: {string.Join(", ", suggestions.Select(s => $"'{s}'"))}?";
@@ -849,12 +849,22 @@ public static class AssertionProcessor
             {
                 errorMessage += $". Available operations: {string.Join(", ", availableOps.Select(s => $"'{s}'"))}";
             }
-            
+
             return new AssertionResult(false, errorMessage);
         }
 
         var actualValue = GetAssertionValue(assertionElement, "actualValue", context);
         var expectedValue = GetAssertionValue(assertionElement, "expectedValue", context);
+
+        // Extract description if provided
+        var description = "";
+        if (assertionElement.TryGetProperty("description", out var descElement))
+        {
+            description = descElement.GetString() ?? "";
+            // Resolve any variable tokens in the description
+            var resolvedDescription = VariableInterpolator.ResolveVariableTokens(description, context);
+            description = resolvedDescription?.ToString() ?? description;
+        }
 
         // Enhanced validation for cardinality mismatches
         var cardinalityError = ValidateCardinality(operationType, actualValue, expectedValue);
@@ -863,7 +873,12 @@ public static class AssertionProcessor
             return new AssertionResult(false, cardinalityError);
         }
 
-        return operation.Execute(actualValue, expectedValue);
+        var result = operation.Execute(actualValue, expectedValue);
+
+        // Set the description on the result
+        result.Description = description;
+
+        return result;
     }
 
     private static object? GetAssertionValue(JsonElement assertionElement, string propertyName, IExecutionContext context)
@@ -876,7 +891,7 @@ public static class AssertionProcessor
         if (valueElement.ValueKind == JsonValueKind.String)
         {
             var stringValue = valueElement.GetString() ?? "";
-            
+
             // Enhanced validation for JSONPath expressions
             if (stringValue.StartsWith("{{") && stringValue.EndsWith("}}"))
             {
@@ -886,7 +901,7 @@ public static class AssertionProcessor
                     context.Log.Add($"JSONPath validation warning: {pathError}");
                 }
             }
-            
+
             return VariableInterpolator.ResolveVariableTokens(stringValue, context);
         }
 
@@ -899,8 +914,8 @@ public static class AssertionProcessor
     private static string ValidateCardinality(string operationType, object? actualValue, object? expectedValue)
     {
         var collectionOperators = new[] { "length", "empty", "notempty", "in" };
-        var scalarOperators = new[] { "equals", "notequals", "contains", "notcontains", 
-                                     "startswith", "endswith", "matches", "greaterthan", 
+        var scalarOperators = new[] { "equals", "notequals", "contains", "notcontains",
+                                     "startswith", "endswith", "matches", "greaterthan",
                                      "greaterorequal", "lessthan", "lessorequal", "between" };
 
         if (collectionOperators.Contains(operationType))
@@ -929,16 +944,16 @@ public static class AssertionProcessor
     private static string ValidateJsonPath(string pathExpression, IExecutionContext context)
     {
         var path = pathExpression.Trim('{', '}').Trim();
-        
+
         // Check for reserved keys that shouldn't be modified
         var reservedKeys = new[] { "this", "env", "now", "random" };
         var pathParts = path.Split('.');
-        
+
         if (pathParts.Length > 1)
         {
             var rootKey = pathParts[1]; // Skip the '$' part
 
-            
+
             // Check for potential step references
             if (pathParts.Length > 2 && !context.Variables.ContainsKey(rootKey))
             {

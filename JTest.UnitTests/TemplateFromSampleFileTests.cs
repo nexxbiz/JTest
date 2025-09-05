@@ -1,5 +1,4 @@
 using JTest.Core;
-using Xunit;
 
 namespace JTest.UnitTests;
 
@@ -10,7 +9,7 @@ public class TemplateFromSampleFileTests
     {
         // Arrange
         var testRunner = new TestRunner();
-        
+
         // Load a template that mimics the structure of the sample file but without HTTP steps
         var templateJson = """
         {
@@ -47,9 +46,9 @@ public class TemplateFromSampleFileTests
             }
         }
         """;
-        
+
         testRunner.LoadTemplates(templateJson);
-        
+
         // Create a test that uses the authenticate template from the sample
         var testJson = """
         {
@@ -76,7 +75,7 @@ public class TemplateFromSampleFileTests
         var result = results[0];
         Assert.True(result.Success);
         Assert.Single(result.StepResults);
-        
+
         var stepResult = result.StepResults[0];
         Assert.True(stepResult.Success);
     }

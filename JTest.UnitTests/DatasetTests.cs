@@ -1,5 +1,5 @@
-using System.Text.Json;
 using JTest.Core.Models;
+using System.Text.Json;
 
 namespace JTest.UnitTests;
 

@@ -1,5 +1,4 @@
 using JTest.Core.Execution;
-using JTest.Core.Models;
 using JTest.Core.Utilities;
 
 namespace JTest.UnitTests;

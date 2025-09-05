@@ -1,6 +1,3 @@
-using JTest.Core;
-using Xunit;
-
 namespace JTest.UnitTests;
 
 public class WildcardSupportTests
@@ -12,7 +9,7 @@ public class WildcardSupportTests
         // Since the method is private, we test through the CLI behavior
         var pattern = "test.json";
         var expected = new List<string> { "test.json" };
-        
+
         // For a non-wildcard pattern, it should return the pattern as-is
         Assert.True(!pattern.Contains('*') && !pattern.Contains('?'));
     }
@@ -21,7 +18,7 @@ public class WildcardSupportTests
     public void ExpandWildcardPattern_WithWildcard_IdentifiesWildcardPattern()
     {
         var pattern = "*.json";
-        
+
         // Pattern should be identified as wildcard
         Assert.True(pattern.Contains('*') || pattern.Contains('?'));
     }
@@ -30,7 +27,7 @@ public class WildcardSupportTests
     public void WildcardPattern_WithQuestionMark_IdentifiesWildcardPattern()
     {
         var pattern = "test?.json";
-        
+
         // Pattern should be identified as wildcard
         Assert.True(pattern.Contains('*') || pattern.Contains('?'));
     }
@@ -39,7 +36,7 @@ public class WildcardSupportTests
     public void NonWildcardPattern_WithoutSpecialChars_NotIdentifiedAsWildcard()
     {
         var pattern = "simple-test.json";
-        
+
         // Pattern should not be identified as wildcard
         Assert.False(pattern.Contains('*') || pattern.Contains('?'));
     }

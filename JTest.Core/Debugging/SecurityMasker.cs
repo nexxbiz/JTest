@@ -1,5 +1,3 @@
-using System.Text.RegularExpressions;
-
 namespace JTest.Core.Debugging;
 
 /// <summary>
@@ -19,19 +17,19 @@ public class SecurityMasker
     public object RegisterForMasking(string key, object value)
     {
         if (value == null) return "null";
-        
+
         var isSecuritySensitive = _securityKeys.Any(sk => key.ToLowerInvariant().Contains(sk));
-        
+
         if (isSecuritySensitive)
         {
             var originalValue = value.ToString() ?? "";
-            
+
             if (value is string str && !string.IsNullOrEmpty(str))
             {
                 // For strings, add both quoted and unquoted versions for masking
                 _maskingPairs.Add((str, "masked"));
                 _maskingPairs.Add(($"\"{str}\"", "\"masked\""));
-                return "\"masked\"";
+                return "masked"; // Return unquoted so FormatVariableValue can handle the quotes
             }
             else
             {
@@ -39,7 +37,7 @@ public class SecurityMasker
                 return "masked";
             }
         }
-        
+
         return value;
     }
 
@@ -51,19 +49,19 @@ public class SecurityMasker
     public string ApplyMasking(string text)
     {
         var result = text;
-        
+
         // Sort by length descending to avoid partial replacements
         var sortedPairs = _maskingPairs
             .Where(p => !string.IsNullOrEmpty(p.original) && p.original != p.masked)
             .OrderByDescending(p => p.original.Length)
             .ToList();
-        
+
         foreach (var (original, masked) in sortedPairs)
         {
             // Use simple string replacement instead of regex for reliability
             result = result.Replace(original, masked);
         }
-        
+
         return result;
     }
 

@@ -1,4 +1,3 @@
-using JTest.Core.Execution;
 using JTest.Core.Models;
 using JTest.Core.Steps;
 
@@ -17,7 +16,7 @@ namespace JTest.Core.Execution;
 public class TestCaseExecutor
 {
     private readonly StepFactory _stepFactory;
-    
+
     public TestCaseExecutor(StepFactory? stepFactory = null)
     {
         _stepFactory = stepFactory ?? new StepFactory();
@@ -58,10 +57,10 @@ public class TestCaseExecutor
     private async Task<List<JTestCaseResult>> RunTestWithDatasetsAsync(JTestCase testCase, TestExecutionContext baseContext, int testNumber)
     {
         var results = new List<JTestCaseResult>();
-        
+
         // Capture original variable state for proper cleanup between iterations
         var originalVariables = CaptureOriginalVariables(baseContext);
-        
+
         // Track globals across iterations (shared state)
         Dictionary<string, object>? sharedGlobals = null;
 
@@ -70,10 +69,10 @@ public class TestCaseExecutor
             // Prepare context for this iteration with proper variable scoping
             var iterationContext = PrepareIterationContext(baseContext, originalVariables, sharedGlobals);
             iterationContext.TestNumber = testNumber;
-            
+
             var result = await ExecuteTestCaseAsync(testCase, iterationContext, dataset);
             results.Add(result);
-            
+
             // Capture updated globals for next iteration
             if (iterationContext.Variables.ContainsKey("globals"))
             {
@@ -98,6 +97,9 @@ public class TestCaseExecutor
 
         try
         {
+            // Set the test case name in the execution context
+            executionContext.TestCaseName = testCase.Name;
+
             // Set case data if dataset is provided
             if (dataset != null)
             {
@@ -116,19 +118,19 @@ public class TestCaseExecutor
                 {
                     // Set current step number
                     executionContext.StepNumber = stepNumber;
-                    
+
                     // Create step instance from configuration
                     var step = _stepFactory.CreateStep(stepConfig);
                     var stepResult = await step.ExecuteAsync(executionContext);
                     result.StepResults.Add(stepResult);
-                    
+
                     if (!stepResult.Success)
                     {
                         result.Success = false;
                         result.ErrorMessage = stepResult.ErrorMessage;
                         break;
                     }
-                    
+
                     stepNumber++;
                 }
                 catch (Exception ex)
@@ -187,13 +189,13 @@ public class TestCaseExecutor
     private Dictionary<string, object> CaptureOriginalVariables(TestExecutionContext baseContext)
     {
         var originalVariables = new Dictionary<string, object>();
-        
+
         foreach (var kvp in baseContext.Variables)
         {
             // Deep clone the values to preserve original state
             originalVariables[kvp.Key] = DeepCloneVariable(kvp.Value);
         }
-        
+
         return originalVariables;
     }
 
@@ -204,7 +206,7 @@ public class TestCaseExecutor
     /// - other variables (ctx, etc.): reset to original values for each iteration
     /// </summary>
     private TestExecutionContext PrepareIterationContext(
-        TestExecutionContext baseContext, 
+        TestExecutionContext baseContext,
         Dictionary<string, object> originalVariables,
         Dictionary<string, object>? sharedGlobals)
     {

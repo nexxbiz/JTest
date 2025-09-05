@@ -1,8 +1,8 @@
+using JTest.Core.Execution;
+using JTest.Core.Utilities;
 using System.Diagnostics;
 using System.Globalization;
 using System.Text.Json;
-using JTest.Core.Execution;
-using JTest.Core.Utilities;
 
 namespace JTest.Core.Steps;
 
@@ -22,31 +22,37 @@ public class WaitStep : BaseStep
     public override async Task<StepResult> ExecuteAsync(IExecutionContext context)
     {
         var stopwatch = Stopwatch.StartNew();
+        var contextBefore = CloneContext(context);
         try { return await ExecuteWaitLogic(context, stopwatch); }
-        catch (Exception ex) { return HandleExecutionError(ex, stopwatch); }
+        catch (Exception ex) { return HandleExecutionError(ex, stopwatch, context, contextBefore); }
     }
 
     private async Task<StepResult> ExecuteWaitLogic(IExecutionContext context, Stopwatch stopwatch)
     {
         var contextBefore = CloneContext(context);
         var delayMs = ParseDelayMilliseconds(context);
-        if (delayMs < 0) return CreateValidationFailure();
+        if (delayMs < 0) return await CreateValidationFailure(context, contextBefore, stopwatch);
         await Task.Delay(delayMs);
         stopwatch.Stop();
         return await CreateSuccessResult(delayMs, stopwatch, context, contextBefore);
     }
 
-    private StepResult HandleExecutionError(Exception ex, Stopwatch stopwatch)
+    private StepResult HandleExecutionError(Exception ex, Stopwatch stopwatch, IExecutionContext context, Dictionary<string, object> contextBefore)
     {
         stopwatch.Stop();
-        LogDebugInformation(new TestExecutionContext(), new Dictionary<string, object>(), stopwatch, false);
-        return StepResult.CreateFailure($"Wait step failed: {ex.Message}", stopwatch.ElapsedMilliseconds);
+
+        // Still process assertions even when wait step fails
+        var assertionResults = ProcessAssertionsAsync(context).Result;
+
+        var result = StepResult.CreateFailure(this, $"Wait step failed: {ex.Message}", stopwatch.ElapsedMilliseconds);
+        result.AssertionResults = assertionResults;
+        return result;
     }
 
     private async Task<StepResult> CreateSuccessResult(int delayMs, Stopwatch stopwatch, IExecutionContext context, Dictionary<string, object> contextBefore)
     {
         var resultData = CreateResultData(delayMs, stopwatch.ElapsedMilliseconds);
-        
+
         // Use common step completion logic from BaseStep
         return await ProcessStepCompletionAsync(context, contextBefore, stopwatch, resultData);
     }
@@ -66,7 +72,7 @@ public class WaitStep : BaseStep
     private object ResolveMillisecondsValue(JsonElement msProperty, IExecutionContext context)
     {
         var rawValue = GetRawValue(msProperty);
-        if (rawValue is string stringValue) 
+        if (rawValue is string stringValue)
             return VariableInterpolator.ResolveVariableTokens(stringValue, context);
         return rawValue;
     }
@@ -118,12 +124,19 @@ public class WaitStep : BaseStep
         };
     }
 
-    private StepResult CreateValidationFailure()
+    private async Task<StepResult> CreateValidationFailure(IExecutionContext context, Dictionary<string, object> contextBefore, Stopwatch stopwatch)
     {
-        return StepResult.CreateFailure("Invalid ms value: must be a positive integer");
+        stopwatch.Stop();
+
+        // Still process assertions even when validation fails
+        var assertionResults = await ProcessAssertionsAsync(context);
+
+        var result = StepResult.CreateFailure(this,"Invalid ms value: must be a positive integer");
+        result.AssertionResults = assertionResults;
+        return result;
     }
 
-    protected override string GetStepDescription()
+    public override string GetStepDescription()
     {
         if (Configuration.TryGetProperty("ms", out var msProperty))
         {
