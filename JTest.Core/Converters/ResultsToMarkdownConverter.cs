@@ -67,10 +67,12 @@ public class ResultsToMarkdownConverter
     {
         var status = step.Success ? "PASSED" : "FAILED";
         content.AppendLine($"- **Step:** {status} ({step.DurationMs}ms)");
+        
         if (!string.IsNullOrEmpty(step.DetailedDescription))
         {
-            content.AppendLine(step.DetailedDescription);
+            content.AppendLine($"  {step.DetailedDescription}");
         }
+        
         if (!step.Success && !string.IsNullOrEmpty(step.ErrorMessage))
         {
             _securityMasker.RegisterForMasking("error", step.ErrorMessage);
@@ -80,6 +82,8 @@ public class ResultsToMarkdownConverter
         AppendSavedValues(content, step.ContextChanges);
         AppendAssertionResults(content, step.AssertionResults);
         AppendInnerSteps(content, step.InnerResults);
+        
+        content.AppendLine();
     }
 
     private void AppendAssertionResults(StringBuilder content, List<AssertionResult> assertions)
@@ -92,6 +96,8 @@ public class ResultsToMarkdownConverter
         {
             AppendSingleAssertion(content, assertion);
         }
+        
+        content.AppendLine();
     }
 
     private void AppendSingleAssertion(StringBuilder content, AssertionResult assertion)
@@ -111,22 +117,29 @@ public class ResultsToMarkdownConverter
 
     private void AppendAssertionDetails(StringBuilder content, AssertionResult assertion)
     {
+        var details = new List<string>();
+        
         if (assertion.ActualValue != null)
         {
             _securityMasker.RegisterForMasking("actual", assertion.ActualValue);
-            content.AppendLine($"      - **Actual:** {assertion.ActualValue}");
+            details.Add($"**Actual:** {assertion.ActualValue}");
         }
         
         if (assertion.ExpectedValue != null)
         {
             _securityMasker.RegisterForMasking("expected", assertion.ExpectedValue);
-            content.AppendLine($"      - **Expected:** {assertion.ExpectedValue}");
+            details.Add($"**Expected:** {assertion.ExpectedValue}");
         }
         
         if (!string.IsNullOrEmpty(assertion.ErrorMessage))
         {
             _securityMasker.RegisterForMasking("error", assertion.ErrorMessage);
-            content.AppendLine($"      - **Error:** {assertion.ErrorMessage}");
+            details.Add($"**Error:** {assertion.ErrorMessage}");
+        }
+        
+        if (details.Count > 0)
+        {
+            content.AppendLine($"      ({string.Join(", ", details)})");
         }
     }
 
@@ -138,6 +151,8 @@ public class ResultsToMarkdownConverter
         content.AppendLine("  - **Saved Values:**");
         AppendSavedVariables(content, contextChanges.Added, "Added");
         AppendSavedVariables(content, contextChanges.Modified, "Modified");
+        
+        content.AppendLine();
     }
 
     private void AppendSavedVariables(StringBuilder content, Dictionary<string, object> variables, string category)
@@ -175,6 +190,8 @@ public class ResultsToMarkdownConverter
         {
             AppendInnerStepResult(content, innerStep);
         }
+        
+        content.AppendLine();
     }
 
     private void AppendInnerStepResult(StringBuilder content, StepResult step)
@@ -195,91 +212,128 @@ public class ResultsToMarkdownConverter
 
     private void AppendInnerStepDetails(StringBuilder content, StepResult step)
     {
+        var details = new List<string>();
+        
         if (!step.Success && !string.IsNullOrEmpty(step.ErrorMessage))
         {
             _securityMasker.RegisterForMasking("error", step.ErrorMessage);
-            content.AppendLine($"      - **Error:** {step.ErrorMessage}");
+            details.Add($"**Error:** {step.ErrorMessage}");
         }
         
-        AppendInnerSavedValues(content, step.ContextChanges);
-        AppendInnerAssertionResults(content, step.AssertionResults);
+        // Add saved values summary with first few variable names
+        if (step.ContextChanges != null && 
+            (step.ContextChanges.Added.Count > 0 || step.ContextChanges.Modified.Count > 0))
+        {
+            var savedSummary = GetSavedValuesSummary(step.ContextChanges);
+            if (!string.IsNullOrEmpty(savedSummary))
+            {
+                details.Add($"**Saved:** {savedSummary}");
+            }
+        }
+        
+        // Add assertions summary
+        if (step.AssertionResults.Count > 0)
+        {
+            var assertionSummary = GetAssertionsSummary(step.AssertionResults);
+            details.Add($"**Assertions:** {assertionSummary}");
+        }
+        
+        if (details.Count > 0)
+        {
+            content.AppendLine($"      ({string.Join(", ", details)})");
+        }
+        
+        // Add full variable details as collapsible sections if needed
+        if (step.ContextChanges != null && 
+            (step.ContextChanges.Added.Count > 0 || step.ContextChanges.Modified.Count > 0))
+        {
+            AppendCollapsibleSavedValues(content, step.ContextChanges);
+        }
     }
 
-    private void AppendInnerSavedValues(StringBuilder content, ContextChanges? contextChanges)
+    private void AppendCollapsibleSavedValues(StringBuilder content, ContextChanges contextChanges)
     {
-        if (contextChanges == null) return;
-        if (contextChanges.Added.Count == 0 && contextChanges.Modified.Count == 0) return;
+        var hasVariables = false;
+        var variableDetails = new StringBuilder();
         
-        content.AppendLine("      - **Saved Values:**");
-        AppendInnerSavedVariables(content, contextChanges.Added, "Added");
-        AppendInnerSavedVariables(content, contextChanges.Modified, "Modified");
-    }
-
-    private void AppendInnerSavedVariables(StringBuilder content, Dictionary<string, object> variables, string category)
-    {
-        if (variables.Count == 0) return;
-        
-        foreach (var variable in variables)
+        foreach (var variable in contextChanges.Added)
         {
             if (ShouldSkipVariable(variable.Key)) continue;
-            AppendInnerSavedVariable(content, variable, category);
+            _securityMasker.RegisterForMasking(variable.Key, variable.Value);
+            var valueDisplay = FormatVariableValue(variable.Value, variable.Key);
+            variableDetails.AppendLine($"- **Added:** {variable.Key} = {valueDisplay}");
+            hasVariables = true;
         }
-    }
-
-    private void AppendInnerSavedVariable(StringBuilder content, KeyValuePair<string, object> variable, string category)
-    {
-        // Register sensitive values for masking
-        _securityMasker.RegisterForMasking(variable.Key, variable.Value);
         
-        var valueDisplay = FormatVariableValue(variable.Value, variable.Key);
-        content.AppendLine($"        - **{category}:** {variable.Key} = {valueDisplay}");
-    }
-
-    private void AppendInnerAssertionResults(StringBuilder content, List<AssertionResult> assertions)
-    {
-        if (assertions.Count == 0) return;
-        
-        content.AppendLine("      - **Assertions:**");
-        foreach (var assertion in assertions)
+        foreach (var variable in contextChanges.Modified)
         {
-            AppendInnerAssertion(content, assertion);
+            if (ShouldSkipVariable(variable.Key)) continue;
+            _securityMasker.RegisterForMasking(variable.Key, variable.Value);
+            var valueDisplay = FormatVariableValue(variable.Value, variable.Key);
+            variableDetails.AppendLine($"- **Modified:** {variable.Key} = {valueDisplay}");
+            hasVariables = true;
+        }
+        
+        if (hasVariables)
+        {
+            content.AppendLine($"      <details><summary>Show saved variables</summary>\n\n{variableDetails}\n</details>");
         }
     }
 
-    private void AppendInnerAssertion(StringBuilder content, AssertionResult assertion)
+    private string GetSavedValuesSummary(ContextChanges contextChanges)
     {
-        var status = assertion.Success ? "PASSED" : "FAILED";
-        var description = string.IsNullOrEmpty(assertion.Description) 
-            ? assertion.Operation 
-            : assertion.Description;
+        var parts = new List<string>();
+        
+        if (contextChanges.Added.Count > 0)
+        {
+            var addedVars = contextChanges.Added.Keys
+                .Where(k => !ShouldSkipVariable(k))
+                .Take(3)
+                .ToList();
             
-        content.AppendLine($"        - {status}: {description}");
-        
-        if (!assertion.Success)
-        {
-            AppendInnerAssertionDetails(content, assertion);
+            if (addedVars.Count > 0)
+            {
+                var summary = string.Join(", ", addedVars);
+                if (contextChanges.Added.Count > 3)
+                {
+                    summary += $" + {contextChanges.Added.Count - 3} more";
+                }
+                parts.Add($"Added {summary}");
+            }
         }
+        
+        if (contextChanges.Modified.Count > 0)
+        {
+            var modifiedVars = contextChanges.Modified.Keys
+                .Where(k => !ShouldSkipVariable(k))
+                .Take(3)
+                .ToList();
+                
+            if (modifiedVars.Count > 0)
+            {
+                var summary = string.Join(", ", modifiedVars);
+                if (contextChanges.Modified.Count > 3)
+                {
+                    summary += $" + {contextChanges.Modified.Count - 3} more";
+                }
+                parts.Add($"Modified {summary}");
+            }
+        }
+        
+        return string.Join("; ", parts);
     }
 
-    private void AppendInnerAssertionDetails(StringBuilder content, AssertionResult assertion)
+    private string GetAssertionsSummary(List<AssertionResult> assertions)
     {
-        if (assertion.ActualValue != null)
+        var passed = assertions.Count(a => a.Success);
+        var failed = assertions.Count(a => !a.Success);
+        
+        if (failed > 0)
         {
-            _securityMasker.RegisterForMasking("actual", assertion.ActualValue);
-            content.AppendLine($"          - **Actual:** {assertion.ActualValue}");
+            return $"{passed} passed, {failed} failed";
         }
         
-        if (assertion.ExpectedValue != null)
-        {
-            _securityMasker.RegisterForMasking("expected", assertion.ExpectedValue);
-            content.AppendLine($"          - **Expected:** {assertion.ExpectedValue}");
-        }
-        
-        if (!string.IsNullOrEmpty(assertion.ErrorMessage))
-        {
-            _securityMasker.RegisterForMasking("error", assertion.ErrorMessage);
-            content.AppendLine($"          - **Error:** {assertion.ErrorMessage}");
-        }
+        return $"{passed} passed";
     }
 
     private string FormatVariableValue(object value, string variableKey = "")
