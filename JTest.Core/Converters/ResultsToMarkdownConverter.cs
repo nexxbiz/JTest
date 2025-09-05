@@ -9,6 +9,8 @@ namespace JTest.Core.Converters;
 
 public class ResultsToMarkdownConverter
 {
+    private readonly SecurityMasker _securityMasker = new();
+    
     public string ConvertToMarkdown(List<JTestCaseResult> results)
     {
         var content = new StringBuilder();
@@ -19,7 +21,7 @@ public class ResultsToMarkdownConverter
             AppendTestCaseResult(content, result);
         }
         
-        return content.ToString();
+        return _securityMasker.ApplyMasking(content.ToString());
     }
 
     private void AppendTestCaseResult(StringBuilder content, JTestCaseResult result)
@@ -71,6 +73,7 @@ public class ResultsToMarkdownConverter
         }
         if (!step.Success && !string.IsNullOrEmpty(step.ErrorMessage))
         {
+            _securityMasker.RegisterForMasking("error", step.ErrorMessage);
             content.AppendLine($"  - **Error:** {step.ErrorMessage}");
         }
         
@@ -110,16 +113,19 @@ public class ResultsToMarkdownConverter
     {
         if (assertion.ActualValue != null)
         {
+            _securityMasker.RegisterForMasking("actual", assertion.ActualValue);
             content.AppendLine($"      - **Actual:** {assertion.ActualValue}");
         }
         
         if (assertion.ExpectedValue != null)
         {
+            _securityMasker.RegisterForMasking("expected", assertion.ExpectedValue);
             content.AppendLine($"      - **Expected:** {assertion.ExpectedValue}");
         }
         
         if (!string.IsNullOrEmpty(assertion.ErrorMessage))
         {
+            _securityMasker.RegisterForMasking("error", assertion.ErrorMessage);
             content.AppendLine($"      - **Error:** {assertion.ErrorMessage}");
         }
     }
@@ -153,7 +159,10 @@ public class ResultsToMarkdownConverter
 
     private void AppendSingleSavedVariable(StringBuilder content, KeyValuePair<string, object> variable, string category)
     {
-        var valueDisplay = FormatVariableValue(variable.Value);
+        // Register sensitive values for masking
+        _securityMasker.RegisterForMasking(variable.Key, variable.Value);
+        
+        var valueDisplay = FormatVariableValue(variable.Value, variable.Key);
         content.AppendLine($"    - **{category}:** {variable.Key} = {valueDisplay}");
     }
 
@@ -188,6 +197,7 @@ public class ResultsToMarkdownConverter
     {
         if (!step.Success && !string.IsNullOrEmpty(step.ErrorMessage))
         {
+            _securityMasker.RegisterForMasking("error", step.ErrorMessage);
             content.AppendLine($"      - **Error:** {step.ErrorMessage}");
         }
         
@@ -218,7 +228,10 @@ public class ResultsToMarkdownConverter
 
     private void AppendInnerSavedVariable(StringBuilder content, KeyValuePair<string, object> variable, string category)
     {
-        var valueDisplay = FormatVariableValue(variable.Value);
+        // Register sensitive values for masking
+        _securityMasker.RegisterForMasking(variable.Key, variable.Value);
+        
+        var valueDisplay = FormatVariableValue(variable.Value, variable.Key);
         content.AppendLine($"        - **{category}:** {variable.Key} = {valueDisplay}");
     }
 
@@ -252,30 +265,33 @@ public class ResultsToMarkdownConverter
     {
         if (assertion.ActualValue != null)
         {
+            _securityMasker.RegisterForMasking("actual", assertion.ActualValue);
             content.AppendLine($"          - **Actual:** {assertion.ActualValue}");
         }
         
         if (assertion.ExpectedValue != null)
         {
+            _securityMasker.RegisterForMasking("expected", assertion.ExpectedValue);
             content.AppendLine($"          - **Expected:** {assertion.ExpectedValue}");
         }
         
         if (!string.IsNullOrEmpty(assertion.ErrorMessage))
         {
+            _securityMasker.RegisterForMasking("error", assertion.ErrorMessage);
             content.AppendLine($"          - **Error:** {assertion.ErrorMessage}");
         }
     }
 
-    private string FormatVariableValue(object value)
+    private string FormatVariableValue(object value, string variableKey = "")
     {
         if (value == null) return "null";
         if (value is string str) return $"\"{str}\"";
         if (value.GetType().IsValueType) return value.ToString() ?? "null";
         
-        return FormatComplexValue(value);
+        return FormatComplexValue(value, variableKey);
     }
     
-    private string FormatComplexValue(object value)
+    private string FormatComplexValue(object value, string variableKey = "")
     {
         try
         {
@@ -286,8 +302,9 @@ public class ResultsToMarkdownConverter
             };
             
             var json = JsonSerializer.Serialize(value, options);
+            
+            // Don't register complex JSON for masking here - it will be handled by ApplyMasking at the end
             return $"\n<details><summary>show</summary>\n\n```json\n{json}\n```\n</details>\n";
-
 
         }
         catch

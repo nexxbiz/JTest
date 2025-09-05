@@ -29,7 +29,7 @@ public class SecurityMasker
                 // For strings, add both quoted and unquoted versions for masking
                 _maskingPairs.Add((str, "masked"));
                 _maskingPairs.Add(($"\"{str}\"", "\"masked\""));
-                return "\"masked\"";
+                return "masked"; // Return unquoted so FormatVariableValue can handle the quotes
             }
             else
             {
