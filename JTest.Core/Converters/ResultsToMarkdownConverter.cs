@@ -76,6 +76,7 @@ public class ResultsToMarkdownConverter
         
         AppendSavedValues(content, step.ContextChanges);
         AppendAssertionResults(content, step.AssertionResults);
+        AppendInnerSteps(content, step.InnerResults);
     }
 
     private void AppendAssertionResults(StringBuilder content, List<AssertionResult> assertions)
@@ -154,6 +155,115 @@ public class ResultsToMarkdownConverter
     {
         var valueDisplay = FormatVariableValue(variable.Value);
         content.AppendLine($"    - **{category}:** {variable.Key} = {valueDisplay}");
+    }
+
+    private void AppendInnerSteps(StringBuilder content, List<StepResult> innerResults)
+    {
+        if (innerResults.Count == 0) return;
+        
+        content.AppendLine("  - **Template Steps:**");
+        foreach (var innerStep in innerResults)
+        {
+            AppendInnerStepResult(content, innerStep);
+        }
+    }
+
+    private void AppendInnerStepResult(StringBuilder content, StepResult step)
+    {
+        var status = step.Success ? "PASSED" : "FAILED";
+        var description = GetInnerStepDescription(step);
+        content.AppendLine($"    - **{description}:** {status} ({step.DurationMs}ms)");
+        
+        AppendInnerStepDetails(content, step);
+    }
+
+    private string GetInnerStepDescription(StepResult step)
+    {
+        return !string.IsNullOrEmpty(step.DetailedDescription) 
+            ? step.DetailedDescription 
+            : $"{step.Step.Type} step";
+    }
+
+    private void AppendInnerStepDetails(StringBuilder content, StepResult step)
+    {
+        if (!step.Success && !string.IsNullOrEmpty(step.ErrorMessage))
+        {
+            content.AppendLine($"      - **Error:** {step.ErrorMessage}");
+        }
+        
+        AppendInnerSavedValues(content, step.ContextChanges);
+        AppendInnerAssertionResults(content, step.AssertionResults);
+    }
+
+    private void AppendInnerSavedValues(StringBuilder content, ContextChanges? contextChanges)
+    {
+        if (contextChanges == null) return;
+        if (contextChanges.Added.Count == 0 && contextChanges.Modified.Count == 0) return;
+        
+        content.AppendLine("      - **Saved Values:**");
+        AppendInnerSavedVariables(content, contextChanges.Added, "Added");
+        AppendInnerSavedVariables(content, contextChanges.Modified, "Modified");
+    }
+
+    private void AppendInnerSavedVariables(StringBuilder content, Dictionary<string, object> variables, string category)
+    {
+        if (variables.Count == 0) return;
+        
+        foreach (var variable in variables)
+        {
+            if (ShouldSkipVariable(variable.Key)) continue;
+            AppendInnerSavedVariable(content, variable, category);
+        }
+    }
+
+    private void AppendInnerSavedVariable(StringBuilder content, KeyValuePair<string, object> variable, string category)
+    {
+        var valueDisplay = FormatVariableValue(variable.Value);
+        content.AppendLine($"        - **{category}:** {variable.Key} = {valueDisplay}");
+    }
+
+    private void AppendInnerAssertionResults(StringBuilder content, List<AssertionResult> assertions)
+    {
+        if (assertions.Count == 0) return;
+        
+        content.AppendLine("      - **Assertions:**");
+        foreach (var assertion in assertions)
+        {
+            AppendInnerAssertion(content, assertion);
+        }
+    }
+
+    private void AppendInnerAssertion(StringBuilder content, AssertionResult assertion)
+    {
+        var status = assertion.Success ? "PASSED" : "FAILED";
+        var description = string.IsNullOrEmpty(assertion.Description) 
+            ? assertion.Operation 
+            : assertion.Description;
+            
+        content.AppendLine($"        - {status}: {description}");
+        
+        if (!assertion.Success)
+        {
+            AppendInnerAssertionDetails(content, assertion);
+        }
+    }
+
+    private void AppendInnerAssertionDetails(StringBuilder content, AssertionResult assertion)
+    {
+        if (assertion.ActualValue != null)
+        {
+            content.AppendLine($"          - **Actual:** {assertion.ActualValue}");
+        }
+        
+        if (assertion.ExpectedValue != null)
+        {
+            content.AppendLine($"          - **Expected:** {assertion.ExpectedValue}");
+        }
+        
+        if (!string.IsNullOrEmpty(assertion.ErrorMessage))
+        {
+            content.AppendLine($"          - **Error:** {assertion.ErrorMessage}");
+        }
     }
 
     private string FormatVariableValue(object value)
