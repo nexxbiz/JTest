@@ -2,6 +2,8 @@ using JTest.Core.Converters;
 using JTest.Core.Steps;
 using JTest.Core.Models;
 using JTest.Core.Debugging;
+using JTest.Core.Execution;
+using System.Text.Json;
 using Xunit;
 
 namespace JTest.UnitTests;
@@ -13,6 +15,7 @@ public class ResultsToMarkdownConverterTests
     {
         // Arrange
         var converter = new ResultsToMarkdownConverter();
+        var mockStep = new MockTestStep();
         
         var contextChanges = new ContextChanges();
         contextChanges.Added.Add("this", new Dictionary<string, object> { ["test"] = "value" });
@@ -22,6 +25,7 @@ public class ResultsToMarkdownConverterTests
 
         var stepResult = new StepResult
         {
+            Step = mockStep,
             Success = true,
             DurationMs = 150,
             ContextChanges = contextChanges
@@ -53,9 +57,11 @@ public class ResultsToMarkdownConverterTests
     {
         // Arrange
         var converter = new ResultsToMarkdownConverter();
+        var mockStep = new MockTestStep();
         
         var stepResult = new StepResult
         {
+            Step = mockStep,
             Success = true,
             DurationMs = 150,
             ContextChanges = null
@@ -76,5 +82,26 @@ public class ResultsToMarkdownConverterTests
 
         // Assert
         Assert.DoesNotContain("**Saved Values:**", markdown);
+    }
+}
+
+/// <summary>
+/// Mock step for testing purposes
+/// </summary>
+public class MockTestStep : IStep
+{
+    public string Type => "test";
+    public string? Id { get; set; }
+
+    public bool ValidateConfiguration(JsonElement configuration) => true;
+
+    public Task<StepResult> ExecuteAsync(IExecutionContext context)
+    {
+        return Task.FromResult(StepResult.CreateSuccess(this));
+    }
+
+    public string GetStepDescription()
+    {
+        return "Mock test step";
     }
 }
