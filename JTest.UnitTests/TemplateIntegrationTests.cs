@@ -1,8 +1,4 @@
-using System.Text.Json;
 using JTest.Core;
-using JTest.Core.Debugging;
-using JTest.Core.Execution;
-using Xunit;
 
 namespace JTest.UnitTests;
 
@@ -13,7 +9,7 @@ public class TemplateIntegrationTests
     {
         // Arrange
         var testRunner = new TestRunner();
-        
+
         // Load template as described in documentation
         var templateJson = """
         {
@@ -38,9 +34,9 @@ public class TemplateIntegrationTests
             }
         }
         """;
-        
+
         testRunner.LoadTemplates(templateJson);
-        
+
         // Create test that uses the template
         var testJson = """
         {
@@ -58,7 +54,7 @@ public class TemplateIntegrationTests
             ]
         }
         """;
-        
+
         var environment = new Dictionary<string, object>
         {
             ["username"] = "testuser",
@@ -74,80 +70,19 @@ public class TemplateIntegrationTests
         var result = results[0];
         Assert.True(result.Success);
         Assert.Single(result.StepResults);
-        
+
         var stepResult = result.StepResults[0];
         Assert.True(stepResult.Success);
         Assert.NotNull(stepResult.Data);
     }
 
-    [Fact]
-    public async Task TemplateStep_WithDebugLogger_LogsTemplateStepInformation()
-    {
-        // Arrange
-        var testRunner = new TestRunner();
-        var debugLogger = new MarkdownDebugLogger();
-        
-        var templateJson = """
-        {
-            "version": "1.0",
-            "components": {
-                "templates": [
-                    {
-                        "name": "debug-test",
-                        "params": {
-                            "message": { "type": "string", "required": true }
-                        },
-                        "steps": [],
-                        "output": {
-                            "response": "Debug: {{$.message}}"
-                        }
-                    }
-                ]
-            }
-        }
-        """;
-        
-        testRunner.LoadTemplates(templateJson);
-        
-        var testJson = """
-        {
-            "name": "Debug logger test",
-            "steps": [
-                {
-                    "type": "use",
-                    "id": "debug-step",
-                    "template": "debug-test",
-                    "with": {
-                        "message": "hello world"
-                    }
-                }
-            ]
-        }
-        """;
-
-        // Act
-        var results = await testRunner.RunTestAsync(testJson, environment: null, globals: null, debugLogger);
-        var debugOutput = debugLogger.GetOutput();
-
-        // Assert
-        Assert.Single(results);
-        Assert.True(results[0].Success);
-        
-        // Debug output should contain template step information
-        Assert.Contains("use", debugOutput);
-        Assert.Contains("debug-step", debugOutput);
-        Assert.Contains("Success", debugOutput);
-        
-        // Verify template outputs are properly logged in context
-        Assert.Contains("- `response`: \"Debug: hello world\"", debugOutput);
-    }
 
     [Fact]
     public async Task TemplateStep_WithRequiredParameterMissing_FailsExecution()
     {
         // Arrange
         var testRunner = new TestRunner();
-        
+
         var templateJson = """
         {
             "version": "1.0",
@@ -165,9 +100,9 @@ public class TemplateIntegrationTests
             }
         }
         """;
-        
+
         testRunner.LoadTemplates(templateJson);
-        
+
         var testJson = """
         {
             "name": "Required parameter test",

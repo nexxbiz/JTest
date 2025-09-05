@@ -1,6 +1,6 @@
-using System.Text.Json;
 using JTest.Core.Models;
 using JTest.Core.Steps;
+using System.Text.Json;
 
 namespace JTest.Core.Templates;
 

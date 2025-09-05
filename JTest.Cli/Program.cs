@@ -1,8 +1,7 @@
-﻿using System.Text;
-using System.Text.Json;
-using JTest.Core;
-using JTest.Core.Debugging;
+﻿using JTest.Core;
 using JTest.Core.Models;
+using System.Text;
+using System.Text.Json;
 
 namespace JTest;
 
@@ -139,11 +138,11 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
     private List<string> ParseRuntimeOptions(string[] args)
     {
         var remainingArgs = new List<string>();
-        
+
         for (int i = 0; i < args.Length; i++)
         {
             var arg = args[i];
-            
+
             if (arg == "--env" && i + 1 < args.Length)
             {
                 var envPair = args[++i];
@@ -203,7 +202,7 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
 
             var json = File.ReadAllText(filePath);
             var envData = JsonSerializer.Deserialize<Dictionary<string, object>>(json);
-            
+
             if (envData != null)
             {
                 foreach (var kvp in envData)
@@ -231,7 +230,7 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
 
             var json = File.ReadAllText(filePath);
             var globalsData = JsonSerializer.Deserialize<Dictionary<string, object>>(json);
-            
+
             if (globalsData != null)
             {
                 foreach (var kvp in globalsData)
@@ -260,7 +259,7 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
     private List<string> ExpandWildcardPattern(string pattern)
     {
         var files = new List<string>();
-        
+
         try
         {
             // If it's not a pattern (no wildcards), treat as single file
@@ -269,28 +268,28 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
                 files.Add(pattern);
                 return files;
             }
-            
+
             // Handle wildcard patterns
             var directory = Path.GetDirectoryName(pattern);
             var fileName = Path.GetFileName(pattern);
-            
+
             // If no directory specified, use current directory
             if (string.IsNullOrEmpty(directory))
             {
                 directory = ".";
             }
-            
+
             // Ensure directory exists
             if (!Directory.Exists(directory))
             {
                 Console.Error.WriteLine($"Warning: Directory not found: {directory}");
                 return files;
             }
-            
+
             // Get matching files
             var matchingFiles = Directory.GetFiles(directory, fileName, SearchOption.TopDirectoryOnly);
             files.AddRange(matchingFiles.OrderBy(f => f));
-            
+
             if (files.Count == 0)
             {
                 Console.WriteLine($"Warning: No files found matching pattern: {pattern}");
@@ -300,7 +299,7 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
         {
             Console.Error.WriteLine($"Error expanding pattern '{pattern}': {ex.Message}");
         }
-        
+
         return files;
     }
 
@@ -315,7 +314,7 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
 
         var pattern = args[0];
         var testFiles = ExpandWildcardPattern(pattern);
-        
+
         if (testFiles.Count == 0)
         {
             Console.Error.WriteLine($"Error: No test files found matching pattern: {pattern}");
@@ -354,26 +353,26 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
                 continue;
             }
 
-            Console.WriteLine($"\n{'='*60}");
+            Console.WriteLine($"\n{'=' * 60}");
             Console.WriteLine($"Running test file: {testFile}");
-            Console.WriteLine($"{'='*60}");
-            
+            Console.WriteLine($"{'=' * 60}");
+
             try
             {
                 // Read and execute the test file
                 var jsonContent = await File.ReadAllTextAsync(testFile);
-                
+
                 // Convert string dictionaries to object dictionaries
                 var environment = _envVars.ToDictionary(kvp => kvp.Key, kvp => (object)kvp.Value);
                 var globals = _globals.ToDictionary(kvp => kvp.Key, kvp => (object)kvp.Value);
-                
+
                 var results = await _testRunner.RunTestAsync(jsonContent, environment, globals);
                 allResults.AddRange(results);
-                
+
                 // Display results for this file
                 var fileSuccess = 0;
                 var fileFailed = 0;
-                
+
                 foreach (var result in results)
                 {
                     Console.WriteLine($"\nTest: {result.TestCaseName}");
@@ -384,18 +383,18 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
                     Console.WriteLine($"Status: {(result.Success ? "PASSED" : "FAILED")}");
                     Console.WriteLine($"Duration: {result.DurationMs}ms");
                     Console.WriteLine($"Steps executed: {result.StepResults.Count}");
-                    
+
                     if (!result.Success && !string.IsNullOrEmpty(result.ErrorMessage))
                     {
                         Console.WriteLine($"Error: {result.ErrorMessage}");
                     }
-                    
+
                     if (result.Success)
                         fileSuccess++;
                     else
                         fileFailed++;
                 }
-                
+
                 Console.WriteLine($"\nFile Summary - {Path.GetFileName(testFile)}: {fileSuccess} passed, {fileFailed} failed");
                 processedFiles++;
             }
@@ -405,17 +404,17 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
                 failedFiles++;
             }
         }
-        
+
         // Display overall summary
-        Console.WriteLine($"\n{'='*60}");
+        Console.WriteLine($"\n{'=' * 60}");
         Console.WriteLine($"OVERALL TEST SUMMARY");
-        Console.WriteLine($"{'='*60}");
+        Console.WriteLine($"{'=' * 60}");
         Console.WriteLine($"Files processed: {processedFiles}");
         Console.WriteLine($"Files failed: {failedFiles}");
         Console.WriteLine($"Total tests: {allResults.Count}");
         Console.WriteLine($"Passed: {allResults.Count(r => r.Success)}");
         Console.WriteLine($"Failed: {allResults.Count(r => !r.Success)}");
-        
+
         var totalFailed = allResults.Count(r => !r.Success) + failedFiles;
         if (totalFailed > 0)
         {
@@ -486,7 +485,7 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
 
         var pattern = args[0];
         var testFiles = ExpandWildcardPattern(pattern);
-        
+
         if (testFiles.Count == 0)
         {
             Console.Error.WriteLine($"Error: No test files found matching pattern: {pattern}");
@@ -510,16 +509,16 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
             var outputFile = Path.ChangeExtension(testFile, ".md");
             allOutputFiles.Add(outputFile);
 
-            Console.WriteLine($"\n{'='*60}");
+            Console.WriteLine($"\n{'=' * 60}");
             Console.WriteLine($"Running test file in debug mode: {testFile}");
             Console.WriteLine("Debug mode: ON");
             Console.WriteLine("Verbose output: ON");
             Console.WriteLine("Markdown logging: ON");
             Console.WriteLine($"Debug output will be saved to: {outputFile}");
-            Console.WriteLine($"{'='*60}");
+            Console.WriteLine($"{'=' * 60}");
 
             var markdownContent = new StringBuilder();
-            
+
             // Add header to markdown file
             markdownContent.AppendLine($"# Debug Report for {Path.GetFileName(testFile)}");
             markdownContent.AppendLine();
@@ -553,51 +552,46 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
             {
                 // Read and execute the test file with debug logging
                 var jsonContent = await File.ReadAllTextAsync(testFile);
-                
+
                 // Convert string dictionaries to object dictionaries
                 var environment = _envVars.ToDictionary(kvp => kvp.Key, kvp => (object)kvp.Value);
                 var globals = _globals.ToDictionary(kvp => kvp.Key, kvp => (object)kvp.Value);
-                
-                // Create debug logger
-                var debugLogger = new MarkdownDebugLogger();
-                
-                var results = await _testRunner.RunTestAsync(jsonContent, environment, globals, debugLogger);
-                
+
+
+
+                var results = await _testRunner.RunTestAsync(jsonContent, environment, globals);
+
                 Console.WriteLine("\nTest execution completed");
-                
+
                 // Add debug output to markdown content
                 markdownContent.AppendLine("## Test Execution");
-                var debugOutput = debugLogger.GetOutput();
-                if (!string.IsNullOrEmpty(debugOutput))
-                {
-                    markdownContent.AppendLine(debugOutput);
-                }
-                
+                // todo get a convertion results to markdown. and add it here
+
                 // Calculate results summary
                 var totalSuccess = 0;
                 var totalFailed = 0;
                 var errorMessages = new List<string>();
-                
+
                 foreach (var result in results)
                 {
                     if (result.Success)
                         totalSuccess++;
                     else
                         totalFailed++;
-                        
+
                     if (!result.Success && !string.IsNullOrEmpty(result.ErrorMessage))
                     {
                         errorMessages.Add($"ERROR in {result.TestCaseName}: {result.ErrorMessage}");
                     }
                 }
-                
+
                 // Add summary to markdown
                 markdownContent.AppendLine("## Summary");
                 markdownContent.AppendLine($"- **Total tests:** {results.Count}");
                 markdownContent.AppendLine($"- **Passed:** {totalSuccess}");
                 markdownContent.AppendLine($"- **Failed:** {totalFailed}");
                 markdownContent.AppendLine();
-                
+
                 if (errorMessages.Any())
                 {
                     markdownContent.AppendLine("## Errors");
@@ -607,15 +601,15 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
                     }
                     markdownContent.AppendLine();
                 }
-                
+
                 // Write markdown content to file
                 await File.WriteAllTextAsync(outputFile, markdownContent.ToString());
-                
+
                 // Display console summary
                 Console.WriteLine($"Total tests: {results.Count}");
                 Console.WriteLine($"Passed: {totalSuccess}");
                 Console.WriteLine($"Failed: {totalFailed}");
-                
+
                 if (errorMessages.Any())
                 {
                     Console.WriteLine("\nErrors occurred during execution:");
@@ -624,9 +618,9 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
                         Console.WriteLine($"  {error}");
                     }
                 }
-                
+
                 Console.WriteLine($"Detailed debug report saved to: {outputFile}");
-                
+
                 if (totalFailed > 0)
                 {
                     failedFiles++;
@@ -639,11 +633,11 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
             catch (Exception ex)
             {
                 Console.Error.WriteLine($"\nERROR: {ex.Message}");
-                
+
                 // Still try to save what we have to the markdown file
                 markdownContent.AppendLine("## Error");
                 markdownContent.AppendLine($"Execution failed with error: {ex.Message}");
-                
+
                 try
                 {
                     await File.WriteAllTextAsync(outputFile, markdownContent.ToString());
@@ -653,19 +647,19 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
                 {
                     // Ignore file write errors in error handling
                 }
-                
+
                 failedFiles++;
             }
         }
-        
+
         // Display overall summary
-        Console.WriteLine($"\n{'='*60}");
+        Console.WriteLine($"\n{'=' * 60}");
         Console.WriteLine($"DEBUG SUMMARY");
-        Console.WriteLine($"{'='*60}");
+        Console.WriteLine($"{'=' * 60}");
         Console.WriteLine($"Files processed successfully: {processedFiles}");
         Console.WriteLine($"Files failed: {failedFiles}");
         Console.WriteLine($"Debug reports generated: {allOutputFiles.Count}");
-        
+
         if (allOutputFiles.Any())
         {
             Console.WriteLine("\nGenerated debug reports:");
@@ -674,7 +668,7 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
                 Console.WriteLine($"  - {outputFile}");
             }
         }
-        
+
         if (failedFiles > 0)
         {
             Console.WriteLine("Debug execution completed with failures.");
@@ -698,7 +692,7 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
 
         var testName = args[0];
         var outputFile = args.Count > 1 ? args[1] : $"{testName.Replace(" ", "_").ToLowerInvariant()}.json";
-        
+
         Console.WriteLine($"Creating test template: {testName}");
         Console.WriteLine($"Output file: {outputFile}");
 
@@ -706,13 +700,13 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
         {
             var templateJson = _testRunner.CreateTestTemplate(testName);
             await File.WriteAllTextAsync(outputFile, templateJson);
-            
+
             Console.WriteLine("Test template created successfully.");
             Console.WriteLine($"\nTo run the test:");
             Console.WriteLine($"  jtest run {outputFile} --env baseUrl=https://your-api.com");
             Console.WriteLine($"\nTo debug the test:");
             Console.WriteLine($"  jtest debug {outputFile} --env baseUrl=https://your-api.com");
-            
+
             return 0;
         }
         catch (Exception ex)
@@ -733,7 +727,7 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
 
         var pattern = args[0];
         var testFiles = ExpandWildcardPattern(pattern);
-        
+
         if (testFiles.Count == 0)
         {
             Console.Error.WriteLine($"Error: No test files found matching pattern: {pattern}");
@@ -753,18 +747,18 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
                 continue;
             }
 
-            Console.WriteLine($"\n{'='*50}");
+            Console.WriteLine($"\n{'=' * 50}");
             Console.WriteLine($"Validating test file: {testFile}");
-            Console.WriteLine($"{'='*50}");
+            Console.WriteLine($"{'=' * 50}");
 
             try
             {
                 var json = await File.ReadAllTextAsync(testFile);
-                
+
                 // Basic JSON syntax validation
                 JsonDocument.Parse(json);
                 Console.WriteLine("Valid JSON syntax");
-                
+
                 // JTEST schema validation using TestRunner
                 if (_testRunner.ValidateTestDefinition(json))
                 {
@@ -793,15 +787,15 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
                 invalidFiles++;
             }
         }
-        
+
         // Display overall summary
-        Console.WriteLine($"\n{'='*50}");
+        Console.WriteLine($"\n{'=' * 50}");
         Console.WriteLine($"VALIDATION SUMMARY");
-        Console.WriteLine($"{'='*50}");
+        Console.WriteLine($"{'=' * 50}");
         Console.WriteLine($"Files processed: {processedFiles}");
         Console.WriteLine($"Valid files: {validFiles}");
         Console.WriteLine($"Invalid files: {invalidFiles}");
-        
+
         if (invalidFiles > 0)
         {
             Console.WriteLine("Validation completed with errors.");

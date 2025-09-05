@@ -31,7 +31,7 @@ public class TestExecutionContext : IExecutionContext
     /// Gets or sets the current step number within the test
     /// </summary>
     public int StepNumber { get; set; } = 1;
-    
+
     /// <summary>
     /// Gets or sets the current test case name
     /// </summary>
@@ -67,12 +67,12 @@ public class TestExecutionContext : IExecutionContext
     private Dictionary<string, object> ResolveCaseTokens(Dictionary<string, object> caseData)
     {
         var resolvedData = new Dictionary<string, object>();
-        
+
         foreach (var kvp in caseData)
         {
             resolvedData[kvp.Key] = ResolveValue(kvp.Value);
         }
-        
+
         return resolvedData;
     }
 
@@ -88,7 +88,7 @@ public class TestExecutionContext : IExecutionContext
             case string stringValue:
                 // Use VariableInterpolator to resolve any tokens in string values
                 return VariableInterpolator.ResolveVariableTokens(stringValue, this);
-                
+
             case Dictionary<string, object> dictValue:
                 // Recursively resolve tokens in nested dictionaries
                 var resolvedDict = new Dictionary<string, object>();
@@ -97,7 +97,7 @@ public class TestExecutionContext : IExecutionContext
                     resolvedDict[kvp.Key] = ResolveValue(kvp.Value);
                 }
                 return resolvedDict;
-                
+
             case System.Collections.IEnumerable enumerable when !(value is string):
                 // Handle arrays and lists by resolving each element
                 var resolvedList = new List<object>();
@@ -106,7 +106,7 @@ public class TestExecutionContext : IExecutionContext
                     resolvedList.Add(ResolveValue(item));
                 }
                 return resolvedList.ToArray(); // Convert back to array to match input type
-                
+
             default:
                 // For primitive types and complex objects, check if they contain string properties that might have tokens
                 return ResolveComplexObject(value) ?? value;
@@ -121,19 +121,19 @@ public class TestExecutionContext : IExecutionContext
     private object ResolveComplexObject(object value)
     {
         if (value == null) return value;
-        
+
         // For simple value types, return as-is
         var type = value.GetType();
         if (type.IsPrimitive || type == typeof(string) || type == typeof(DateTime) || type == typeof(decimal))
         {
             return value;
         }
-        
+
         try
         {
             // Serialize to JSON to check for string properties that might contain tokens
             var json = System.Text.Json.JsonSerializer.Serialize(value);
-            
+
             // If the JSON representation contains tokens, we need to process it
             if (json.Contains("{{$."))
             {
@@ -141,7 +141,7 @@ public class TestExecutionContext : IExecutionContext
                 var jsonElement = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(json);
                 return ResolveJsonElement(jsonElement);
             }
-            
+
             // No tokens found, return original
             return value;
         }
@@ -164,7 +164,7 @@ public class TestExecutionContext : IExecutionContext
             case System.Text.Json.JsonValueKind.String:
                 var stringValue = element.GetString() ?? "";
                 return VariableInterpolator.ResolveVariableTokens(stringValue, this);
-                
+
             case System.Text.Json.JsonValueKind.Object:
                 var dict = new Dictionary<string, object>();
                 foreach (var property in element.EnumerateObject())
@@ -172,7 +172,7 @@ public class TestExecutionContext : IExecutionContext
                     dict[property.Name] = ResolveJsonElement(property.Value);
                 }
                 return dict;
-                
+
             case System.Text.Json.JsonValueKind.Array:
                 var list = new List<object>();
                 foreach (var item in element.EnumerateArray())
@@ -180,19 +180,19 @@ public class TestExecutionContext : IExecutionContext
                     list.Add(ResolveJsonElement(item));
                 }
                 return list.ToArray();
-                
+
             case System.Text.Json.JsonValueKind.Number:
                 return element.TryGetInt32(out var intValue) ? intValue : element.GetDouble();
-                
+
             case System.Text.Json.JsonValueKind.True:
                 return true;
-                
+
             case System.Text.Json.JsonValueKind.False:
                 return false;
-                
+
             case System.Text.Json.JsonValueKind.Null:
                 return (object?)null;
-                
+
             default:
                 return element;
         }

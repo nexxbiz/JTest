@@ -1,12 +1,8 @@
-using System.Diagnostics;
-using System.Net.Http;
-using System.Reflection;
-using System.Text;
-using System.Text.Json;
-using JTest.Core.Assertions;
-using JTest.Core.Debugging;
 using JTest.Core.Execution;
 using JTest.Core.Utilities;
+using System.Diagnostics;
+using System.Text;
+using System.Text.Json;
 
 namespace JTest.Core.Steps;
 
@@ -17,11 +13,9 @@ public class HttpStep : BaseStep
 {
     private readonly HttpClient _httpClient;
 
-    public HttpStep(HttpClient httpClient, IDebugLogger? debugLogger = null)
+    public HttpStep(HttpClient httpClient)
     {
         _httpClient = httpClient;
-        // Set debug logger using base class method
-        SetDebugLogger(debugLogger);
     }
 
     public override string Type => "http";
@@ -40,7 +34,7 @@ public class HttpStep : BaseStep
         {
             var responseData = await PerformHttpRequest(context, stopwatch);
             stopwatch.Stop();
-            
+
             // Use common step completion logic from BaseStep
             return await ProcessStepCompletionAsync(context, contextBefore, stopwatch, responseData);
         }
@@ -48,11 +42,10 @@ public class HttpStep : BaseStep
         {
             stopwatch.Stop();
             context.Log.Add($"HTTP request failed: {ex.Message}");
-            
+
             // Still process assertions even when HTTP request fails - this provides valuable debugging info
             var assertionResults = await ProcessAssertionsAsync(context);
-            LogDebugInformation(context, contextBefore, stopwatch, false, assertionResults);
-            
+
             var result = StepResult.CreateFailure(ex.Message, stopwatch.ElapsedMilliseconds);
             result.AssertionResults = assertionResults;
             return result;
@@ -61,10 +54,10 @@ public class HttpStep : BaseStep
 
     private bool ValidateRequiredProperties()
     {
-        return Configuration.TryGetProperty("method", out _) && 
+        return Configuration.TryGetProperty("method", out _) &&
                Configuration.TryGetProperty("url", out _);
     }
-    
+
     private async Task<object> PerformHttpRequest(IExecutionContext context, Stopwatch stopwatch)
     {
         var request = BuildHttpRequest(context);
@@ -257,6 +250,11 @@ public class HttpStep : BaseStep
             .Concat(response.Content.Headers)
             .Select(h => new { name = h.Key, value = string.Join(", ", h.Value) })
             .ToArray();
+    }
+
+    protected override string GetStepDescription()
+    {
+        return "Execute http request";
     }
 }
 

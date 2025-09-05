@@ -1,7 +1,5 @@
-using System.Text.Json;
 using JTest.Core.Execution;
 using JTest.Core.Models;
-using JTest.Core.Steps;
 using JTest.Core.Utilities;
 
 namespace JTest.UnitTests;
@@ -17,10 +15,10 @@ public class CaseContextIntegrationTests
     {
         // Arrange - Simulating the example from problem statement
         var context = new TestExecutionContext();
-        
+
         // Set environment variables
         context.Variables["env"] = new { baseUrl = "https://api.test.com" };
-        
+
         // Set case context as would happen during dataset execution
         var caseData = new Dictionary<string, object>
         {
@@ -33,10 +31,10 @@ public class CaseContextIntegrationTests
         // Act - Test JSONPath expressions from problem statement
         var resolvedUrl = VariableInterpolator.ResolveVariableTokens(
             "{{$.env.baseUrl}}/accounts/{{$.case.accountId}}/orders", context);
-            
+
         var resolvedPayload = VariableInterpolator.ResolveVariableTokens(
             "{{$.case.orderPayload}}", context);
-            
+
         var resolvedTotal = VariableInterpolator.ResolveVariableTokens(
             "{{$.case.expectedTotal}}", context);
 
@@ -52,7 +50,7 @@ public class CaseContextIntegrationTests
         // Arrange - Second dataset from problem statement
         var context = new TestExecutionContext();
         context.Variables["env"] = new { baseUrl = "https://api.test.com" };
-        
+
         var caseData = new Dictionary<string, object>
         {
             ["accountId"] = "acct-1002",
@@ -64,7 +62,7 @@ public class CaseContextIntegrationTests
         // Act
         var resolvedUrl = VariableInterpolator.ResolveVariableTokens(
             "{{$.env.baseUrl}}/accounts/{{$.case.accountId}}/orders", context);
-            
+
         var resolvedTotal = VariableInterpolator.ResolveVariableTokens(
             "{{$.case.expectedTotal}}", context);
 
@@ -82,7 +80,7 @@ public class CaseContextIntegrationTests
             Name = "Order processing",
             Steps = new List<object>
             {
-                new 
+                new
                 {
                     type = "wait",
                     ms = 1
@@ -154,11 +152,11 @@ public class CaseContextIntegrationTests
         // Act - Try to modify case context (this should not affect original)
         var caseContext = context.Variables["case"] as Dictionary<string, object>;
         Assert.NotNull(caseContext);
-        
+
         // Simulating what would happen if step tried to modify case context
         // (This represents immutability from test execution perspective)
         var originalUserId = VariableInterpolator.ResolveVariableTokens("{{$.case.userId}}", context);
-        
+
         // Assert - Case context values remain accessible and unchanged
         Assert.Equal("user123", originalUserId);
         Assert.Equal("user123", caseContext["userId"]);
@@ -172,10 +170,10 @@ public class CaseContextIntegrationTests
         var context = new TestExecutionContext();
         var complexCaseData = new Dictionary<string, object>
         {
-            ["user"] = new 
+            ["user"] = new
             {
                 id = "user123",
-                profile = new 
+                profile = new
                 {
                     email = "test@example.com",
                     preferences = new { theme = "dark", lang = "en" }
@@ -197,7 +195,7 @@ public class CaseContextIntegrationTests
         var userId = VariableInterpolator.ResolveVariableTokens("{{$.case.user.id}}", context);
         var userEmail = VariableInterpolator.ResolveVariableTokens("{{$.case.user.profile.email}}", context);
         var theme = VariableInterpolator.ResolveVariableTokens("{{$.case.user.profile.preferences.theme}}", context);
-        
+
         // Assert
         Assert.Equal("user123", userId);
         Assert.Equal("test@example.com", userEmail);

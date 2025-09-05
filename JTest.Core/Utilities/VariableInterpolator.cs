@@ -1,9 +1,9 @@
+using Json.Path;
+using JTest.Core.Execution;
 using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
-using Json.Path;
-using JTest.Core.Execution;
 
 namespace JTest.Core.Utilities;
 
@@ -31,7 +31,7 @@ public static class VariableInterpolator
     private static object ResolveVariableTokensInternal(string input, IExecutionContext context, int depth)
     {
         if (input == null) return string.Empty;
-        
+
         // Prevent infinite recursion
         if (depth >= MaxNestingDepth)
         {
@@ -41,7 +41,7 @@ public static class VariableInterpolator
 
         var matches = TokenRegex.Matches(input);
         if (matches.Count == 0) return input;
-        
+
         // Check for single token first before resolving nested tokens
         if (IsSingleTokenInput(input, matches))
         {
@@ -51,7 +51,7 @@ public static class VariableInterpolator
         // Resolve nested tokens iteratively from innermost to outermost for multi-token strings
         var resolvedInput = ResolveNestedTokens(input, context, depth);
         var newMatches = TokenRegex.Matches(resolvedInput);
-        
+
         if (newMatches.Count == 0) return resolvedInput;
         return ResolveMultipleTokensRecursive(resolvedInput, newMatches, context, depth);
     }
@@ -249,20 +249,20 @@ public static class VariableInterpolator
     {
         var path = ExtractPath(match.Value);
         var result = ResolveJsonPath(path, context, depth);
-        
+
         // If the result is a string that contains tokens, resolve them recursively
         if (result is string stringResult && TokenRegex.IsMatch(stringResult))
         {
             return ResolveVariableTokensInternal(stringResult, context, depth + 1);
         }
-        
+
         return result;
     }
 
     private static string ResolveMultipleTokensRecursive(string input, MatchCollection matches, IExecutionContext context, int depth)
     {
         var result = input;
-        foreach (Match match in matches) 
+        foreach (Match match in matches)
         {
             result = ReplaceTokenRecursive(result, match, context, depth);
         }
@@ -274,14 +274,14 @@ public static class VariableInterpolator
         var path = ExtractPath(match.Value);
         var value = ResolveJsonPath(path, context, depth);
         var replacement = ConvertToString(value);
-        
+
         // Check if the replacement contains tokens and resolve recursively
         if (TokenRegex.IsMatch(replacement))
         {
             var recursiveResult = ResolveVariableTokensInternal(replacement, context, depth + 1);
             replacement = ConvertToString(recursiveResult);
         }
-        
+
         return input.Replace(match.Value, replacement);
     }
 
@@ -382,30 +382,30 @@ public static class VariableInterpolator
         }
 
         var resolvedDict = new Dictionary<string, object>();
-        
+
         foreach (var kvp in jsonObj)
         {
             var key = kvp.Key;
             var value = kvp.Value;
-            
+
             if (value == null)
             {
                 resolvedDict[key] = null!;
                 continue;
             }
-            
+
             // Recursively resolve the value
             var resolvedValue = ExtractValue(value, context, depth);
-            
+
             // If the resolved value is a string containing tokens, resolve those too
             if (resolvedValue is string stringValue && TokenRegex.IsMatch(stringValue))
             {
                 resolvedValue = ResolveVariableTokensInternal(stringValue, context, depth + 1);
             }
-            
+
             resolvedDict[key] = resolvedValue;
         }
-        
+
         return resolvedDict;
     }
 
@@ -422,7 +422,7 @@ public static class VariableInterpolator
         }
 
         var resolvedList = new List<object>();
-        
+
         foreach (var element in jsonArray)
         {
             if (element == null)
@@ -430,19 +430,19 @@ public static class VariableInterpolator
                 resolvedList.Add(null!);
                 continue;
             }
-            
+
             // Recursively resolve the element
             var resolvedValue = ExtractValue(element, context, depth);
-            
+
             // If the resolved value is a string containing tokens, resolve those too
             if (resolvedValue is string stringValue && TokenRegex.IsMatch(stringValue))
             {
                 resolvedValue = ResolveVariableTokensInternal(stringValue, context, depth + 1);
             }
-            
+
             resolvedList.Add(resolvedValue);
         }
-        
+
         return resolvedList.ToArray();
     }
 

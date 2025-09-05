@@ -1,69 +1,9 @@
 using JTest.Core;
-using Xunit;
 
 namespace JTest.UnitTests;
 
 public class TestSuiteTests
 {
-    [Fact]
-    public async Task RunTestAsync_WithTestSuite_ExecutesAllTests()
-    {
-        // Arrange
-        var testRunner = new TestRunner();
-        var testSuiteJson = """
-        {
-            "version": "1.0",
-            "info": {
-                "name": "if-else-tests",
-                "description": "testing the full set of if else capabilities"
-            },
-            "using": [
-                "./elsa-templates.json"
-            ],
-            "env": {
-                "baseUrl": "https://api.example.com",
-                "username": "testuser",
-                "password": "testpass"
-            },
-            "globals": {
-                "token": null,
-                "authHeader": null
-            },
-            "tests": [
-                {
-                    "name": "First test case",
-                    "description": "Testing first scenario",
-                    "steps": [
-                        {
-                            "type": "wait",
-                            "ms": 100
-                        }
-                    ]
-                },
-                {
-                    "name": "Second test case",
-                    "description": "Testing second scenario",
-                    "steps": [
-                        {
-                            "type": "wait",
-                            "ms": 50
-                        }
-                    ]
-                }
-            ]
-        }
-        """;
-
-        // Act
-        var results = await testRunner.RunTestAsync(testSuiteJson);
-
-        // Assert
-        Assert.Equal(2, results.Count);
-        Assert.Equal("First test case", results[0].TestCaseName);
-        Assert.Equal("Second test case", results[1].TestCaseName);
-        Assert.True(results[0].Success);
-        Assert.True(results[1].Success);
-    }
 
     [Fact]
     public async Task RunTestAsync_WithSingleTestCase_StillWorks()

@@ -1,8 +1,7 @@
-using System.Text.Json;
 using JTest.Core.Execution;
 using JTest.Core.Steps;
 using JTest.Core.Templates;
-using Xunit;
+using System.Text.Json;
 
 namespace JTest.UnitTests;
 
@@ -14,7 +13,7 @@ public class SaveIntegrationTests
         // Arrange - create template matching the auth example from docs
         var templateProvider = new TemplateProvider();
         var stepFactory = new StepFactory(templateProvider);
-        
+
         var templateJson = """
         {
             "version": "1.0",
@@ -39,9 +38,9 @@ public class SaveIntegrationTests
         }
         """;
         templateProvider.LoadTemplatesFromJson(templateJson);
-        
+
         var useStep = new UseStep(templateProvider, stepFactory);
-        
+
         // Configure UseStep exactly as shown in the problem statement
         var config = JsonSerializer.Deserialize<JsonElement>("""
         {
@@ -60,7 +59,7 @@ public class SaveIntegrationTests
         }
         """);
         useStep.ValidateConfiguration(config);
-        
+
         var context = new TestExecutionContext();
         context.Variables["env"] = new Dictionary<string, object>
         {
@@ -75,32 +74,32 @@ public class SaveIntegrationTests
 
         // Assert
         Assert.True(result.Success, $"UseStep execution should succeed. Error: {result.ErrorMessage}");
-        
+
         // Verify template outputs are accessible via {{$.this.outputKey}} pattern
         Assert.Contains("this", context.Variables.Keys);
         var thisResult = Assert.IsType<Dictionary<string, object>>(context.Variables["this"]);
         Assert.Equal("testuser-secret123-token", thisResult["token"]);
         Assert.Equal("Bearer testuser-secret123-token", thisResult["authHeader"]);
-        
+
         // Verify save operations work exactly as specified in the problem statement
         Assert.Contains("globals", context.Variables.Keys);
         var globals = Assert.IsType<Dictionary<string, object>>(context.Variables["globals"]);
         Assert.Equal("testuser-secret123-token", globals["token"]);
         Assert.Equal("Bearer testuser-secret123-token", globals["authHeader"]);
-        
+
         // Verify the saved values can be accessed via JSONPath
-        Assert.Equal("testuser-secret123-token", 
+        Assert.Equal("testuser-secret123-token",
             JTest.Core.Utilities.VariableInterpolator.ResolveVariableTokens("{{$.globals.token}}", context));
-        Assert.Equal("Bearer testuser-secret123-token", 
+        Assert.Equal("Bearer testuser-secret123-token",
             JTest.Core.Utilities.VariableInterpolator.ResolveVariableTokens("{{$.globals.authHeader}}", context));
     }
-    
+
     [Fact]
     public async Task HttpStep_SaveFunctionality_WorksCorrectly()
     {
         // Arrange
         var httpStep = new HttpStep(new HttpClient());
-        
+
         var config = JsonSerializer.Deserialize<JsonElement>("""
         {
             "type": "http",
@@ -112,9 +111,9 @@ public class SaveIntegrationTests
             }
         }
         """);
-        
+
         httpStep.ValidateConfiguration(config);
-        
+
         var context = new TestExecutionContext();
         context.Variables["globals"] = new Dictionary<string, object>();
 
@@ -127,7 +126,7 @@ public class SaveIntegrationTests
         };
 
         // Use reflection to call the protected ProcessSaveOperations method
-        var processMethod = typeof(BaseStep).GetMethod("ProcessSaveOperations", 
+        var processMethod = typeof(BaseStep).GetMethod("ProcessSaveOperations",
             System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
         processMethod?.Invoke(httpStep, new object[] { context });
 

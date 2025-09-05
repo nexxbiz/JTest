@@ -1,9 +1,8 @@
-﻿using System.Text.Json;
-using JTest.Core.Debugging;
-using JTest.Core.Execution;
+﻿using JTest.Core.Execution;
 using JTest.Core.Models;
 using JTest.Core.Steps;
 using JTest.Core.Templates;
+using System.Text.Json;
 
 namespace JTest.Core;
 
@@ -29,7 +28,7 @@ public class TestRunner
     /// Gets the current version of JTest
     /// </summary>
     public string Version => "1.0.0";
-    
+
     /// <summary>
     /// Validates if a JSON test definition is well-formed
     /// </summary>
@@ -39,15 +38,15 @@ public class TestRunner
     {
         if (string.IsNullOrWhiteSpace(jsonDefinition))
             return false;
-            
+
         try
         {
             var jsonDoc = JsonDocument.Parse(jsonDefinition);
             var root = jsonDoc.RootElement;
-            
+
             // Check if this is a test suite
-            if (root.TryGetProperty("version", out _) && 
-                root.TryGetProperty("tests", out var testsElement) && 
+            if (root.TryGetProperty("version", out _) &&
+                root.TryGetProperty("tests", out var testsElement) &&
                 testsElement.ValueKind == JsonValueKind.Array)
             {
                 // Test suite validation
@@ -60,11 +59,11 @@ public class TestRunner
                 // JTest schema validation
                 if (!root.TryGetProperty("name", out _))
                     return false;
-                    
+
                 if (!root.TryGetProperty("steps", out var stepsElement) || stepsElement.ValueKind != JsonValueKind.Array)
                     return false;
             }
-            
+
             return true;
         }
         catch (JsonException)
@@ -78,23 +77,23 @@ public class TestRunner
         // Validate required fields
         if (!root.TryGetProperty("version", out _))
             return false;
-            
+
         if (!root.TryGetProperty("tests", out var testsElement) || testsElement.ValueKind != JsonValueKind.Array)
             return false;
-            
+
         // Validate each test case in the tests array
         foreach (var testElement in testsElement.EnumerateArray())
         {
             if (!testElement.TryGetProperty("name", out _))
                 return false;
-                
+
             if (!testElement.TryGetProperty("steps", out var stepsElement) || stepsElement.ValueKind != JsonValueKind.Array)
                 return false;
         }
-        
+
         return true;
     }
-    
+
     /// <summary>
     /// Runs a test from JSON definition with optional debug logging
     /// </summary>
@@ -104,17 +103,10 @@ public class TestRunner
     /// <param name="debugLogger">Optional debug logger for detailed output</param>
     /// <returns>Test execution results</returns>
     public async Task<List<JTestCaseResult>> RunTestAsync(
-        string jsonDefinition, 
+        string jsonDefinition,
         Dictionary<string, object>? environment = null,
-        Dictionary<string, object>? globals = null,
-        IDebugLogger? debugLogger = null)
+        Dictionary<string, object>? globals = null)
     {
-        // Update executor to use debug logger if provided
-        if (debugLogger != null)
-        {
-            _stepFactory.SetDebugLogger(debugLogger);
-        }
-
         // Detect if this is a test suite or individual test case
         if (IsTestSuite(jsonDefinition))
         {
@@ -127,7 +119,7 @@ public class TestRunner
             return await _executor.ExecuteAsync(testCase, context, 1);
         }
     }
-    
+
     /// <summary>
     /// Creates a basic test template
     /// </summary>
@@ -153,10 +145,10 @@ public class TestRunner
                 }
             }
         };
-        
+
         return JsonSerializer.Serialize(template, new JsonSerializerOptions { WriteIndented = true });
     }
-    
+
     /// <summary>
     /// Loads templates from JSON definition
     /// </summary>
@@ -165,7 +157,7 @@ public class TestRunner
     {
         _templateProvider.LoadTemplatesFromJson(jsonDefinition);
     }
-    
+
     /// <summary>
     /// Gets a welcome message for the JTest tool
     /// </summary>
@@ -174,18 +166,18 @@ public class TestRunner
     {
         return $"Welcome to JTest v{Version} - API Testing Tool";
     }
-    
+
     private JTestCase ParseTestCase(string jsonDefinition)
     {
         var options = new JsonSerializerOptions
         {
             PropertyNameCaseInsensitive = true
         };
-        
+
         var testCase = JsonSerializer.Deserialize<JTestCase>(jsonDefinition, options);
         if (testCase == null)
             throw new ArgumentException("Invalid test case JSON");
-            
+
         return testCase;
     }
 
@@ -195,10 +187,10 @@ public class TestRunner
         {
             var jsonDoc = JsonDocument.Parse(jsonDefinition);
             var root = jsonDoc.RootElement;
-            
+
             // Check if it has the test suite structure (version and tests array)
-            return root.TryGetProperty("version", out _) && 
-                   root.TryGetProperty("tests", out var testsElement) && 
+            return root.TryGetProperty("version", out _) &&
+                   root.TryGetProperty("tests", out var testsElement) &&
                    testsElement.ValueKind == JsonValueKind.Array;
         }
         catch (JsonException)
@@ -208,26 +200,26 @@ public class TestRunner
     }
 
     private async Task<List<JTestCaseResult>> RunTestSuiteAsync(
-        string jsonDefinition, 
+        string jsonDefinition,
         Dictionary<string, object>? environment = null,
         Dictionary<string, object>? globals = null)
     {
         var testSuite = ParseTestSuite(jsonDefinition);
-        
+
         // Merge environment variables (parameter takes precedence)
         var mergedEnvironment = MergeDictionaries(testSuite.Env, environment);
-        
+
         // Merge global variables (parameter takes precedence)
         var mergedGlobals = MergeDictionaries(testSuite.Globals, globals);
-        
+
         // Create temporary context for template loading logging
         var tempContext = CreateExecutionContext(mergedEnvironment, mergedGlobals);
-        
+
         // Load templates from using statement before any test execution
         await LoadTemplatesFromUsingAsync(testSuite.Using, tempContext);
-        
+
         var allResults = new List<JTestCaseResult>();
-        
+
         // Execute each test case in the suite
         int testNumber = 1;
         foreach (var testCase in testSuite.Tests)
@@ -237,7 +229,7 @@ public class TestRunner
             allResults.AddRange(results);
             testNumber++;
         }
-        
+
         return allResults;
     }
 
@@ -247,20 +239,20 @@ public class TestRunner
         {
             PropertyNameCaseInsensitive = true
         };
-        
+
         var testSuite = JsonSerializer.Deserialize<JTestSuite>(jsonDefinition, options);
         if (testSuite == null)
             throw new ArgumentException("Invalid test suite JSON");
-            
+
         return testSuite;
     }
 
     private Dictionary<string, object> MergeDictionaries(
-        Dictionary<string, object>? source, 
+        Dictionary<string, object>? source,
         Dictionary<string, object>? target)
     {
         var result = new Dictionary<string, object>();
-        
+
         // Add source first
         if (source != null)
         {
@@ -269,7 +261,7 @@ public class TestRunner
                 result[kvp.Key] = kvp.Value;
             }
         }
-        
+
         // Add target, overriding source values
         if (target != null)
         {
@@ -278,21 +270,21 @@ public class TestRunner
                 result[kvp.Key] = kvp.Value;
             }
         }
-        
+
         return result;
     }
-    
+
     private TestExecutionContext CreateExecutionContext(
         Dictionary<string, object>? environment = null,
         Dictionary<string, object>? globals = null)
     {
         var context = new TestExecutionContext();
-        
+
         if (environment != null)
         {
             context.Variables["env"] = environment;
         }
-        
+
         if (globals != null)
         {
             context.Variables["globals"] = globals;
@@ -301,9 +293,9 @@ public class TestRunner
         {
             context.Variables["globals"] = new Dictionary<string, object>();
         }
-        
+
         context.Variables["ctx"] = new Dictionary<string, object>();
-        
+
         return context;
     }
 
@@ -324,12 +316,12 @@ public class TestRunner
             try
             {
                 context.Log.Add($"Loading templates from: {path}");
-                
+
                 string templateContent = await LoadContentFromPathAsync(path);
-                
+
                 // Parse to check for template names before loading
                 var templateNames = GetTemplateNamesFromJson(templateContent);
-                
+
                 // Check for overwrites and log warnings
                 foreach (var templateName in templateNames)
                 {
@@ -339,7 +331,7 @@ public class TestRunner
                     }
                     loadedTemplateNames.Add(templateName);
                 }
-                
+
                 _templateProvider.LoadTemplatesFromJson(templateContent);
                 context.Log.Add($"Successfully loaded templates from: {path}");
             }
@@ -389,12 +381,12 @@ public class TestRunner
     private static List<string> GetTemplateNamesFromJson(string jsonContent)
     {
         var names = new List<string>();
-        
+
         try
         {
             using var document = JsonDocument.Parse(jsonContent);
             var root = document.RootElement;
-            
+
             if (root.TryGetProperty("components", out var components) &&
                 components.TryGetProperty("templates", out var templates) &&
                 templates.ValueKind == JsonValueKind.Array)
@@ -413,7 +405,7 @@ public class TestRunner
         {
             // If parsing fails, return empty list - the main loading will handle the error
         }
-        
+
         return names;
     }
 }

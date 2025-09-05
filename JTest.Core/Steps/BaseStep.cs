@@ -1,9 +1,9 @@
-using System.Diagnostics;
-using System.Text.Json;
 using JTest.Core.Assertions;
 using JTest.Core.Debugging;
 using JTest.Core.Execution;
 using JTest.Core.Utilities;
+using System.Diagnostics;
+using System.Text.Json;
 
 namespace JTest.Core.Steps;
 
@@ -16,30 +16,18 @@ public abstract class BaseStep : IStep
     /// Gets the step type identifier
     /// </summary>
     public abstract string Type { get; }
-    
+
     /// <summary>
     /// Gets or sets the step ID for context storage
     /// </summary>
     public string? Id { get; set; }
-    
+
     /// <summary>
     /// Gets the step configuration JSON element
     /// </summary>
     protected JsonElement Configuration { get; private set; }
-    
-    /// <summary>
-    /// Gets the debug logger instance for this step
-    /// </summary>
-    protected IDebugLogger? DebugLogger { get; private set; }
-    
-    /// <summary>
-    /// Sets the debug logger for this step
-    /// </summary>
-    public void SetDebugLogger(IDebugLogger? debugLogger)
-    {
-        DebugLogger = debugLogger;
-    }
-    
+
+
     /// <summary>
     /// Sets the step configuration
     /// </summary>
@@ -47,12 +35,12 @@ public abstract class BaseStep : IStep
     {
         Configuration = configuration;
     }
-    
+
     /// <summary>
     /// Executes the step with the provided context
     /// </summary>
     public abstract Task<StepResult> ExecuteAsync(IExecutionContext context);
-    
+
     /// <summary>
     /// Validates the step configuration from JSON
     /// </summary>
@@ -60,7 +48,7 @@ public abstract class BaseStep : IStep
     {
         return true;
     }
-    
+
     /// <summary>
     /// Processes assertions if present in step configuration
     /// </summary>
@@ -74,7 +62,7 @@ public abstract class BaseStep : IStep
         var processor = new DefaultAssertionProcessor();
         return await processor.ProcessAssertionsAsync(assertElement, context);
     }
-    
+
     /// <summary>
     /// Checks if any assertions failed
     /// </summary>
@@ -82,19 +70,18 @@ public abstract class BaseStep : IStep
     {
         return assertionResults.Any(r => !r.Success);
     }
-    
+
     /// <summary>
     /// Stores step result data in execution context
     /// </summary>
     protected virtual void StoreResultInContext(IExecutionContext context, object data)
     {
         context.Variables["this"] = data;
-        if (!string.IsNullOrEmpty(Id)) context.Variables[Id] = data;
-        
-        // Process save operations if present
+        if (!string.IsNullOrEmpty(Id)) context.Variables[Id] = data; //todo test this
+
         ProcessSaveOperations(context);
     }
-    
+
     /// <summary>
     /// Processes save operations from step configuration
     /// </summary>
@@ -116,7 +103,7 @@ public abstract class BaseStep : IStep
             try
             {
                 var resolvedValue = VariableInterpolator.ResolveVariableTokens(saveProperty.Value.GetString() ?? "", context);
-                
+
                 // Parse the target path to determine where to save
                 var targetPath = saveProperty.Name;
                 ApplySaveOperation(context, targetPath, resolvedValue);
@@ -127,7 +114,7 @@ public abstract class BaseStep : IStep
             }
         }
     }
-    
+
     /// <summary>
     /// Applies a save operation to the execution context
     /// </summary>
@@ -141,13 +128,13 @@ public abstract class BaseStep : IStep
             {
                 var scope = pathParts[0];
                 var key = pathParts[1];
-                
+
                 // Ensure the scope exists as a dictionary
                 if (!context.Variables.ContainsKey(scope))
                 {
                     context.Variables[scope] = new Dictionary<string, object>();
                 }
-                
+
                 if (context.Variables[scope] is Dictionary<string, object> scopeDict)
                 {
                     scopeDict[key] = value;
@@ -169,65 +156,28 @@ public abstract class BaseStep : IStep
             context.Variables[targetPath] = value;
         }
     }
-    
-    /// <summary>
-    /// Logs debug information for step execution
-    /// </summary>
-    protected virtual void LogDebugInformation(IExecutionContext context, Dictionary<string, object> contextBefore, Stopwatch stopwatch, bool success, List<AssertionResult>? assertionResults = null)
-    {
-        if (DebugLogger == null) return;
-        
-        var stepInfo = CreateStepDebugInfo(context, stopwatch, success);
-        var contextChanges = DetectContextChanges(contextBefore, context.Variables);
-        
-        DebugLogger.LogStepExecution(stepInfo);
-        DebugLogger.LogContextChanges(contextChanges);
-        if (assertionResults != null && assertionResults.Count > 0)
-        {
-            DebugLogger.LogAssertionResults(assertionResults);
-        }
-        
-        DebugLogger.LogRuntimeContext(context.Variables);
-    }
-    
-    /// <summary>
-    /// Creates step debug information using context values for test and step numbers
-    /// </summary>
-    protected virtual StepDebugInfo CreateStepDebugInfo(IExecutionContext context, Stopwatch stopwatch, bool success)
-    {
-        return new StepDebugInfo
-        {
-            TestNumber = context.TestNumber,
-            StepNumber = context.StepNumber,
-            StepType = Type,
-            StepId = Id ?? "",
-            Enabled = true,
-            Result = success ? "Success" : "Failed",
-            Duration = stopwatch.Elapsed,
-            Description = GetStepDescription(),
-            TestName = context.TestCaseName // Use TestCaseName as TestName for now
-        };
-    }
-    
+
+
+
     /// <summary>
     /// Gets the step description for debug output. Override in derived classes for custom descriptions.
     /// </summary>
     protected virtual string GetStepDescription()
     {
+        if (!string.IsNullOrEmpty(Id))
+            return "Step id " + Id;
         return "";
     }
-    
+
     /// <summary>
     /// Detects context changes between before and after step execution
     /// </summary>
     protected virtual ContextChanges DetectContextChanges(Dictionary<string, object> before, Dictionary<string, object> after)
     {
         var changes = new ContextChanges();
-        
+
         DetectAddedVariables(before, after, changes);
         DetectModifiedVariables(before, after, changes);
-        GenerateAvailableExpressions(after, changes);
-        
         return changes;
     }
 
@@ -240,8 +190,8 @@ public abstract class BaseStep : IStep
         {
             if (!before.ContainsKey(kvp.Key))
             {
-                var description = DescribeValue(kvp.Value);
-                changes.Added.Add($"`$.{kvp.Key}` = {description}");
+
+                changes.Added.Add(kvp.Key, kvp.Value);
             }
         }
     }
@@ -255,43 +205,14 @@ public abstract class BaseStep : IStep
         {
             if (before.ContainsKey(kvp.Key) && !ReferenceEquals(before[kvp.Key], kvp.Value))
             {
-                var description = DescribeValue(kvp.Value);
-                changes.Modified.Add($"`$.{kvp.Key}` = {description}");
+                changes.Modified.Add(kvp.Key, kvp.Value);
             }
         }
     }
 
-    /// <summary>
-    /// Generates available JSONPath expressions for the context
-    /// </summary>
-    protected virtual void GenerateAvailableExpressions(Dictionary<string, object> context, ContextChanges changes)
-    {
-        foreach (var key in context.Keys)
-        {
-            changes.Available.Add($"$.{key}");
-        }
-    }
 
-    /// <summary>
-    /// Creates a description of a variable value for debug output
-    /// </summary>
-    protected virtual string DescribeValue(object value)
-    {
-        if (value == null) return "null";
-        
-        return value switch
-        {
-            string str when str.Length <= 50 => $"\"{str}\"",
-            string str => $"\"{str[..47]}...\"",
-            bool b => b.ToString().ToLowerInvariant(),
-            int or long or double or float or decimal => value.ToString() ?? "null",
-            Dictionary<string, object> dict => $"{{object with {dict.Count} properties}}",
-            Array array => $"[array with {array.Length} items]",
-            System.Collections.IList list => $"[array with {list.Count} items]",
-            _ => $"{{object of type {value.GetType().Name}}}"
-        };
-    }
-    
+
+
     /// <summary>
     /// Creates a copy of the context variables for change detection
     /// </summary>
@@ -305,53 +226,27 @@ public abstract class BaseStep : IStep
     /// logging debug info, and creating the final step result
     /// </summary>
     protected async Task<StepResult> ProcessStepCompletionAsync(
-        IExecutionContext context, 
-        Dictionary<string, object> contextBefore, 
-        Stopwatch stopwatch, 
-        object resultData, 
-        object? additionalDebugInfo = null)
+        IExecutionContext context,
+        Dictionary<string, object> contextBefore,
+        Stopwatch stopwatch,
+        object resultData)
     {
         // Store result in context and process save operations
         StoreResultInContext(context, resultData);
-        
+
         // Process assertions after storing result data
         var assertionResults = await ProcessAssertionsAsync(context);
-        
+
         // Determine if step should be marked as failed based on assertion results
         var hasFailedAssertions = HasFailedAssertions(assertionResults);
-        
-        // Log debug information with optional additional debug info
-        if (additionalDebugInfo != null)
-        {
-            LogDebugInformationWithAdditionalInfo(context, contextBefore, stopwatch, !hasFailedAssertions, assertionResults, additionalDebugInfo);
-        }
-        else
-        {
-            LogDebugInformation(context, contextBefore, stopwatch, !hasFailedAssertions, assertionResults);
-        }
-        
+
         // Create result - fail if any assertions failed
-        var stepResult = hasFailedAssertions 
+        var stepResult = hasFailedAssertions
             ? StepResult.CreateFailure("One or more assertions failed", stopwatch.ElapsedMilliseconds)
             : StepResult.CreateSuccess(resultData, stopwatch.ElapsedMilliseconds);
-        
+
         stepResult.Data = resultData;
         stepResult.AssertionResults = assertionResults;
         return stepResult;
-    }
-
-    /// <summary>
-    /// Virtual method for logging debug information with additional info - can be overridden by derived classes
-    /// </summary>
-    protected virtual void LogDebugInformationWithAdditionalInfo(
-        IExecutionContext context, 
-        Dictionary<string, object> contextBefore, 
-        Stopwatch stopwatch, 
-        bool success, 
-        List<AssertionResult> assertionResults, 
-        object additionalDebugInfo)
-    {
-        // Default implementation just calls the base method
-        LogDebugInformation(context, contextBefore, stopwatch, success, assertionResults);
     }
 }
