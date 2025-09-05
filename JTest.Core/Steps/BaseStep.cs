@@ -234,6 +234,9 @@ public abstract class BaseStep : IStep
         // Store result in context and process save operations
         StoreResultInContext(context, resultData);
 
+        // Detect context changes after save operations
+        var contextChanges = DetectContextChanges(contextBefore, context.Variables);
+
         // Process assertions after storing result data
         var assertionResults = await ProcessAssertionsAsync(context);
 
@@ -247,6 +250,7 @@ public abstract class BaseStep : IStep
 
         stepResult.Data = resultData;
         stepResult.AssertionResults = assertionResults;
+        stepResult.ContextChanges = contextChanges;
         return stepResult;
     }
 }

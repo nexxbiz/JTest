@@ -1,4 +1,5 @@
 using JTest.Core.Assertions;
+using JTest.Core.Debugging;
 
 namespace JTest.Core.Steps;
 
@@ -31,6 +32,11 @@ public class StepResult
     /// Gets or sets the assertion results from step execution
     /// </summary>
     public List<AssertionResult> AssertionResults { get; set; } = new();
+
+    /// <summary>
+    /// Gets or sets the context changes from step execution (saved values)
+    /// </summary>
+    public ContextChanges? ContextChanges { get; set; }
 
     /// <summary>
     /// Creates a successful step result

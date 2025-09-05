@@ -1,6 +1,7 @@
 using JTest.Core.Models;
 using JTest.Core.Steps;
 using JTest.Core.Assertions;
+using JTest.Core.Debugging;
 using System.Text;
 
 namespace JTest.Core.Converters;
@@ -67,6 +68,7 @@ public class ResultsToMarkdownConverter
             content.AppendLine($"  - **Error:** {step.ErrorMessage}");
         }
         
+        AppendSavedValues(content, step.ContextChanges);
         AppendAssertionResults(content, step.AssertionResults);
     }
 
@@ -113,5 +115,55 @@ public class ResultsToMarkdownConverter
         {
             content.AppendLine($"      - **Error:** {assertion.ErrorMessage}");
         }
+    }
+
+    private void AppendSavedValues(StringBuilder content, ContextChanges? contextChanges)
+    {
+        if (contextChanges == null) return;
+        if (contextChanges.Added.Count == 0 && contextChanges.Modified.Count == 0) return;
+        
+        content.AppendLine("  - **Saved Values:**");
+        AppendSavedVariables(content, contextChanges.Added, "Added");
+        AppendSavedVariables(content, contextChanges.Modified, "Modified");
+    }
+
+    private void AppendSavedVariables(StringBuilder content, Dictionary<string, object> variables, string category)
+    {
+        if (variables.Count == 0) return;
+        
+        foreach (var variable in variables)
+        {
+            if (ShouldSkipVariable(variable.Key)) continue;
+            AppendSingleSavedVariable(content, variable, category);
+        }
+    }
+
+    private bool ShouldSkipVariable(string variableName)
+    {
+        // Skip internal variables that are not user-created
+        return variableName.Equals("this", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private void AppendSingleSavedVariable(StringBuilder content, KeyValuePair<string, object> variable, string category)
+    {
+        var valueDisplay = FormatVariableValue(variable.Value);
+        content.AppendLine($"    - **{category}:** {variable.Key} = {valueDisplay}");
+    }
+
+    private string FormatVariableValue(object value)
+    {
+        if (value == null) return "null";
+        if (value is string str) return $"\"{str}\"";
+        if (value is Dictionary<string, object> dict) return FormatDictionary(dict);
+        if (value.GetType().IsValueType) return value.ToString() ?? "null";
+        return value.ToString() ?? "null";
+    }
+
+    private string FormatDictionary(Dictionary<string, object> dict)
+    {
+        if (dict.Count == 0) return "{}";
+        if (dict.Count > 3) return $"{{...{dict.Count} properties...}}";
+        var items = dict.Take(3).Select(kvp => $"{kvp.Key}: {FormatVariableValue(kvp.Value)}");
+        return $"{{{string.Join(", ", items)}}}";
     }
 }
