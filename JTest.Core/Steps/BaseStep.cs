@@ -102,7 +102,7 @@ public abstract class BaseStep : IStep
         {
             try
             {
-                var resolvedValue = VariableInterpolator.ResolveVariableTokens(saveProperty.Value.GetString() ?? "", context);
+                var resolvedValue = GetSaveValue(saveProperty.Value, context);
 
                 // Parse the target path to determine where to save
                 var targetPath = saveProperty.Name;
@@ -252,5 +252,67 @@ public abstract class BaseStep : IStep
         stepResult.AssertionResults = assertionResults;
         stepResult.ContextChanges = contextChanges;
         return stepResult;
+    }
+
+    /// <summary>
+    /// Gets the save value from JSON element, handling different value types
+    /// </summary>
+    protected virtual object GetSaveValue(JsonElement element, IExecutionContext context)
+    {
+        return element.ValueKind switch
+        {
+            JsonValueKind.String => VariableInterpolator.ResolveVariableTokens(element.GetString() ?? "", context),
+            JsonValueKind.Number => element.TryGetInt32(out var intValue) ? intValue : element.GetDouble(),
+            JsonValueKind.True => true,
+            JsonValueKind.False => false,
+            JsonValueKind.Null => null,
+            JsonValueKind.Object => JsonElementToDictionary(element),
+            JsonValueKind.Array => JsonElementToArray(element),
+            _ => element.GetString() ?? ""
+        };
+    }
+
+    /// <summary>
+    /// Converts JSON object to dictionary
+    /// </summary>
+    protected virtual Dictionary<string, object> JsonElementToDictionary(JsonElement element)
+    {
+        var dictionary = new Dictionary<string, object>();
+        foreach (var property in element.EnumerateObject())
+        {
+            dictionary[property.Name] = GetValueFromJsonElement(property.Value);
+        }
+        return dictionary;
+    }
+
+    /// <summary>
+    /// Converts JSON array to object array
+    /// </summary>
+    protected virtual object[] JsonElementToArray(JsonElement element)
+    {
+        var list = new List<object>();
+        foreach (var item in element.EnumerateArray())
+        {
+            list.Add(GetValueFromJsonElement(item));
+        }
+        return list.ToArray();
+    }
+
+    /// <summary>
+    /// Gets value from JSON element without variable interpolation
+    /// </summary>
+    protected virtual object GetValueFromJsonElement(JsonElement element)
+    {
+        return element.ValueKind switch
+        {
+            JsonValueKind.String => element.GetString() ?? "",
+            JsonValueKind.Number => element.TryGetInt32(out var intValue) ? intValue : element.GetDouble(),
+            JsonValueKind.True => true,
+            JsonValueKind.False => false,
+            JsonValueKind.Null => null,
+            JsonValueKind.Object => JsonElementToDictionary(element),
+            JsonValueKind.Array => JsonElementToArray(element),
+            _ => element.GetString() ?? ""
+        };
     }
 }

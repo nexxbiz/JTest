@@ -3,6 +3,7 @@ using JTest.Core.Steps;
 using JTest.Core.Assertions;
 using JTest.Core.Debugging;
 using System.Text;
+using System.Text.Json;
 
 namespace JTest.Core.Converters;
 
@@ -154,16 +155,27 @@ public class ResultsToMarkdownConverter
     {
         if (value == null) return "null";
         if (value is string str) return $"\"{str}\"";
-        if (value is Dictionary<string, object> dict) return FormatDictionary(dict);
         if (value.GetType().IsValueType) return value.ToString() ?? "null";
-        return value.ToString() ?? "null";
+        
+        return FormatComplexValue(value);
     }
-
-    private string FormatDictionary(Dictionary<string, object> dict)
+    
+    private string FormatComplexValue(object value)
     {
-        if (dict.Count == 0) return "{}";
-        if (dict.Count > 3) return $"{{...{dict.Count} properties...}}";
-        var items = dict.Take(3).Select(kvp => $"{kvp.Key}: {FormatVariableValue(kvp.Value)}");
-        return $"{{{string.Join(", ", items)}}}";
+        try
+        {
+            var options = new JsonSerializerOptions
+            {
+                WriteIndented = true,
+                PropertyNamingPolicy = null
+            };
+            
+            var json = JsonSerializer.Serialize(value, options);
+            return $"\n```json\n{json}\n```";
+        }
+        catch
+        {
+            return value.ToString() ?? "null";
+        }
     }
 }
