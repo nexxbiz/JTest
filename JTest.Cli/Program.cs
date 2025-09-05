@@ -1,5 +1,6 @@
 ﻿using JTest.Core;
 using JTest.Core.Models;
+using JTest.Core.Converters;
 using System.Text;
 using System.Text.Json;
 
@@ -565,7 +566,8 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
 
                 // Add debug output to markdown content
                 markdownContent.AppendLine("## Test Execution");
-                // todo get a convertion results to markdown. and add it here
+                var converter = new ResultsToMarkdownConverter();
+                markdownContent.Append(converter.ConvertToMarkdown(results));
 
                 // Calculate results summary
                 var totalSuccess = 0;
