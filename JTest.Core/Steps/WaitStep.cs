@@ -44,7 +44,7 @@ public class WaitStep : BaseStep
         // Still process assertions even when wait step fails
         var assertionResults = ProcessAssertionsAsync(context).Result;
 
-        var result = StepResult.CreateFailure($"Wait step failed: {ex.Message}", stopwatch.ElapsedMilliseconds);
+        var result = StepResult.CreateFailure(this, $"Wait step failed: {ex.Message}", stopwatch.ElapsedMilliseconds);
         result.AssertionResults = assertionResults;
         return result;
     }
@@ -131,12 +131,12 @@ public class WaitStep : BaseStep
         // Still process assertions even when validation fails
         var assertionResults = await ProcessAssertionsAsync(context);
 
-        var result = StepResult.CreateFailure("Invalid ms value: must be a positive integer");
+        var result = StepResult.CreateFailure(this,"Invalid ms value: must be a positive integer");
         result.AssertionResults = assertionResults;
         return result;
     }
 
-    protected override string GetStepDescription()
+    public override string GetStepDescription()
     {
         if (Configuration.TryGetProperty("ms", out var msProperty))
         {

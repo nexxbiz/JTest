@@ -162,7 +162,7 @@ public abstract class BaseStep : IStep
     /// <summary>
     /// Gets the step description for debug output. Override in derived classes for custom descriptions.
     /// </summary>
-    protected virtual string GetStepDescription()
+    public virtual string GetStepDescription()
     {
         if (!string.IsNullOrEmpty(Id))
             return "Step id " + Id;
@@ -245,8 +245,8 @@ public abstract class BaseStep : IStep
 
         // Create result - fail if any assertions failed
         var stepResult = hasFailedAssertions
-            ? StepResult.CreateFailure("One or more assertions failed", stopwatch.ElapsedMilliseconds)
-            : StepResult.CreateSuccess(resultData, stopwatch.ElapsedMilliseconds);
+            ? StepResult.CreateFailure(this,"One or more assertions failed", stopwatch.ElapsedMilliseconds)
+            : StepResult.CreateSuccess(this, resultData, stopwatch.ElapsedMilliseconds);
 
         stepResult.Data = resultData;
         stepResult.AssertionResults = assertionResults;
@@ -315,4 +315,6 @@ public abstract class BaseStep : IStep
             _ => element.GetString() ?? ""
         };
     }
+
+    
 }

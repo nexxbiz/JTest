@@ -1,5 +1,6 @@
 using JTest.Core.Assertions;
 using JTest.Core.Debugging;
+using System.Runtime.CompilerServices;
 
 namespace JTest.Core.Steps;
 
@@ -9,9 +10,19 @@ namespace JTest.Core.Steps;
 public class StepResult
 {
     /// <summary>
+    ///  Stores the step that produced this result
+    /// </summary>
+    public required IStep Step { get; set; }
+    
+    /// <summary>
     /// Gets or sets whether the step execution was successful
     /// </summary>
     public bool Success { get; set; }
+
+    /// <summary>
+    /// Gets or sets detailed description 
+    /// </summary>
+    public string DetailedDescription { get; set; } = string.Empty;
 
     /// <summary>
     /// Gets or sets the error message if execution failed
@@ -41,17 +52,17 @@ public class StepResult
     /// <summary>
     /// Creates a successful step result
     /// </summary>
-    public static StepResult CreateSuccess(object? data = null, long durationMs = 0)
+    public static StepResult CreateSuccess(IStep step,object? data = null, long durationMs = 0)
     {
-        return new StepResult { Success = true, Data = data, DurationMs = durationMs };
+        return new StepResult { Step = step, Success = true, Data = data, DurationMs = durationMs };
     }
 
     /// <summary>
     /// Creates a failed step result
     /// </summary>
-    public static StepResult CreateFailure(string errorMessage, long durationMs = 0)
+    public static StepResult CreateFailure( IStep step, string errorMessage, long durationMs = 0)
     {
-        return new StepResult { Success = false, ErrorMessage = errorMessage, DurationMs = durationMs };
+        return new StepResult { Step = step, Success = false, ErrorMessage = errorMessage, DurationMs = durationMs };
     }
 
     public string DetailedAssertionFailures
@@ -61,4 +72,8 @@ public class StepResult
             return String.Join('-', AssertionResults.Where(a => a.Success == false).Select(a => a.ErrorMessage));
         }
     }
+    /// <summary>
+    /// List of inner step results if this step contains nested steps (e.g., a template step)
+    /// </summary>
+    public List<StepResult> InnerResults { get; internal set; } = new();    
 }

@@ -27,4 +27,11 @@ public interface IStep
     /// Validates the step configuration from JSON
     /// </summary>
     bool ValidateConfiguration(JsonElement configuration);
+
+    /// <summary>
+    /// returns a string description for logging purposes
+    /// </summary>
+    /// <returns></returns>
+    string GetStepDescription();
+
 }

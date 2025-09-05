@@ -263,7 +263,12 @@ public class MockHttpStep : IStep
             context.Variables["orderId"] = "ORDER123";
         }
 
-        return Task.FromResult(StepResult.CreateSuccess(responseData, 100));
+        return Task.FromResult(StepResult.CreateSuccess(this,responseData, 100));
+    }
+
+    public string GetStepDescription()
+    {
+        return "Mock";
     }
 }
 
@@ -280,6 +285,11 @@ public class MockWaitStep : IStep
     public Task<StepResult> ExecuteAsync(IExecutionContext context)
     {
         var resultData = new { delayMs = 1, executedAt = DateTime.UtcNow };
-        return Task.FromResult(StepResult.CreateSuccess(resultData, 1));
+        return Task.FromResult(StepResult.CreateSuccess(this, resultData, 1));
+    }
+
+    public string GetStepDescription()
+    {
+        return "Mock wait";
     }
 }

@@ -12,6 +12,7 @@ namespace JTest.Core.Steps;
 public class HttpStep : BaseStep
 {
     private readonly HttpClient _httpClient;
+    private string _stepDescription = "";
 
     public HttpStep(HttpClient httpClient)
     {
@@ -36,7 +37,10 @@ public class HttpStep : BaseStep
             stopwatch.Stop();
 
             // Use common step completion logic from BaseStep
-            return await ProcessStepCompletionAsync(context, contextBefore, stopwatch, responseData);
+            var result = await ProcessStepCompletionAsync(context, contextBefore, stopwatch, responseData);
+
+            _stepDescription = $"HTTP {GetResolvedMethod(context)} {GetResolvedUrl(context)}";
+            return result;
         }
         catch (Exception ex)
         {
@@ -46,7 +50,7 @@ public class HttpStep : BaseStep
             // Still process assertions even when HTTP request fails - this provides valuable debugging info
             var assertionResults = await ProcessAssertionsAsync(context);
 
-            var result = StepResult.CreateFailure(ex.Message, stopwatch.ElapsedMilliseconds);
+            var result = StepResult.CreateFailure(this, ex.Message, stopwatch.ElapsedMilliseconds);
             result.AssertionResults = assertionResults;
             return result;
         }
@@ -252,9 +256,9 @@ public class HttpStep : BaseStep
             .ToArray();
     }
 
-    protected override string GetStepDescription()
+    public override string GetStepDescription()
     {
-        return "Execute http request";
+        return _stepDescription;
     }
 }
 

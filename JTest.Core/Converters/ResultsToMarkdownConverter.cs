@@ -24,6 +24,8 @@ public class ResultsToMarkdownConverter
 
     private void AppendTestCaseResult(StringBuilder content, JTestCaseResult result)
     {
+        content.AppendLine($"---");
+        content.AppendLine();
         content.AppendLine($"### Test: {result.TestCaseName}");
         content.AppendLine();
         
@@ -63,7 +65,10 @@ public class ResultsToMarkdownConverter
     {
         var status = step.Success ? "PASSED" : "FAILED";
         content.AppendLine($"- **Step:** {status} ({step.DurationMs}ms)");
-        
+        if (!string.IsNullOrEmpty(step.DetailedDescription))
+        {
+            content.AppendLine(step.DetailedDescription);
+        }
         if (!step.Success && !string.IsNullOrEmpty(step.ErrorMessage))
         {
             content.AppendLine($"  - **Error:** {step.ErrorMessage}");
@@ -171,7 +176,9 @@ public class ResultsToMarkdownConverter
             };
             
             var json = JsonSerializer.Serialize(value, options);
-            return $"\n```json\n{json}\n```";
+            return $"\n<details><summary>show</summary>\n\n```json\n{json}\n```\n</details>\n";
+
+
         }
         catch
         {

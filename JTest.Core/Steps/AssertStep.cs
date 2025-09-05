@@ -67,8 +67,8 @@ public class AssertStep : BaseStep
 
         // Create result - fail if any assertions failed
         var result = hasFailedAssertions
-            ? StepResult.CreateFailure("One or more assertions failed", stopwatch.ElapsedMilliseconds)
-            : StepResult.CreateSuccess(resultData, stopwatch.ElapsedMilliseconds);
+            ? StepResult.CreateFailure(this,"One or more assertions failed", stopwatch.ElapsedMilliseconds)
+            : StepResult.CreateSuccess(this,resultData, stopwatch.ElapsedMilliseconds);
 
         result.Data = resultData;
         result.AssertionResults = assertionResults;
@@ -79,11 +79,11 @@ public class AssertStep : BaseStep
     private StepResult HandleExecutionError(Exception ex, Stopwatch stopwatch)
     {
         stopwatch.Stop();
-        return StepResult.CreateFailure($"Assert step failed: {ex.Message}", stopwatch.ElapsedMilliseconds);
+        return StepResult.CreateFailure(this,$"Assert step failed: {ex.Message}", stopwatch.ElapsedMilliseconds);
     }
 
-    protected override string GetStepDescription()
+    public override string GetStepDescription()
     {
-        return "Execute assertions";
+        return $"Execute assertions";
     }
 }

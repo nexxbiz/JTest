@@ -44,7 +44,7 @@ public class UseStep : BaseStep
 
         try
         {
-            var result = await ExecuteTemplateAsync(context, stopwatch);
+            var (result, innerStepResults) = await ExecuteTemplateAsync(context, stopwatch);
             stopwatch.Stop();
 
             // Store result in context and process save operations (consistent with other steps)
@@ -54,7 +54,9 @@ public class UseStep : BaseStep
             //CaptureSavedVariables(context, contextBefore, templateInfo);
 
             // Use common step completion logic from BaseStep
-            return await ProcessStepCompletionAsync(context, contextBefore, stopwatch, result);
+            var stepResult = await ProcessStepCompletionAsync(context, contextBefore, stopwatch, result);
+            stepResult.InnerResults = innerStepResults;
+            return stepResult;
         }
         catch (Exception ex)
         {
@@ -64,13 +66,13 @@ public class UseStep : BaseStep
             // Still process assertions even when template execution fails  
             var assertionResults = await ProcessAssertionsAsync(context);
 
-            var result = StepResult.CreateFailure(ex.Message, stopwatch.ElapsedMilliseconds);
+            var result = StepResult.CreateFailure(this, ex.Message, stopwatch.ElapsedMilliseconds);
             result.AssertionResults = assertionResults;
             return result;
         }
     }
 
-    private async Task<object> ExecuteTemplateAsync(IExecutionContext context, Stopwatch stopwatch)
+    private async Task<(object, List<StepResult>)> ExecuteTemplateAsync(IExecutionContext context, Stopwatch stopwatch)
     {
         // Get template name
         var templateName = Configuration.GetProperty("template").GetString()
@@ -94,16 +96,14 @@ public class UseStep : BaseStep
             }
         }
 
-
-
         // Execute template steps
         var templateResults = new List<object>();
-
+        var innerStepResults = new List<StepResult>();
         foreach (var stepConfig in template.Steps)
         {
             var step = _stepFactory.CreateStep(stepConfig);
             var stepResult = await step.ExecuteAsync(templateContext);
-
+            innerStepResults.Add(stepResult);   
             if (!stepResult.Success)
             {
                 throw new InvalidOperationException($"Template step failed: {stepResult.ErrorMessage} - {stepResult.DetailedAssertionFailures}");
@@ -121,7 +121,7 @@ public class UseStep : BaseStep
         resultData["templateName"] = templateName;
         resultData["steps"] = templateResults.Count;
 
-        return resultData;
+        return (resultData, innerStepResults);
     }
     private TestExecutionContext CreateIsolatedTemplateContext(IExecutionContext parentContext, Template template)
     {
@@ -310,7 +310,7 @@ public class UseStep : BaseStep
         };
     }
 
-    protected override string GetStepDescription()
+    public override string GetStepDescription()
     {
         var templateName = Configuration.TryGetProperty("template", out var templateElement)
             ? templateElement.GetString() ?? "unknown"
