@@ -338,12 +338,12 @@ Error: Cannot compare string with number
 {
     "assert": [
         {
-            "op": "is_type",
+            "op": "type",
             "actualValue": "{{$.this.body.count}}",
             "expectedValue": "number"
         },
         {
-            "op": "greater_than",
+            "op": "greaterthan",
             "actualValue": "{{$.this.body.count}}",
             "expectedValue": 0
         }
@@ -362,7 +362,7 @@ Error: Cannot compare string with number
 
 // For numbers
 {
-    "op": "greater_than",
+    "op": "greaterthan",
     "actualValue": "{{$.this.body.count}}",
     "expectedValue": 0
 }

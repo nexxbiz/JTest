@@ -73,12 +73,12 @@ Exact equality comparison:
 }
 ```
 
-#### `not_equals`
+#### `notequals`
 Inequality comparison:
 
 ```json
 {
-    "op": "not_equals",
+    "op": "notequals",
     "actualValue": "{{$.this.body.error}}",
     "expectedValue": null
 }
@@ -117,57 +117,57 @@ Verifies a value exists (is not null, undefined, or empty):
 }
 ```
 
-#### `not_exists`
+#### `notexists`
 Verifies a value does not exist:
 
 ```json
 {
-    "op": "not_exists",
+    "op": "notexists",
     "actualValue": "{{$.this.body.error}}"
 }
 ```
 
 ### Numeric Comparisons
 
-#### `greater_than`
+#### `greaterthan`
 Numeric greater than comparison:
 
 ```json
 {
-    "op": "greater_than",
+    "op": "greaterthan",
     "actualValue": "{{$.this.body.price}}",
     "expectedValue": 0
 }
 ```
 
-#### `less_than`
+#### `lessthan`
 Numeric less than comparison:
 
 ```json
 {
-    "op": "less_than",
+    "op": "lessthan",
     "actualValue": "{{$.this.body.responseTime}}",
     "expectedValue": 1000
 }
 ```
 
-#### `greater_than_or_equal`
+#### `greaterorequal`
 Greater than or equal comparison:
 
 ```json
 {
-    "op": "greater_than_or_equal",
+    "op": "greaterorequal",
     "actualValue": "{{$.this.body.items.length}}",
     "expectedValue": 1
 }
 ```
 
-#### `less_than_or_equal`
+#### `lessorequal`
 Less than or equal comparison:
 
 ```json
 {
-    "op": "less_than_or_equal",
+    "op": "lessorequal",
     "actualValue": "{{$.this.body.age}}",
     "expectedValue": 120
 }
@@ -210,34 +210,34 @@ String substring check:
 }
 ```
 
-#### `not_contains`
+#### `notcontains`
 String does not contain substring:
 
 ```json
 {
-    "op": "not_contains",
+    "op": "notcontains",
     "actualValue": "{{$.this.body.description}}",
     "expectedValue": "deprecated"
 }
 ```
 
-#### `starts_with`
+#### `startswith`
 String starts with prefix:
 
 ```json
 {
-    "op": "starts_with",
+    "op": "startswith",
     "actualValue": "{{$.this.body.id}}",
     "expectedValue": "user_"
 }
 ```
 
-#### `ends_with`
+#### `endswith`
 String ends with suffix:
 
 ```json
 {
-    "op": "ends_with",
+    "op": "endswith",
     "actualValue": "{{$.this.body.filename}}",
     "expectedValue": ".json"
 }
@@ -322,25 +322,99 @@ Value exists in array or string:
 }
 ```
 
-#### `not_in`
-Value does not exist in array:
+#### `length`
+Validates collection or string length:
 
 ```json
 {
-    "op": "not_in",
-    "actualValue": "{{$.this.body.status}}",
-    "expectedValue": ["error", "failed", "disabled"]
+    "op": "length",
+    "actualValue": "{{$.this.body.items}}",
+    "expectedValue": 5
+}
+```
+
+**Examples:**
+```json
+// Array length
+{
+    "op": "length",
+    "actualValue": "{{$.this.body.users}}",
+    "expectedValue": 10
+}
+
+// String length
+{
+    "op": "length",
+    "actualValue": "{{$.this.body.username}}",
+    "expectedValue": 8
+}
+```
+
+#### `empty`
+Validates that collection or string is empty:
+
+```json
+{
+    "op": "empty",
+    "actualValue": "{{$.this.body.errors}}"
+}
+```
+
+#### `notempty`
+Validates that collection or string is not empty:
+
+```json
+{
+    "op": "notempty",
+    "actualValue": "{{$.this.body.data}}"
+}
+```
+
+### Range Operations
+
+#### `between`
+Validates numeric value is within range:
+
+```json
+{
+    "op": "between",
+    "actualValue": "{{$.this.body.age}}",
+    "expectedValue": [18, 65]
+}
+```
+
+**Examples:**
+```json
+// Age validation
+{
+    "op": "between",
+    "actualValue": "{{$.this.body.user.age}}",
+    "expectedValue": [18, 120]
+}
+
+// Score validation
+{
+    "op": "between",
+    "actualValue": "{{$.this.body.score}}",
+    "expectedValue": [0, 100]
+}
+
+// Response time validation
+{
+    "op": "between",
+    "actualValue": "{{$.this.responseTime}}",
+    "expectedValue": [100, 2000]
 }
 ```
 
 ### Type Validation
 
-#### `is_type`
+#### `type`
 Validates the data type:
 
 ```json
 {
-    "op": "is_type",
+    "op": "type",
     "actualValue": "{{$.this.body.count}}",
     "expectedValue": "number"
 }
@@ -360,22 +434,22 @@ Validates the data type:
 {
     "assert": [
         {
-            "op": "is_type",
+            "op": "type",
             "actualValue": "{{$.this.body.user}}",
             "expectedValue": "object"
         },
         {
-            "op": "is_type",
+            "op": "type",
             "actualValue": "{{$.this.body.items}}",
             "expectedValue": "array"
         },
         {
-            "op": "is_type",
+            "op": "type",
             "actualValue": "{{$.this.body.count}}",
             "expectedValue": "number"
         },
         {
-            "op": "is_type",
+            "op": "type",
             "actualValue": "{{$.this.body.isActive}}",
             "expectedValue": "boolean"
         }
@@ -395,7 +469,7 @@ Validates the data type:
             "actualValue": "{{$.this.body.user}}"
         },
         {
-            "op": "is_type",
+            "op": "type",
             "actualValue": "{{$.this.body.user}}",
             "expectedValue": "object"
         },
@@ -404,7 +478,7 @@ Validates the data type:
             "actualValue": "{{$.this.body.user.id}}"
         },
         {
-            "op": "is_type",
+            "op": "type",
             "actualValue": "{{$.this.body.user.id}}",
             "expectedValue": "string"
         },
@@ -436,12 +510,12 @@ Validates the data type:
             "actualValue": "{{$.this.body.items}}"
         },
         {
-            "op": "is_type",
+            "op": "type",
             "actualValue": "{{$.this.body.items}}",
             "expectedValue": "array"
         },
         {
-            "op": "greater_than",
+            "op": "greaterthan",
             "actualValue": "{{$.this.body.items.length}}",
             "expectedValue": 0
         },
@@ -450,7 +524,7 @@ Validates the data type:
             "actualValue": "{{$.this.body.items[0].id}}"
         },
         {
-            "op": "is_type",
+            "op": "type",
             "actualValue": "{{$.this.body.items[0].id}}",
             "expectedValue": "string"
         }
@@ -472,7 +546,7 @@ Validates the data type:
             "actualValue": "{{$.this.body.endDate}}"
         },
         {
-            "op": "greater_than",
+            "op": "greaterthan",
             "actualValue": "{{$.this.body.endDate}}",
             "expectedValue": "{{$.this.body.startDate}}"
         }
@@ -519,7 +593,7 @@ Validates the data type:
             "actualValue": "{{$.this.body.error.message}}"
         },
         {
-            "op": "is_type",
+            "op": "type",
             "actualValue": "{{$.this.body.error.message}}",
             "expectedValue": "string"
         }
@@ -542,12 +616,12 @@ Validates the data type:
             "actualValue": "{{$.this.body.errors}}"
         },
         {
-            "op": "is_type",
+            "op": "type",
             "actualValue": "{{$.this.body.errors}}",
             "expectedValue": "array"
         },
         {
-            "op": "greater_than",
+            "op": "greaterthan",
             "actualValue": "{{$.this.body.errors.length}}",
             "expectedValue": 0
         },
@@ -571,7 +645,7 @@ Validates the data type:
 {
     "assert": [
         {
-            "op": "less_than",
+            "op": "lessthan",
             "actualValue": "{{$.this.responseTime}}",
             "expectedValue": 1000
         }
@@ -585,12 +659,12 @@ Validates the data type:
 {
     "assert": [
         {
-            "op": "less_than_or_equal",
+            "op": "lessorequal",
             "actualValue": "{{$.this.body.items.length}}",
             "expectedValue": 100
         },
         {
-            "op": "greater_than",
+            "op": "greaterthan",
             "actualValue": "{{$.this.body.data.length}}",
             "expectedValue": 0
         }
@@ -654,7 +728,7 @@ Add descriptive error messages to assertions:
             "actualValue": "{{$.this.body.user}}"
         },
         {
-            "op": "is_type",
+            "op": "type",
             "actualValue": "{{$.this.body.user}}",
             "expectedValue": "object"
         },
@@ -781,7 +855,7 @@ Add descriptive error messages to assertions:
             "actualValue": "{{$.this.body}}"
         },
         {
-            "op": "is_type",
+            "op": "type",
             "actualValue": "{{$.this.body}}",
             "expectedValue": "object"
         }
@@ -799,7 +873,7 @@ Add descriptive error messages to assertions:
             "actualValue": "{{$.this.body.data}}"
         },
         {
-            "op": "is_type",
+            "op": "type",
             "actualValue": "{{$.this.body.data}}",
             "expectedValue": "array"
         },
@@ -816,7 +890,7 @@ Add descriptive error messages to assertions:
             "actualValue": "{{$.this.body.pagination.total}}"
         },
         {
-            "op": "greater_than_or_equal",
+            "op": "greaterorequal",
             "actualValue": "{{$.this.body.pagination.total}}",
             "expectedValue": "{{$.this.body.data.length}}"
         }
@@ -838,12 +912,12 @@ Add descriptive error messages to assertions:
             "actualValue": "{{$.this.body.order.items}}"
         },
         {
-            "op": "greater_than",
+            "op": "greaterthan",
             "actualValue": "{{$.this.body.order.items.length}}",
             "expectedValue": 0
         },
         {
-            "op": "greater_than",
+            "op": "greaterthan",
             "actualValue": "{{$.this.body.order.total}}",
             "expectedValue": 0
         },
@@ -873,7 +947,7 @@ Error: Cannot resolve path $.this.body.user.id
 Error: Cannot compare string with number
 ```
 - Use appropriate assertion operations for data types
-- Check actual data types with `is_type` first
+- Check actual data types with `type` first
 - Convert types if necessary
 
 **Regular Expression Errors:**
@@ -919,7 +993,7 @@ Error: Invalid regular expression
 {
     "assert": [
         {"op": "exists", "actualValue": "{{$.this.body}}"},
-        {"op": "is_type", "actualValue": "{{$.this.body}}", "expectedValue": "object"}
+        {"op": "type", "actualValue": "{{$.this.body}}", "expectedValue": "object"}
     ]
 }
 
@@ -927,7 +1001,7 @@ Error: Invalid regular expression
 {
     "assert": [
         {"op": "exists", "actualValue": "{{$.this.body}}"},
-        {"op": "is_type", "actualValue": "{{$.this.body}}", "expectedValue": "object"},
+        {"op": "type", "actualValue": "{{$.this.body}}", "expectedValue": "object"},
         {"op": "exists", "actualValue": "{{$.this.body.user}}"}
     ]
 }

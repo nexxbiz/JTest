@@ -439,7 +439,7 @@ Handle optional dependencies gracefully:
 {
     "assert": [
         {
-            "op": "less_than",
+            "op": "lessthan",
             "actualValue": "{{$.this.responseTime}}",
             "expectedValue": 2000,
             "message": "Response time should be under 2 seconds"
@@ -469,7 +469,7 @@ Handle optional dependencies gracefully:
                     "type": "assert",
                     "assert": [
                         {
-                            "op": "less_than",
+                            "op": "lessthan",
                             "actualValue": "{{$.this.totalTime}}",
                             "expectedValue": 5000
                         }
@@ -508,7 +508,7 @@ Follow this order for assertions:
             "actualValue": "{{$.this.body}}"
         },
         {
-            "op": "is_type",
+            "op": "type",
             "actualValue": "{{$.this.body}}",
             "expectedValue": "object"
         },
@@ -523,7 +523,7 @@ Follow this order for assertions:
         },
         // 4. Data types
         {
-            "op": "is_type",
+            "op": "type",
             "actualValue": "{{$.this.body.user.id}}",
             "expectedValue": "string"
         },
@@ -717,17 +717,17 @@ Follow this order for assertions:
             "actualValue": "{{$.this.body.token}}"
         },
         {
-            "op": "is_type",
+            "op": "type",
             "actualValue": "{{$.this.body.token}}",
             "expectedValue": "string"
         },
         {
-            "op": "greater_than",
+            "op": "greaterthan",
             "actualValue": "{{$.this.body.token.length}}",
             "expectedValue": 10
         },
         {
-            "op": "not_contains",
+            "op": "notcontains",
             "actualValue": "{{$.this.body.token}}",
             "expectedValue": "password"
         }

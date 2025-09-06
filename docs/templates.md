@@ -489,7 +489,7 @@ Template steps use standard context access:
                     "actualValue": "{{responseData.body}}"
                 },
                 {
-                    "op": "is_type",
+                    "op": "type",
                     "actualValue": "{{responseData.body}}",
                     "expectedValue": "object"
                 }

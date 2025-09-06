@@ -155,7 +155,7 @@ Practical guides for development and deployment:
             "expectedValue": [200, 201, 202]
         },
         {
-            "op": "greater_than",
+            "op": "greaterthan",
             "actualValue": "{{$.this.body.items.length}}",
             "expectedValue": 0
         }

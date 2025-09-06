@@ -53,7 +53,7 @@ Exact equality check:
 }
 ```
 
-#### `not_equals`
+#### `notequals`
 Inequality check:
 
 ```json
@@ -61,7 +61,7 @@ Inequality check:
     "type": "assert",
     "assert": [
         {
-            "op": "not_equals",
+            "op": "notequals",
             "actualValue": "{{$.this.body.status}}",
             "expectedValue": "error"
         }
@@ -90,7 +90,7 @@ Verify a value exists (is not null/undefined):
 }
 ```
 
-#### `not_exists`
+#### `notexists`
 Verify a value does not exist:
 
 ```json
@@ -98,7 +98,7 @@ Verify a value does not exist:
     "type": "assert",
     "assert": [
         {
-            "op": "not_exists",
+            "op": "notexists",
             "actualValue": "{{$.this.body.error}}"
         }
     ]
@@ -107,7 +107,7 @@ Verify a value does not exist:
 
 ### Numeric Comparisons
 
-#### `greater_than`
+#### `greaterthan`
 Numeric greater than comparison:
 
 ```json
@@ -115,12 +115,12 @@ Numeric greater than comparison:
     "type": "assert",
     "assert": [
         {
-            "op": "greater_than",
+            "op": "greaterthan",
             "actualValue": "{{$.this.body.count}}",
             "expectedValue": 0
         },
         {
-            "op": "greater_than",
+            "op": "greaterthan",
             "actualValue": "{{$.this.body.price}}",
             "expectedValue": 10.50
         }
@@ -128,7 +128,7 @@ Numeric greater than comparison:
 }
 ```
 
-#### `less_than`
+#### `lessthan`
 Numeric less than comparison:
 
 ```json
@@ -136,7 +136,7 @@ Numeric less than comparison:
     "type": "assert",
     "assert": [
         {
-            "op": "less_than",
+            "op": "lessthan",
             "actualValue": "{{$.this.body.responseTime}}",
             "expectedValue": 1000
         }
@@ -144,7 +144,7 @@ Numeric less than comparison:
 }
 ```
 
-#### `greater_than_or_equal`
+#### `greaterorequal`
 Numeric greater than or equal comparison:
 
 ```json
@@ -152,7 +152,7 @@ Numeric greater than or equal comparison:
     "type": "assert",
     "assert": [
         {
-            "op": "greater_than_or_equal",
+            "op": "greaterorequal",
             "actualValue": "{{$.this.body.items.length}}",
             "expectedValue": 1
         }
@@ -160,7 +160,7 @@ Numeric greater than or equal comparison:
 }
 ```
 
-#### `less_than_or_equal`
+#### `lessorequal`
 Numeric less than or equal comparison:
 
 ```json
@@ -168,7 +168,7 @@ Numeric less than or equal comparison:
     "type": "assert",
     "assert": [
         {
-            "op": "less_than_or_equal",
+            "op": "lessorequal",
             "actualValue": "{{$.this.body.age}}",
             "expectedValue": 120
         }
@@ -199,7 +199,7 @@ Check if a string contains a substring:
 }
 ```
 
-#### `not_contains`
+#### `notcontains`
 Check if a string does not contain a substring:
 
 ```json
@@ -207,7 +207,7 @@ Check if a string does not contain a substring:
     "type": "assert",
     "assert": [
         {
-            "op": "not_contains",
+            "op": "notcontains",
             "actualValue": "{{$.this.body.message}}",
             "expectedValue": "error"
         }
@@ -215,7 +215,7 @@ Check if a string does not contain a substring:
 }
 ```
 
-#### `starts_with`
+#### `startswith`
 Check if a string starts with a prefix:
 
 ```json
@@ -223,7 +223,7 @@ Check if a string starts with a prefix:
     "type": "assert",
     "assert": [
         {
-            "op": "starts_with",
+            "op": "startswith",
             "actualValue": "{{$.this.body.id}}",
             "expectedValue": "user_"
         }
@@ -231,7 +231,7 @@ Check if a string starts with a prefix:
 }
 ```
 
-#### `ends_with`
+#### `endswith`
 Check if a string ends with a suffix:
 
 ```json
@@ -239,7 +239,7 @@ Check if a string ends with a suffix:
     "type": "assert",
     "assert": [
         {
-            "op": "ends_with",
+            "op": "endswith",
             "actualValue": "{{$.this.body.filename}}",
             "expectedValue": ".json"
         }
@@ -291,25 +291,9 @@ Check if a value exists in an array:
 }
 ```
 
-#### `not_in`
-Check if a value does not exist in an array:
-
-```json
-{
-    "type": "assert",
-    "assert": [
-        {
-            "op": "not_in",
-            "actualValue": "{{$.this.body.status}}",
-            "expectedValue": ["error", "failed", "disabled"]
-        }
-    ]
-}
-```
-
 ### Type Checks
 
-#### `is_type`
+#### `type`
 Check the type of a value:
 
 ```json
@@ -317,17 +301,17 @@ Check the type of a value:
     "type": "assert",
     "assert": [
         {
-            "op": "is_type",
+            "op": "type",
             "actualValue": "{{$.this.body.count}}",
             "expectedValue": "number"
         },
         {
-            "op": "is_type",
+            "op": "type",
             "actualValue": "{{$.this.body.user}}",
             "expectedValue": "object"
         },
         {
-            "op": "is_type",
+            "op": "type",
             "actualValue": "{{$.this.body.tags}}",
             "expectedValue": "array"
         }
@@ -365,7 +349,7 @@ Supported types: `string`, `number`, `boolean`, `object`, `array`, `null`
                             "actualValue": "{{$.getProfile.body.user.id}}"
                         },
                         {
-                            "op": "is_type",
+                            "op": "type",
                             "actualValue": "{{$.getProfile.body.user.id}}",
                             "expectedValue": "string"
                         },
@@ -457,12 +441,12 @@ Supported types: `string`, `number`, `boolean`, `object`, `array`, `null`
                     "description": "Validate cart totals",
                     "assert": [
                         {
-                            "op": "greater_than",
+                            "op": "greaterthan",
                             "actualValue": "{{$.getCart.body.subtotal}}",
                             "expectedValue": 0
                         },
                         {
-                            "op": "greater_than_or_equal",
+                            "op": "greaterorequal",
                             "actualValue": "{{$.getCart.body.total}}",
                             "expectedValue": "{{$.getCart.body.subtotal}}"
                         },
@@ -487,12 +471,12 @@ Supported types: `string`, `number`, `boolean`, `object`, `array`, `null`
     "description": "Validate collection properties",
     "assert": [
         {
-            "op": "is_type",
+            "op": "type",
             "actualValue": "{{$.this.body.users}}",
             "expectedValue": "array"
         },
         {
-            "op": "greater_than",
+            "op": "greaterthan",
             "actualValue": "{{$.this.body.users.length}}",
             "expectedValue": 0
         },
@@ -501,7 +485,7 @@ Supported types: `string`, `number`, `boolean`, `object`, `array`, `null`
             "actualValue": "{{$.this.body.users[0].id}}"
         },
         {
-            "op": "is_type",
+            "op": "type",
             "actualValue": "{{$.this.body.users[0].id}}",
             "expectedValue": "string"
         }
@@ -694,12 +678,12 @@ When an assertion fails:
 {
     "assert": [
         {
-            "op": "is_type",
+            "op": "type",
             "actualValue": "{{$.this.body.count}}",
             "expectedValue": "number"
         },
         {
-            "op": "greater_than",
+            "op": "greaterthan",
             "actualValue": "{{$.this.body.count}}",
             "expectedValue": 0
         }
@@ -725,7 +709,7 @@ Error: Cannot compare string with number
 ```
 - Use appropriate assertion operations for data types
 - Check that actualValue is the expected type
-- Consider using `is_type` assertion first
+- Consider using `type` assertion first
 
 **Regular Expression Errors:**
 ```
@@ -748,7 +732,7 @@ Error: Invalid regular expression
 2. **Check data types** before comparisons:
 ```json
 {
-    "op": "is_type",
+    "op": "type",
     "actualValue": "{{$.this.body.value}}",
     "expectedValue": "number"
 }
