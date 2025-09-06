@@ -198,16 +198,17 @@ public class ResultsToMarkdownConverter
     {
         var status = step.Success ? "PASSED" : "FAILED";
         var description = GetInnerStepDescription(step);
-        content.AppendLine($"    - **{description}:** {status} ({step.DurationMs}ms)");
+        content.AppendLine($"    - **{description}** {status} ({step.DurationMs}ms)");
         
         AppendInnerStepDetails(content, step);
     }
 
-    private string GetInnerStepDescription(StepResult step)
+    private string GetInnerStepDescription(StepResult stepResult)
     {
-        return !string.IsNullOrEmpty(step.DetailedDescription) 
-            ? step.DetailedDescription 
-            : $"{step.Step.Type} step";
+       
+        return !string.IsNullOrEmpty(stepResult.Step.GetStepDescription()) 
+            ? stepResult.Step.GetStepDescription()
+            : $"{stepResult.Step.Type} step";
     }
 
     private void AppendInnerStepDetails(StringBuilder content, StepResult step)
@@ -276,7 +277,7 @@ public class ResultsToMarkdownConverter
         
         if (hasVariables)
         {
-            content.AppendLine($"      <details><summary>Show saved variables</summary>\n\n{variableDetails}\n</details>");
+            content.AppendLine($"\n\n<details><summary>Show saved variables</summary>\n\n{variableDetails}\n</details>\n\n");
         }
     }
 
@@ -358,7 +359,7 @@ public class ResultsToMarkdownConverter
             var json = JsonSerializer.Serialize(value, options);
             
             // Don't register complex JSON for masking here - it will be handled by ApplyMasking at the end
-            return $"\n<details><summary>show</summary>\n\n```json\n{json}\n```\n</details>\n";
+            return $"\n\n<details><summary>show</summary>\n\n```json\n{json}\n```\n</details>\n\n";
 
         }
         catch
