@@ -939,7 +939,7 @@ Add descriptive error messages to assertions:
 Error: Cannot resolve path $.this.body.user.id
 ```
 - Verify the HTTP request succeeded
-- Check response structure with debug output
+- Check response structure with `exists` assertions first
 - Ensure field names match exactly (case-sensitive)
 
 **Type Comparison Errors:**
@@ -966,14 +966,15 @@ Error: Invalid regular expression
 {
     "assert": [
         {
-            "op": "debug",
+            "op": "exists",
             "actualValue": "{{$.this.body}}",
-            "message": "Full response body for debugging"
+            "description": "Response body should exist for debugging"
         },
         {
-            "op": "debug", 
+            "op": "equals",
             "actualValue": "{{$.this.statusCode}}",
-            "message": "Response status code"
+            "expectedValue": 200,
+            "description": "Status code should be 200"
         }
     ]
 }
