@@ -859,7 +859,7 @@ Supported types: `null`, `boolean`, `integer`, `number`, `string`, `array`, `obj
 
 ```json
 {
-    "op": "less-than",
+    "op": "lessthan",
     "actualValue": "{{$.this.duration}}",
     "expectedValue": 5000,
     "description": "Response should be under 5 seconds"
@@ -1180,7 +1180,7 @@ All custom steps automatically receive:
     },
     "assert": [
         {
-            "op": "greater-than",
+            "op": "greaterthan",
             "actualValue": "{{$.this.rowCount}}",
             "expectedValue": 0
         }
