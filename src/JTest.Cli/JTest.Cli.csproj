@@ -4,11 +4,35 @@
     <ProjectReference Include="..\JTest.Core\JTest.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\"/>
+  </ItemGroup>
+
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    
+    <!-- NuGet Package Information -->
+    <PackageId>JTest.Cli</PackageId>
+    <PackageVersion>1.0.0</PackageVersion>
+    <Title>JTest CLI Tool</Title>
+    <Authors>NexxBiz</Authors>
+    <Description>Command-line interface for JTest - A universal JSON-based API testing framework. Provides tools for running, debugging, validating and exporting API tests defined in JSON format.</Description>
+    <PackageProjectUrl>https://github.com/nexxbiz/JTest</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/nexxbiz/JTest</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>api-testing;json;testing;cli;tool;automation</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    
+    <!-- Tool Package Configuration -->
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>jtest</ToolCommandName>
   </PropertyGroup>
 
 </Project>
