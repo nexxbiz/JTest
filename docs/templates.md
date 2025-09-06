@@ -1,18 +1,78 @@
 # Templates
 
-Templates are reusable test components that enable you to create modular, maintainable test suites. They encapsulate common patterns and can be parameterized for different scenarios.
+Templates are reusable test components that function like **static methods** - they run in their own isolated context and only interact with the calling test through input parameters and returned values. This isolation prevents variable collisions and makes templates predictable and safe to use.
 
-## What are Templates?
+## How Templates Work
 
-Templates are predefined sequences of steps that can be executed with different parameters. They promote code reuse, consistency, and maintainability in your test suites.
+### Template as Static Methods
 
-### Key Benefits
+Think of templates like static methods in programming:
 
-- **Reusability**: Write once, use many times
-- **Maintainability**: Update logic in one place
-- **Consistency**: Standardize common patterns
-- **Modularity**: Break complex tests into manageable pieces
-- **Parameterization**: Customize behavior without duplicating code
+```json
+// Similar to: function authenticateUser(username, password) { ... }
+{
+    "name": "authenticate-user",
+    "description": "Login with credentials and return auth token",
+    "steps": [
+        {
+            "type": "http",
+            "method": "POST",
+            "url": "{{$.params.tokenUrl}}",
+            "body": {
+                "username": "{{$.params.username}}",
+                "password": "{{$.params.password}}"
+            }
+        }
+    ]
+}
+```
+
+### Isolated Context
+
+**Key Principle**: Templates run in complete isolation. They cannot access or modify variables from the calling test, except through:
+
+1. **Input**: Parameters passed via `with`
+2. **Output**: Values returned via the template result
+
+```json
+// ❌ Template CANNOT access these variables
+{
+    "globals": {
+        "userId": "12345"
+    },
+    "tests": [
+        {
+            "steps": [
+                {
+                    "type": "use",
+                    "template": "some-template"
+                    // Template cannot see $.globals.userId
+                }
+            ]
+        }
+    ]
+}
+```
+
+```json
+// ✅ Template CAN access these parameters
+{
+    "tests": [
+        {
+            "steps": [
+                {
+                    "type": "use",
+                    "template": "some-template",
+                    "with": {
+                        "userId": "{{$.globals.userId}}"
+                    }
+                    // Template sees this as $.params.userId
+                }
+            ]
+        }
+    ]
+}
+```
 
 ## Template Structure
 
@@ -813,6 +873,255 @@ Templates can use other templates:
     ]
 }
 ```
+
+## Moving Tests into Templates
+
+One of the most powerful uses of templates is refactoring repeated test patterns. Here's a step-by-step guide for converting inline test logic into reusable templates.
+
+### Step 1: Identify Repetitive Patterns
+
+Look for test sequences that appear multiple times with slight variations:
+
+```json
+// Repeated pattern in multiple tests
+{
+    "name": "Test User Login - Admin",
+    "steps": [
+        {
+            "type": "http",
+            "method": "POST",
+            "url": "https://api.example.com/auth/login",
+            "body": {
+                "username": "admin@company.com",
+                "password": "adminpass123"
+            }
+        },
+        {
+            "type": "http", 
+            "method": "GET",
+            "url": "https://api.example.com/user/profile",
+            "headers": {
+                "Authorization": "Bearer {{$.this.body.token}}"
+            }
+        }
+    ]
+},
+{
+    "name": "Test User Login - Regular User",
+    "steps": [
+        {
+            "type": "http",
+            "method": "POST", 
+            "url": "https://api.example.com/auth/login",
+            "body": {
+                "username": "user@company.com",
+                "password": "userpass123"
+            }
+        },
+        {
+            "type": "http",
+            "method": "GET", 
+            "url": "https://api.example.com/user/profile",
+            "headers": {
+                "Authorization": "Bearer {{$.this.body.token}}"
+            }
+        }
+    ]
+}
+```
+
+### Step 2: Extract Variables
+
+Identify what changes between the repetitions (these become template parameters):
+
+- `username` varies: `admin@company.com` vs `user@company.com`
+- `password` varies: `adminpass123` vs `userpass123`
+- URLs are the same
+- Logic flow is identical
+
+### Step 3: Create the Template
+
+Move the pattern to a template with parameters for the varying parts:
+
+```json
+{
+    "components": {
+        "templates": [
+            {
+                "name": "login-and-get-profile",
+                "description": "Login with credentials and fetch user profile",
+                "steps": [
+                    {
+                        "type": "http",
+                        "method": "POST", 
+                        "url": "https://api.example.com/auth/login",
+                        "body": {
+                            "username": "{{$.params.username}}",
+                            "password": "{{$.params.password}}"
+                        }
+                    },
+                    {
+                        "type": "http",
+                        "method": "GET",
+                        "url": "https://api.example.com/user/profile", 
+                        "headers": {
+                            "Authorization": "Bearer {{$.this.body.token}}"
+                        }
+                    }
+                ]
+            }
+        ]
+    }
+}
+```
+
+### Step 4: Replace with Template Usage
+
+Replace the original tests with template calls:
+
+```json
+{
+    "tests": [
+        {
+            "name": "Test Admin Login",
+            "steps": [
+                {
+                    "type": "use",
+                    "template": "login-and-get-profile",
+                    "with": {
+                        "username": "admin@company.com", 
+                        "password": "adminpass123"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Test User Login",
+            "steps": [
+                {
+                    "type": "use",
+                    "template": "login-and-get-profile",
+                    "with": {
+                        "username": "user@company.com",
+                        "password": "userpass123" 
+                    }
+                }
+            ]
+        }
+    ]
+}
+```
+
+### Step 5: Add Assertions and Save Results
+
+Enhance the template to be more useful by adding validation and returning useful data:
+
+```json
+{
+    "name": "login-and-get-profile",
+    "description": "Login with credentials and fetch user profile",
+    "steps": [
+        {
+            "type": "http",
+            "id": "login",
+            "method": "POST",
+            "url": "https://api.example.com/auth/login",
+            "body": {
+                "username": "{{$.params.username}}",
+                "password": "{{$.params.password}}"
+            },
+            "assert": [
+                {
+                    "op": "equals",
+                    "actualValue": "{{$.this.statusCode}}",
+                    "expectedValue": 200
+                },
+                {
+                    "op": "exists", 
+                    "actualValue": "{{$.this.body.token}}"
+                }
+            ]
+        },
+        {
+            "type": "http",
+            "id": "getProfile",
+            "method": "GET",
+            "url": "https://api.example.com/user/profile",
+            "headers": {
+                "Authorization": "Bearer {{$.login.body.token}}"
+            },
+            "assert": [
+                {
+                    "op": "equals",
+                    "actualValue": "{{$.this.statusCode}}",
+                    "expectedValue": 200
+                },
+                {
+                    "op": "exists",
+                    "actualValue": "{{$.this.body.user}}"
+                }
+            ]
+        }
+    ]
+}
+```
+
+### Step 6: Save What You Need
+
+Use the `save` property in the calling test to store only the data you actually need:
+
+```json
+{
+    "type": "use",
+    "template": "login-and-get-profile", 
+    "with": {
+        "username": "admin@company.com",
+        "password": "adminpass123"
+    },
+    "save": {
+        "$.globals.adminToken": "{{$.this.login.body.token}}",
+        "$.globals.adminUserId": "{{$.this.getProfile.body.user.id}}"
+    }
+}
+```
+
+### Refactoring Best Practices
+
+1. **Save only what you need**: Don't save entire responses if you only need specific fields
+2. **Start simple**: Create basic templates first, add complexity gradually
+3. **Clear boundaries**: Templates should have one clear responsibility
+4. **Predictable interface**: Use consistent parameter names across templates
+5. **Document well**: Add descriptions explaining what the template does and returns
+
+## Templates in Templates
+
+Templates can use other templates, creating powerful composition patterns:
+
+```json
+{
+    "name": "setup-test-user",
+    "description": "Create and authenticate a test user",
+    "steps": [
+        {
+            "type": "use",
+            "template": "create-user",
+            "with": {
+                "userData": "{{$.params.userData}}"
+            }
+        },
+        {
+            "type": "use", 
+            "template": "login-user",
+            "with": {
+                "username": "{{$.this.user.email}}",
+                "password": "{{$.params.userData.password}}"
+            }
+        }
+    ]
+}
+```
+
+This pattern allows you to build complex workflows from simple, focused templates.
 
 ## Troubleshooting Templates
 

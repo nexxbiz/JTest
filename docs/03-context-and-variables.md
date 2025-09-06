@@ -194,6 +194,78 @@ Use the `save` property to store values from step results into the global contex
 }
 ```
 
+## Step IDs and Automatic Storage
+
+### The `id` Property
+
+Every step can have an `id` property that serves two purposes:
+
+1. **Automatic Storage**: Step results are automatically saved with the ID as the variable name
+2. **Reference**: You can reference the step's results from other steps
+
+```json
+{
+    "type": "http",
+    "id": "userLogin",
+    "method": "POST", 
+    "url": "/auth/login",
+    "body": {
+        "username": "user@example.com",
+        "password": "password123"
+    }
+}
+```
+
+After this step runs, the results are automatically available as `{{$.userLogin}}`:
+
+```json
+{
+    "type": "http",
+    "method": "GET",
+    "url": "/user/profile",
+    "headers": {
+        "Authorization": "Bearer {{$.userLogin.body.token}}"
+    }
+}
+```
+
+### When to Use IDs
+
+**✅ Use IDs when:**
+- You need to reference step results later
+- Multiple steps use the same response data  
+- You want clear, named references instead of generic `$.this`
+
+**❌ Don't use IDs when:**
+- The step result is only used in the next step (just use `$.this`)
+- You're doing simple sequential operations
+
+### Auto-Save vs Manual Save
+
+```json
+// With ID (automatic storage)
+{
+    "type": "http",
+    "id": "fetchUsers",
+    "method": "GET",
+    "url": "/users"
+}
+// Results automatically available as {{$.fetchUsers}}
+
+// Without ID (manual save if needed)
+{
+    "type": "http", 
+    "method": "GET",
+    "url": "/users",
+    "save": {
+        "$.globals.users": "{{$.this.body}}"
+    }
+}
+// Results manually saved to {{$.globals.users}}
+```
+
+**Best Practice**: Use `id` for temporary step-to-step data, use `save` for data that needs to persist across multiple tests.
+
 ## Variable Precedence
 
 When variables have the same name in different scopes, JTest follows this precedence order:
@@ -438,6 +510,193 @@ Use variables to create dynamic, reusable tests:
     ]
 }
 ```
+
+## Datasets: Data-Driven Testing
+
+Datasets allow you to run the same test multiple times with different data. This is perfect for testing various inputs, edge cases, or user scenarios.
+
+### Basic Dataset Structure
+
+```json
+{
+    "tests": [
+        {
+            "name": "User Registration Validation",
+            "description": "Test user registration with different email formats",
+            "steps": [
+                {
+                    "type": "http",
+                    "method": "POST",
+                    "url": "/auth/register",
+                    "body": {
+                        "email": "{{$.case.email}}",
+                        "password": "TestPass123"
+                    },
+                    "assert": [
+                        {
+                            "op": "equals",
+                            "actualValue": "{{$.this.statusCode}}",
+                            "expectedValue": "{{$.case.expectedStatus}}"
+                        }
+                    ]
+                }
+            ],
+            "datasets": [
+                {
+                    "name": "valid-email",
+                    "case": {
+                        "email": "user@example.com",
+                        "expectedStatus": 201
+                    }
+                },
+                {
+                    "name": "invalid-email-format",
+                    "case": {
+                        "email": "invalid-email",
+                        "expectedStatus": 400
+                    }
+                },
+                {
+                    "name": "missing-domain",
+                    "case": {
+                        "email": "user@",
+                        "expectedStatus": 400
+                    }
+                }
+            ]
+        }
+    ]
+}
+```
+
+### How Datasets Work
+
+1. **Test Execution**: JTest runs the test once for each dataset
+2. **Variable Access**: Use `{{$.case.variableName}}` to access dataset values
+3. **Dataset Names**: Each dataset's `name` appears in test reports to identify which data caused failures
+4. **Isolation**: Each dataset run is independent - variables don't carry over between runs
+
+### Dataset Variables in Context
+
+Within each dataset run, you can access:
+
+- `{{$.case.fieldName}}` - Values from the current dataset
+- `{{$.env.configValue}}` - Environment variables (same for all datasets)
+- `{{$.globals.sharedData}}` - Global variables (shared across datasets)
+- `{{$.this.responseData}}` - Current step results
+
+### Advanced Dataset Example
+
+```json
+{
+    "tests": [
+        {
+            "name": "E-commerce Product Search",
+            "description": "Test product search with different criteria",
+            "steps": [
+                {
+                    "type": "http",
+                    "method": "GET",
+                    "url": "/products/search",
+                    "query": {
+                        "category": "{{$.case.category}}",
+                        "priceMin": "{{$.case.priceRange.min}}",
+                        "priceMax": "{{$.case.priceRange.max}}"
+                    },
+                    "assert": [
+                        {
+                            "op": "equals",
+                            "actualValue": "{{$.this.statusCode}}",
+                            "expectedValue": 200,
+                            "description": "Search should succeed for {{$.case.description}}"
+                        },
+                        {
+                            "op": "greaterorequal",
+                            "actualValue": "{{$.this.body.totalResults}}",
+                            "expectedValue": "{{$.case.expectedMinResults}}",
+                            "description": "Should find at least {{$.case.expectedMinResults}} products for {{$.case.description}}"
+                        }
+                    ]
+                }
+            ],
+            "datasets": [
+                {
+                    "name": "electronics-budget",
+                    "case": {
+                        "category": "electronics",
+                        "priceRange": {"min": 10, "max": 100},
+                        "expectedMinResults": 5,
+                        "description": "budget electronics"
+                    }
+                },
+                {
+                    "name": "electronics-premium", 
+                    "case": {
+                        "category": "electronics",
+                        "priceRange": {"min": 500, "max": 2000},
+                        "expectedMinResults": 2,
+                        "description": "premium electronics"
+                    }
+                },
+                {
+                    "name": "books-any-price",
+                    "case": {
+                        "category": "books",
+                        "priceRange": {"min": 0, "max": 999999},
+                        "expectedMinResults": 10,
+                        "description": "books at any price"
+                    }
+                }
+            ]
+        }
+    ]
+}
+```
+
+### Datasets in Test Reports
+
+Dataset names and descriptions appear in markdown reports:
+
+```markdown
+### Test: User Registration Validation
+
+**Status:** PASSED
+**Duration:** 450ms
+
+#### Dataset: valid-email
+**Status:** PASSED
+- Email validation should accept valid@example.com
+
+#### Dataset: invalid-email-format  
+**Status:** PASSED
+- Email validation should reject invalid-email
+
+#### Dataset: missing-domain
+**Status:** PASSED
+- Email validation should reject user@
+```
+
+### When to Use Datasets
+
+**✅ Perfect for:**
+- Input validation testing (different email formats, password requirements)
+- Boundary value testing (min/max values, edge cases)
+- Multiple user scenarios (admin, user, guest permissions)
+- Different environment configurations
+- Error condition testing
+
+**❌ Avoid for:**
+- Sequential workflows where steps depend on each other
+- Tests that modify shared state (unless you clean up between runs)
+- Large datasets that slow down test execution unnecessarily
+
+### Dataset Best Practices
+
+1. **Descriptive Names**: Use clear dataset names like `valid-email` not `test1`
+2. **Clear Descriptions**: Add description fields explaining what each dataset tests
+3. **Meaningful Assertions**: Include descriptive assertion messages using `{{$.case.description}}`
+4. **Independent Data**: Ensure each dataset can run independently
+5. **Focused Testing**: Keep datasets focused on one aspect at a time
 
 ## Best Practices
 
