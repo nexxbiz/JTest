@@ -571,6 +571,6 @@ Error: Required parameter 'username' not provided
 
 ## Next Steps
 
-- [Templates](../templates.md) - Deep dive into template system
+- [Templates](../04-templates.md) - Deep dive into template system
 - [HTTP Step](http-step.md) - Learn about HTTP requests within templates
-- [Best Practices](../best-practices.md) - Template design patterns
+- [Best Practices](../06-best-practices.md) - Template design patterns

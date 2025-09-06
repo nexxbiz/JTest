@@ -316,4 +316,4 @@ tests/
 Now that you understand the structure, learn about:
 - [Context and Variables](03-context-and-variables.md) - Deep dive into variable management
 - [HTTP Steps](steps/http-step.md) - Making HTTP requests
-- [Templates](templates.md) - Creating reusable test components
+- [Templates](04-templates.md) - Creating reusable test components

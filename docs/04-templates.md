@@ -1161,5 +1161,5 @@ Error: Variable 'authToken' not found in template
 ## Next Steps
 
 - [Use Step](steps/use-step.md) - Learn how to use templates in tests
-- [Best Practices](best-practices.md) - Template design patterns
+- [Best Practices](06-best-practices.md) - Template design patterns
 - [Extensibility](extensibility.md) - Creating custom template functionality

@@ -745,5 +745,5 @@ Error: Invalid regular expression
 ## Next Steps
 
 - [HTTP Step](http-step.md) - Learn about making HTTP requests
-- [Assertions](../assertions.md) - Comprehensive assertion reference
+- [Assertions](../05-assertions.md) - Comprehensive assertion reference
 - [Context and Variables](../03-context-and-variables.md) - Understanding variable access

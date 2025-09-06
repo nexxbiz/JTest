@@ -1012,4 +1012,4 @@ Error: Invalid regular expression
 
 - [Assert Step](steps/assert-step.md) - Learn about standalone assertion steps
 - [HTTP Step](steps/http-step.md) - Using assertions with HTTP requests
-- [Best Practices](best-practices.md) - Testing and assertion patterns
+- [Best Practices](06-best-practices.md) - Testing and assertion patterns

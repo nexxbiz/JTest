@@ -834,6 +834,6 @@ This extensible foundation ensures that JTest can evolve to meet new testing req
 
 ## Next Steps
 
-- [Best Practices](best-practices.md) - Extension development patterns
+- [Best Practices](06-best-practices.md) - Extension development patterns
 - [CLI Usage](cli-usage.md) - Using custom steps via CLI
 - [Troubleshooting](troubleshooting.md) - Debugging custom steps

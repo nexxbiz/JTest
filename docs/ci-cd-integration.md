@@ -943,4 +943,4 @@ esac
 
 - [CLI Usage](cli-usage.md) - Advanced CLI options for CI/CD
 - [Troubleshooting](troubleshooting.md) - Debugging CI/CD issues
-- [Best Practices](best-practices.md) - General testing best practices
+- [Best Practices](06-best-practices.md) - General testing best practices

@@ -744,5 +744,5 @@ Error: Variable $.this.body.user.id not found
 
 Now that you understand variables and context:
 - [HTTP Steps](steps/http-step.md) - Learn about making HTTP requests
-- [Assertions](assertions.md) - Validate your data effectively  
-- [Templates](templates.md) - Create reusable test patterns
+- [Assertions](05-assertions.md) - Validate your data effectively  
+- [Templates](04-templates.md) - Create reusable test patterns

@@ -20,9 +20,9 @@ Essential knowledge for effective JTest usage:
 - **[Use Step](steps/use-step.md)** - Executing reusable templates
 
 ### Advanced Features
-- **[Templates](templates.md)** - Creating reusable test components
-- **[Assertions](assertions.md)** - Comprehensive validation reference
-- **[Best Practices](best-practices.md)** - Proven patterns and guidelines
+- **[Templates](04-templates.md)** - Creating reusable test components
+- **[Assertions](05-assertions.md)** - Comprehensive validation reference
+- **[Best Practices](06-best-practices.md)** - Proven patterns and guidelines
 
 ## Tools and Integration
 
@@ -34,6 +34,8 @@ Practical guides for development and deployment:
 - **[Extensibility](extensibility.md)** - Creating custom step types
 
 ## Quick Reference
+
+- **[File Structure Reference](file-structure-reference.md)** - Comprehensive structure documentation
 
 ### Common Patterns
 
@@ -173,9 +175,9 @@ Practical guides for development and deployment:
 
 ### Intermediate (3-5 hours)
 1. Learn [Context and Variables](03-context-and-variables.md)
-2. Master [Assertions](assertions.md)
-3. Explore [Templates](templates.md)
-4. Review [Best Practices](best-practices.md)
+2. Master [Assertions](05-assertions.md)
+3. Explore [Templates](04-templates.md)
+4. Review [Best Practices](06-best-practices.md)
 
 ### Advanced (5+ hours)
 1. Study [Extensibility](extensibility.md)
@@ -212,7 +214,7 @@ Practical guides for development and deployment:
 ### Documentation
 - Browse this documentation for comprehensive guides
 - Check [Troubleshooting](troubleshooting.md) for common issues
-- Review [Best Practices](best-practices.md) for proven patterns
+- Review [Best Practices](06-best-practices.md) for proven patterns
 
 ### Community
 - **GitHub Issues** - Report bugs and request features
@@ -239,7 +241,7 @@ Ready to start? Choose your path:
 
 - **New to JTest?** Start with [Getting Started](01-getting-started.md)
 - **Ready to build tests?** Jump to [HTTP Step](steps/http-step.md)
-- **Want advanced features?** Explore [Templates](templates.md)
+- **Want advanced features?** Explore [Templates](04-templates.md)
 - **Setting up CI/CD?** Check [CI/CD Integration](ci-cd-integration.md)
 - **Need to debug?** Visit [Troubleshooting](troubleshooting.md)
 

@@ -526,6 +526,6 @@ HTTP steps automatically populate the context with response information:
 
 ## Next Steps
 
-- [Assertions](../assertions.md) - Learn how to validate HTTP responses
+- [Assertions](../05-assertions.md) - Learn how to validate HTTP responses
 - [Use Step](use-step.md) - Learn about template reuse
-- [Best Practices](../best-practices.md) - HTTP testing best practices
+- [Best Practices](../06-best-practices.md) - HTTP testing best practices

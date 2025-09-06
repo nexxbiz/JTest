@@ -969,5 +969,5 @@ Create minimal test case that reproduces the issue:
 ## Next Steps
 
 - [CLI Usage](cli-usage.md) - Advanced CLI debugging techniques
-- [Best Practices](best-practices.md) - Prevent common issues
+- [Best Practices](06-best-practices.md) - Prevent common issues
 - [Extensibility](extensibility.md) - Debug custom extensions

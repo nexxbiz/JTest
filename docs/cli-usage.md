@@ -704,4 +704,4 @@ fi
 
 - [Troubleshooting](troubleshooting.md) - Debug test and CLI issues
 - [CI/CD Integration](ci-cd-integration.md) - Advanced pipeline integration
-- [Best Practices](best-practices.md) - Effective CLI usage patterns
+- [Best Practices](06-best-practices.md) - Effective CLI usage patterns
