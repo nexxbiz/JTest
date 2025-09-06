@@ -1,0 +1,33 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    
+    <!-- NuGet Package Information -->
+    <PackageId>JTest.Core</PackageId>
+    <PackageVersion>1.0.0</PackageVersion>
+    <Title>JTest Core Framework</Title>
+    <Authors>NexxBiz</Authors>
+    <Description>Core framework library for JTest - A universal JSON-based API testing framework. Provides the core functionality for defining, executing, and validating API tests using JSON configuration files.</Description>
+    <PackageProjectUrl>https://github.com/nexxbiz/JTest</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/nexxbiz/JTest</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>api-testing;json;testing;framework;automation;http-client</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="JsonPath.Net" Version="1.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\"/>
+  </ItemGroup>
+
+</Project>

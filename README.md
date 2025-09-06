@@ -166,9 +166,10 @@ jtest run tests.json --debug --verbose
 
 ```
 JTest/
-├── JTest.Core/          # Core framework library
-├── JTest.Cli/           # Command-line interface
-├── JTest.UnitTests/     # Unit tests
+├── src/                 # Source code
+│   ├── JTest.Core/      # Core framework library
+│   ├── JTest.Cli/       # Command-line interface
+│   └── JTest.UnitTests/ # Unit tests
 └── docs/                # Documentation
     ├── README.md        # Documentation index
     ├── 01-getting-started.md
