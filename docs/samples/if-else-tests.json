@@ -1,0 +1,103 @@
+{
+    "version": "1.1",
+    "info": {
+        "name": "if-else-tests",
+        "description": "Testing the full set of if else capabilities using templates"
+    },
+    "using": [
+        "./elsa-templatesv2.json"
+    ],
+    "env": {
+        "tokenUrl": "https://api.com/elsa/api/identity/login",
+        "workflowExecutorUrl": "https://wf.api.com",
+        "baseApi": "https://api.com",
+        "username": "",
+        "password": ""
+    },
+    "globals": {
+        "token": null,
+        "authHeader": null
+    },
+    "tests": [
+        {
+            "name": "Get tokens",
+            "description": "Authenticate and store credentials globally",
+            "steps": [
+                {
+                    "type": "use",
+                    "template": "authenticate",
+                    "with": {
+                        "username": "{{$.env.username}}",
+                        "password": "{{$.env.password}}",
+                        "tokenUrl": "{{$.env.tokenUrl}}"
+                    },
+                    "save": {
+                        "$.globals.token": "{{$.this.token}}",
+                        "$.globals.authHeader": "{{$.this.authHeader}}"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Execute workflow instance for if-else activity",
+            "description": "Execute workflow and get activity execution details for if-else activity",
+            "steps": [
+                {
+                    "type": "use",
+                    "template": "execute-workflow-and-get-activity",
+                    "with": {
+                        "workflowUrl": "{{$.env.workflowExecutorUrl}}/workflows/pm/qa/ifelse",
+                        "workflowPayload": {
+                            "isTrue": "{{$.case.isTrue}}"
+                        },
+                        "authToken": "{{$.globals.token}}",
+                        "targetActivityId": "b961ee5b6f66b01c",
+                        "baseApiUrl": "{{$.env.baseApi}}",
+                        "eventName": "Completed"
+                    },
+                    "save": {
+                        "ifConditionResult": "{{$.this}}"
+                    },
+                    "assert": [
+                        {
+                            "op": "equals",
+                            "actualValue": "{{$.ifConditionResult.activityExecution.activityState.Condition}}",
+                            "expectedValue": "{{$.case.expectedCondition}}",
+                            "description": "Activity condition should match expected value for {{$.case.testScenario}}"
+                        },
+                        {
+                            "op": "exists",
+                            "actualValue": "{{$.ifConditionResult.workflowInstanceId}}",
+                            "description": "Workflow instance ID should exist for {{$.case.testScenario}}"
+                        }
+                    ]
+                }
+            ],
+            "datasets": [
+                {
+                    "name": "false-condition",
+                    "case": {
+                        "isTrue": false,
+                        "expectedCondition": false,
+                        "testScenario": "false condition path"
+                    }
+                },
+                {
+                    "name": "true-condition",
+                    "case": {
+                        "isTrue": true,
+                        "expectedCondition": true,
+                        "testScenario": "true condition path"
+                    }
+                },{
+                    "name": "none-condition",
+                    "case": {
+                        
+                        "expectedCondition": null,
+                        "testScenario": "null condition path"
+                    }
+                }
+            ]
+        }
+    ]
+}

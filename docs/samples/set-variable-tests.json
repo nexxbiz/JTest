@@ -1,0 +1,101 @@
+{
+    "version": "1.1",
+    "info": {
+        "name": "set variable test",
+        "description": "Testing the full set of set variable capabilities using templates"
+    },
+    "using": [
+        "./elsa-templatesv2.json"
+    ],
+    "env": {
+        "tokenUrl": "https://api.com/elsa/api/identity/login",
+        "workflowExecutorUrl": "https://wf.api.com",
+        "baseApi": "https://api.com",
+        "username": "",
+        "password": ""
+    },
+    "globals": {
+        "token": null,
+        "authHeader": null
+    },
+    "tests": [
+        {
+            "name": "Get tokens",
+            "description": "Authenticate and store credentials globally",
+            "steps": [
+                {
+                    "type": "use",
+                    "template": "authenticate",
+                    "with": {
+                        "username": "{{$.env.username}}",
+                        "password": "{{$.env.password}}",
+                        "tokenUrl": "{{$.env.tokenUrl}}"
+                    },
+                    "save": {
+                        "$.globals.token": "{{$.this.token}}",
+                        "$.globals.authHeader": "{{$.this.authHeader}}"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Execute workflow instance  for set-variable activity",
+            "description": "Execute workflow and get activity execution details for set-variable activity",
+            "steps": [
+                {
+                    "type": "use",
+                    "template": "execute-workflow-and-get-activity",
+                    "with": {
+                        "workflowUrl": "{{$.env.workflowExecutorUrl}}/workflows/pm/qa/setvariable",
+                        "workflowPayload": {
+                            "value": "{{$.case.value}}"
+                        },
+                        "authToken": "{{$.globals.token}}",
+                        "targetActivityId": "1d9ba3d50bd87255",
+                        "baseApiUrl": "{{$.env.baseApi}}",
+                        "eventName": "Completed"
+                    },
+                    "save": {
+                        "testResult": "{{$.this}}"
+                    },
+                    "assert": [
+                        {
+                            "op": "equals",
+                            "actualValue": "{{$.testResult.activityExecution.activityState.Value}}",
+                            "expectedValue": "{{$.case.value}}",
+                            "description": "Activity condition should match expected value for {{$.case.testScenario}}"
+                        },
+                        {
+                            "op": "exists",
+                            "actualValue": "{{$.testResult.workflowInstanceId}}",
+                            "description": "Workflow instance ID should exist for {{$.case.testScenario}}"
+                        }
+                    ]
+                }
+            ],
+            "datasets": [
+                {
+                    "name": "small-text",
+                    "case": {
+                        "value": "a",
+                        "testScenario": "small test"
+                    }
+                },
+                {
+                    "name": "large-text",
+                    "case": {
+                        "value": "aasdfghjklkjhgfdsdfghjkljhgfdrtyutyifudsiofuviosdugfiubn  gfiouigfduigufdi guif ugfuigufodg fidgiofdui gufidusigfudiougfidug ifdu ig ufdiugfiugiufdigufiduiud  gfdi gufdiu  gofdusgi fuigufdug fdois",
+                        "testScenario": "small test"
+                    }
+                },
+                {
+                    "name": "special texts",
+                    "case": {
+                        "value": "✨ 𝓼𝓲𝓵𝓪 (сила) 💪 = śvěт 🌍 + šаги 🚶 + ѕердце ❤️",
+                        "testScenario": "special text"
+                    }
+                }
+            ]
+        }
+    ]
+}
