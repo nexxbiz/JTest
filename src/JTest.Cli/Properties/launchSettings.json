@@ -21,7 +21,7 @@
     "debug all": {
       "commandName": "Project",
       "commandLineArgs": "debug *.json",
-      "workingDirectory": "C:\\Users\\FransvanEk\\OneDrive - nexxbiz accelerating value delivery\\Documenten\\Documents\\Designs\\Testing QA\\tests"
+      "workingDirectory": "C:\\Repos\\Nexxbiz\\JTest-elsa-tests"
     }
   }
 }
