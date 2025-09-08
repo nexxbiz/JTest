@@ -329,7 +329,20 @@ public static class VariableInterpolator
         var jsonNode = JsonSerializer.SerializeToNode(context.Variables);
         var result = jsonPath.Evaluate(jsonNode);
         if (result.Matches == null || !result.Matches.Any()) return HandleMissingPath(path, context);
-        return ExtractValue(result.Matches.First().Value, context, depth);
+        
+        // If there's only one match, return the single value (preserves existing behavior)
+        if (result.Matches.Count() == 1)
+        {
+            return ExtractValue(result.Matches.First().Value, context, depth);
+        }
+        
+        // If there are multiple matches, return an array of all extracted values
+        var extractedValues = new List<object>();
+        foreach (var match in result.Matches)
+        {
+            extractedValues.Add(ExtractValue(match.Value, context, depth));
+        }
+        return extractedValues.ToArray();
     }
 
     private static object ExtractValue(object? value, IExecutionContext context, int depth)
