@@ -3,11 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JTest.Core", "JTest.Core\JTest.Core.csproj", "{20111903-945D-4E7F-9C0A-50DA3BE317FD}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JTest.Core", "src\JTest.Core\JTest.Core.csproj", "{20111903-945D-4E7F-9C0A-50DA3BE317FD}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JTest.Cli", "JTest.Cli\JTest.Cli.csproj", "{5E41A495-78D7-4FFA-8E13-E9F0FABBC932}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JTest.Cli", "src\JTest.Cli\JTest.Cli.csproj", "{5E41A495-78D7-4FFA-8E13-E9F0FABBC932}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JTest.UnitTests", "JTest.UnitTests\JTest.UnitTests.csproj", "{472FE99D-5520-48F5-A6C6-73A99D4D365E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JTest.UnitTests", "src\JTest.UnitTests\JTest.UnitTests.csproj", "{472FE99D-5520-48F5-A6C6-73A99D4D365E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
