@@ -109,10 +109,7 @@ public class ResultsToMarkdownConverter
             
         content.AppendLine($"    - {status}: {description}");
         
-        if (!assertion.Success)
-        {
             AppendAssertionDetails(content, assertion);
-        }
     }
 
     private void AppendAssertionDetails(StringBuilder content, AssertionResult assertion)
@@ -131,15 +128,15 @@ public class ResultsToMarkdownConverter
             details.Add($"**Expected:** {assertion.ExpectedValue}");
         }
         
-        if (!string.IsNullOrEmpty(assertion.ErrorMessage))
-        {
-            _securityMasker.RegisterForMasking("error", assertion.ErrorMessage);
-            details.Add($"**Error:** {assertion.ErrorMessage}");
-        }
+        //if (!string.IsNullOrEmpty(assertion.ErrorMessage))
+        //{
+        //    _securityMasker.RegisterForMasking("error", assertion.ErrorMessage);
+        //    details.Add($"**Error:** {assertion.ErrorMessage}");
+        //}
         
         if (details.Count > 0)
         {
-            content.AppendLine($"      ({string.Join(", ", details)})");
+            content.AppendLine($"      {string.Join(", \n", details)}\n");
         }
     }
 
@@ -148,7 +145,7 @@ public class ResultsToMarkdownConverter
         if (contextChanges == null) return;
         if (contextChanges.Added.Count == 0 && contextChanges.Modified.Count == 0) return;
         
-        content.AppendLine("  - **Saved Values:**");
+        content.AppendLine("- **Saved Values:**");
         AppendSavedVariables(content, contextChanges.Added, "Added");
         AppendSavedVariables(content, contextChanges.Modified, "Modified");
         
@@ -198,7 +195,7 @@ public class ResultsToMarkdownConverter
     {
         var status = step.Success ? "PASSED" : "FAILED";
         var description = GetInnerStepDescription(step);
-        content.AppendLine($"    - **{description}** {status} ({step.DurationMs}ms)");
+        content.AppendLine($"  - **{description}** {status} ({step.DurationMs}ms)");
         
         AppendInnerStepDetails(content, step);
     }
@@ -277,7 +274,7 @@ public class ResultsToMarkdownConverter
         
         if (hasVariables)
         {
-            content.AppendLine($"\n\n<details><summary>Show saved variables</summary>\n\n{variableDetails}\n</details>\n\n");
+            content.AppendLine($"\n{variableDetails}\n");
         }
     }
 
