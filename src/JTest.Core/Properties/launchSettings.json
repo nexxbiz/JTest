@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "JTest.Core": {
+      "commandName": "Project"
+    },
+    "Debug elsa test": {
+      "commandName": "Project",
+      "commandLineArgs": "debug *.json",
+      "workingDirectory": "C:\\Repos\\Nexxbiz\\JTest-elsa-tests"
+    }
+  }
+}
