@@ -545,4 +545,51 @@ public class VariableInterpolatorTests
         var assertionResult = lengthAssertion.Execute(actualValue, expectedValue);
         Assert.True(assertionResult.Success);
     }
+
+    [Fact]
+    public void JSONPath_ComplexFilterWithLengthAssertion_ExactProblemStatementScenario()
+    {
+        // Arrange - This test validates the exact scenario described in the GitHub issue
+        var context = new TestExecutionContext();
+        
+        // Set up test data that matches the problem statement structure
+        context.Variables["testResult"] = new
+        {
+            journal = new
+            {
+                items = new[]
+                {
+                    new { activityId = "88e113194fd0c4d5", eventName = "Started", id = "item1" },
+                    new { activityId = "88e113194fd0c4d5", eventName = "Completed", id = "item2" },
+                    new { activityId = "88e113194fd0c4d5", eventName = "Completed", id = "item3" },
+                    new { activityId = "other-activity", eventName = "Completed", id = "item4" }
+                }
+            }
+        };
+        
+        context.Variables["case"] = new { expectedIterations = 2 };
+
+        // Act - Simulate a length assertion operation as described in the problem statement
+        var jsonPathExpression = "{{$.testResult.journal.items[?(@.activityId=='88e113194fd0c4d5' && @.eventName == 'Completed')].id}}";
+        var actualValue = VariableInterpolator.ResolveVariableTokens(jsonPathExpression, context);
+        var expectedValue = VariableInterpolator.ResolveVariableTokens("{{$.case.expectedIterations}}", context);
+
+        // Before the fix: actualValue would be "item2" (just the first ID)
+        // After the fix: actualValue should be ["item2", "item3"] (array of all matching IDs)
+        
+        // Assert - Verify the JSONPath returns all matching items, not just the first
+        Assert.IsType<object[]>(actualValue);
+        var resultArray = (object[])actualValue;
+        Assert.Equal(2, resultArray.Length);
+        Assert.Equal("item2", resultArray[0]);
+        Assert.Equal("item3", resultArray[1]);
+
+        // Assert - Verify the length assertion now works as expected
+        var lengthAssertion = new JTest.Core.Assertions.LengthAssertion();
+        var assertionResult = lengthAssertion.Execute(actualValue, expectedValue);
+        Assert.True(assertionResult.Success, "Length assertion should pass with 2 items matching the filter");
+        
+        // This proves that the length assertion can now properly count the collection
+        // returned by complex JSONPath expressions, which was the core issue described
+    }
 }
