@@ -435,4 +435,114 @@ public class VariableInterpolatorTests
         Assert.DoesNotContain("{{$.case.isTrue}}", resultJson);
         Assert.Contains("false", resultJson);
     }
+
+    [Fact]
+    public void ResolveVariableTokens_WithSingleJsonPathMatch_ReturnsScalarValue()
+    {
+        // Arrange
+        var context = new TestExecutionContext();
+        context.Variables["items"] = new[]
+        {
+            new { id = "1", name = "first", type = "A" },
+            new { id = "2", name = "second", type = "B" },
+            new { id = "3", name = "third", type = "A" }
+        };
+        var input = "{{$.items[0].id}}";
+
+        // Act
+        var result = VariableInterpolator.ResolveVariableTokens(input, context);
+
+        // Assert
+        Assert.Equal("1", result);
+    }
+
+    [Fact]
+    public void ResolveVariableTokens_WithMultipleJsonPathMatches_ReturnsArray()
+    {
+        // Arrange
+        var context = new TestExecutionContext();
+        context.Variables["items"] = new[]
+        {
+            new { id = "1", name = "first", type = "A" },
+            new { id = "2", name = "second", type = "B" },
+            new { id = "3", name = "third", type = "A" }
+        };
+        var input = "{{$.items[?(@.type=='A')].id}}";
+
+        // Act
+        var result = VariableInterpolator.ResolveVariableTokens(input, context);
+
+        // Assert
+        Assert.IsType<object[]>(result);
+        var resultArray = (object[])result;
+        Assert.Equal(2, resultArray.Length);
+        Assert.Equal("1", resultArray[0]);
+        Assert.Equal("3", resultArray[1]);
+    }
+
+    [Fact]
+    public void ResolveVariableTokens_WithComplexFilterExpression_ReturnsMatchingItems()
+    {
+        // Arrange - This test simulates the exact scenario from the problem statement
+        var context = new TestExecutionContext();
+        context.Variables["testResult"] = new
+        {
+            journal = new
+            {
+                items = new[]
+                {
+                    new { activityId = "88e113194fd0c4d5", eventName = "Started", id = "event1" },
+                    new { activityId = "88e113194fd0c4d5", eventName = "Completed", id = "event2" },
+                    new { activityId = "88e113194fd0c4d5", eventName = "Completed", id = "event3" },
+                    new { activityId = "other", eventName = "Completed", id = "event4" }
+                }
+            }
+        };
+        var input = "{{$.testResult.journal.items[?(@.activityId=='88e113194fd0c4d5' && @.eventName == 'Completed')].id}}";
+
+        // Act
+        var result = VariableInterpolator.ResolveVariableTokens(input, context);
+
+        // Assert
+        Assert.IsType<object[]>(result);
+        var resultArray = (object[])result;
+        Assert.Equal(2, resultArray.Length);
+        Assert.Equal("event2", resultArray[0]);
+        Assert.Equal("event3", resultArray[1]);
+    }
+
+    [Fact]
+    public void ResolveVariableTokens_MultipleMatchesWithLengthAssertion_ShouldReturnCorrectCount()
+    {
+        // Arrange - This test verifies that the length assertion works with multiple matches
+        var context = new TestExecutionContext();
+        context.Variables["testResult"] = new
+        {
+            journal = new
+            {
+                items = new[]
+                {
+                    new { activityId = "88e113194fd0c4d5", eventName = "Completed", id = "event1" },
+                    new { activityId = "88e113194fd0c4d5", eventName = "Completed", id = "event2" },
+                    new { activityId = "other", eventName = "Completed", id = "event3" }
+                }
+            }
+        };
+        context.Variables["case"] = new { expectedIterations = 2 };
+
+        // Act - Get the actual value that would be used in a length assertion
+        var actualValue = VariableInterpolator.ResolveVariableTokens("{{$.testResult.journal.items[?(@.activityId=='88e113194fd0c4d5' && @.eventName == 'Completed')].id}}", context);
+        var expectedValue = VariableInterpolator.ResolveVariableTokens("{{$.case.expectedIterations}}", context);
+
+        // Assert - Verify we can get the length of the result
+        Assert.IsType<object[]>(actualValue);
+        var resultArray = (object[])actualValue;
+        Assert.Equal(2, resultArray.Length);
+        Assert.Equal(2, expectedValue);
+
+        // Verify that a length assertion would work correctly
+        var lengthAssertion = new JTest.Core.Assertions.LengthAssertion();
+        var assertionResult = lengthAssertion.Execute(actualValue, expectedValue);
+        Assert.True(assertionResult.Success);
+    }
 }
