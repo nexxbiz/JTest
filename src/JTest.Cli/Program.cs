@@ -1,6 +1,7 @@
 ﻿using JTest.Core;
 using JTest.Core.Models;
 using JTest.Core.Converters;
+using System.Collections.Concurrent;
 using System.Text;
 using System.Text.Json;
 
@@ -28,6 +29,7 @@ public class JTestCli
     private Dictionary<string, string> _envVars = new();
     private Dictionary<string, string> _globals = new();
     private readonly TestRunner _testRunner;
+    private int _parallelCount = 1; // Default to sequential execution
 
     public JTestCli()
     {
@@ -59,6 +61,7 @@ RUNTIME OPTIONS:
     --env-file <path.json>              Load environment from JSON file
     --globals key=value                 Set global variable
     --globals-file <path.json>          Load globals from JSON file
+    --parallel <count>, -p <count>      Run test files in parallel (default: 1)
 
 EXAMPLES:
     # Run a single test file
@@ -73,6 +76,10 @@ EXAMPLES:
     # Run with environment variables
     jtest run tests/*.json --env baseUrl=https://api.prod.com
     jtest run tests.json --env-file prod.json
+
+    # Run test files in parallel
+    jtest run tests/*.json --parallel 4
+    jtest run tests/*.json -p 8
 
     # Export to other frameworks (single file only)
     jtest export postman tests.json
@@ -181,6 +188,18 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
             {
                 var globalsFile = args[++i];
                 LoadGlobalsFile(globalsFile);
+            }
+            else if ((arg == "--parallel" || arg == "-p") && i + 1 < args.Length)
+            {
+                if (int.TryParse(args[++i], out var parallelCount) && parallelCount > 0)
+                {
+                    _parallelCount = parallelCount;
+                    Console.WriteLine($"Set parallel execution: {_parallelCount} files");
+                }
+                else
+                {
+                    Console.Error.WriteLine($"Invalid parallel count: {args[i]}. Must be a positive integer.");
+                }
             }
             else
             {
@@ -313,12 +332,18 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
             return 1;
         }
 
-        var pattern = args[0];
-        var testFiles = ExpandWildcardPattern(pattern);
+        var testFiles = new List<string>();
+        
+        // Process all arguments as patterns/files
+        foreach (var arg in args)
+        {
+            var expandedFiles = ExpandWildcardPattern(arg);
+            testFiles.AddRange(expandedFiles);
+        }
 
         if (testFiles.Count == 0)
         {
-            Console.Error.WriteLine($"Error: No test files found matching pattern: {pattern}");
+            Console.Error.WriteLine($"Error: No test files found matching patterns: {string.Join(", ", args)}");
             return 1;
         }
 
@@ -345,63 +370,147 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
         var processedFiles = 0;
         var failedFiles = 0;
 
-        foreach (var testFile in testFiles)
+        if (_parallelCount > 1 && testFiles.Count > 1)
         {
-            if (!File.Exists(testFile))
+            Console.WriteLine($"Running {testFiles.Count} test files in parallel (max concurrent: {_parallelCount})");
+            
+            // Thread-safe collections for parallel execution
+            var allResultsThreadSafe = new ConcurrentBag<JTestCaseResult>();
+            var processedFilesThreadSafe = 0;
+            var failedFilesThreadSafe = 0;
+            
+            // Use Parallel.ForEach with MaxDegreeOfParallelism
+            var parallelOptions = new ParallelOptions
             {
-                Console.Error.WriteLine($"Error: Test file not found: {testFile}");
-                failedFiles++;
-                continue;
-            }
+                MaxDegreeOfParallelism = _parallelCount
+            };
 
-            Console.WriteLine($"Running test file: {testFile}");
-
-
-            try
+            Parallel.ForEach(testFiles, parallelOptions, testFile =>
             {
-                // Read and execute the test file
-                var jsonContent = await File.ReadAllTextAsync(testFile);
-
-                // Convert string dictionaries to object dictionaries
-                var environment = _envVars.ToDictionary(kvp => kvp.Key, kvp => (object)kvp.Value);
-                var globals = _globals.ToDictionary(kvp => kvp.Key, kvp => (object)kvp.Value);
-
-                var results = await _testRunner.RunTestAsync(jsonContent, environment, globals);
-                allResults.AddRange(results);
-
-                // Display results for this file
-                var fileSuccess = 0;
-                var fileFailed = 0;
-
-                foreach (var result in results)
+                if (!File.Exists(testFile))
                 {
-                    Console.WriteLine($"\nTest: {result.TestCaseName}");
-                    if (result.Dataset != null)
+                    lock (Console.Error)
                     {
-                        Console.WriteLine($"Dataset: {result.Dataset.Name ?? "unnamed"}");
+                        Console.Error.WriteLine($"Error: Test file not found: {testFile}");
                     }
-                    Console.WriteLine($"Status: {(result.Success ? "PASSED" : "FAILED")}");
-                    Console.WriteLine($"Duration: {result.DurationMs}ms");
-                    Console.WriteLine($"Steps executed: {result.StepResults.Count}");
-
-                    if (!result.Success && !string.IsNullOrEmpty(result.ErrorMessage))
-                    {
-                        Console.WriteLine($"Error: {result.ErrorMessage}");
-                    }
-
-                    if (result.Success)
-                        fileSuccess++;
-                    else
-                        fileFailed++;
+                    Interlocked.Increment(ref failedFilesThreadSafe);
+                    return;
                 }
 
-                Console.WriteLine($"\nFile Summary - {Path.GetFileName(testFile)}: {fileSuccess} passed, {fileFailed} failed");
-                processedFiles++;
-            }
-            catch (Exception ex)
+                lock (Console.Out)
+                {
+                    Console.WriteLine($"Running test file: {testFile}");
+                }
+
+                try
+                {
+                    // Read and execute the test file
+                    var jsonContent = File.ReadAllText(testFile);
+
+                    // Convert string dictionaries to object dictionaries
+                    var environment = _envVars.ToDictionary(kvp => kvp.Key, kvp => (object)kvp.Value);
+                    var globals = _globals.ToDictionary(kvp => kvp.Key, kvp => (object)kvp.Value);
+
+                    var results = _testRunner.RunTestAsync(jsonContent, environment, globals).Result;
+                    
+                    foreach (var result in results)
+                    {
+                        allResultsThreadSafe.Add(result);
+                    }
+
+                    // Display results for this file
+                    var fileSuccess = 0;
+                    var fileFailed = 0;
+
+                    foreach (var result in results)
+                    {
+                        if (result.Success)
+                            fileSuccess++;
+                        else
+                            fileFailed++;
+                    }
+
+                    lock (Console.Out)
+                    {
+                        Console.WriteLine($"\nFile Summary - {Path.GetFileName(testFile)}: {fileSuccess} passed, {fileFailed} failed");
+                    }
+                    
+                    Interlocked.Increment(ref processedFilesThreadSafe);
+                }
+                catch (Exception ex)
+                {
+                    lock (Console.Error)
+                    {
+                        Console.Error.WriteLine($"Error executing test file {testFile}: {ex.Message}");
+                    }
+                    Interlocked.Increment(ref failedFilesThreadSafe);
+                }
+            });
+
+            allResults.AddRange(allResultsThreadSafe);
+            processedFiles = processedFilesThreadSafe;
+            failedFiles = failedFilesThreadSafe;
+        }
+        else
+        {
+            // Sequential execution (original logic)
+            foreach (var testFile in testFiles)
             {
-                Console.Error.WriteLine($"Error executing test file {testFile}: {ex.Message}");
-                failedFiles++;
+                if (!File.Exists(testFile))
+                {
+                    Console.Error.WriteLine($"Error: Test file not found: {testFile}");
+                    failedFiles++;
+                    continue;
+                }
+
+                Console.WriteLine($"Running test file: {testFile}");
+
+                try
+                {
+                    // Read and execute the test file
+                    var jsonContent = await File.ReadAllTextAsync(testFile);
+
+                    // Convert string dictionaries to object dictionaries
+                    var environment = _envVars.ToDictionary(kvp => kvp.Key, kvp => (object)kvp.Value);
+                    var globals = _globals.ToDictionary(kvp => kvp.Key, kvp => (object)kvp.Value);
+
+                    var results = await _testRunner.RunTestAsync(jsonContent, environment, globals);
+                    allResults.AddRange(results);
+
+                    // Display results for this file
+                    var fileSuccess = 0;
+                    var fileFailed = 0;
+
+                    foreach (var result in results)
+                    {
+                        Console.WriteLine($"\nTest: {result.TestCaseName}");
+                        if (result.Dataset != null)
+                        {
+                            Console.WriteLine($"Dataset: {result.Dataset.Name ?? "unnamed"}");
+                        }
+                        Console.WriteLine($"Status: {(result.Success ? "PASSED" : "FAILED")}");
+                        Console.WriteLine($"Duration: {result.DurationMs}ms");
+                        Console.WriteLine($"Steps executed: {result.StepResults.Count}");
+
+                        if (!result.Success && !string.IsNullOrEmpty(result.ErrorMessage))
+                        {
+                            Console.WriteLine($"Error: {result.ErrorMessage}");
+                        }
+
+                        if (result.Success)
+                            fileSuccess++;
+                        else
+                            fileFailed++;
+                    }
+
+                    Console.WriteLine($"\nFile Summary - {Path.GetFileName(testFile)}: {fileSuccess} passed, {fileFailed} failed");
+                    processedFiles++;
+                }
+                catch (Exception ex)
+                {
+                    Console.Error.WriteLine($"Error executing test file {testFile}: {ex.Message}");
+                    failedFiles++;
+                }
             }
         }
 
@@ -483,12 +592,18 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
             return 1;
         }
 
-        var pattern = args[0];
-        var testFiles = ExpandWildcardPattern(pattern);
+        var testFiles = new List<string>();
+        
+        // Process all arguments as patterns/files
+        foreach (var arg in args)
+        {
+            var expandedFiles = ExpandWildcardPattern(arg);
+            testFiles.AddRange(expandedFiles);
+        }
 
         if (testFiles.Count == 0)
         {
-            Console.Error.WriteLine($"Error: No test files found matching pattern: {pattern}");
+            Console.Error.WriteLine($"Error: No test files found matching patterns: {string.Join(", ", args)}");
             return 1;
         }
 
@@ -728,12 +843,18 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
             return 1;
         }
 
-        var pattern = args[0];
-        var testFiles = ExpandWildcardPattern(pattern);
+        var testFiles = new List<string>();
+        
+        // Process all arguments as patterns/files
+        foreach (var arg in args)
+        {
+            var expandedFiles = ExpandWildcardPattern(arg);
+            testFiles.AddRange(expandedFiles);
+        }
 
         if (testFiles.Count == 0)
         {
-            Console.Error.WriteLine($"Error: No test files found matching pattern: {pattern}");
+            Console.Error.WriteLine($"Error: No test files found matching patterns: {string.Join(", ", args)}");
             return 1;
         }
 
