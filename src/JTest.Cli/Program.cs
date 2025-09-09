@@ -507,6 +507,7 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
 
             // Generate output markdown file name for each test file
             var outputFile = Path.ChangeExtension(testFile, ".md");
+            outputFile = Path.GetFileNameWithoutExtension(outputFile) + $"- {DateTime.Now.ToString("yyyyMMdd-HHmmss")}" + "_debug.md";
             allOutputFiles.Add(outputFile);
 
             Console.WriteLine($"---------------------------------------------------");

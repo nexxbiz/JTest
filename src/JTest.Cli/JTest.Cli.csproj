@@ -5,7 +5,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="..\..\README.md" Pack="true" PackagePath="\"/>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 
   <PropertyGroup>
@@ -33,6 +33,7 @@
     <!-- Tool Package Configuration -->
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>jtest</ToolCommandName>
+    <AssemblyName>JTest</AssemblyName>
   </PropertyGroup>
 
 </Project>
