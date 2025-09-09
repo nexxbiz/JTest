@@ -263,7 +263,7 @@ Introduces delays in test execution:
 ```json
 {
     "type": "wait",
-    "duration": "5s"
+    "ms": 50
 }
 ```
 
