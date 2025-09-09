@@ -1,6 +1,7 @@
 ﻿using JTest.Core;
 using JTest.Core.Models;
 using JTest.Core.Converters;
+using JTest.Core.Debugging;
 using System.Collections.Concurrent;
 using System.Text;
 using System.Text.Json;
@@ -633,6 +634,7 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
             Console.WriteLine($"Debug output will be saved to: {outputFile}");
 
             var markdownContent = new StringBuilder();
+            var securityMasker = new SecurityMasker();
 
             // Add header to markdown file
             markdownContent.AppendLine($"# Debug Report for {Path.GetFileName(testFile)}");
@@ -647,7 +649,8 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
                 markdownContent.AppendLine("## Environment Variables");
                 foreach (var kvp in _envVars)
                 {
-                    markdownContent.AppendLine($"- **{kvp.Key}**: {kvp.Value}");
+                    var maskedValue = securityMasker.RegisterForMasking(kvp.Key, kvp.Value);
+                    markdownContent.AppendLine($"- **{kvp.Key}**: {maskedValue}");
                 }
                 markdownContent.AppendLine();
             }
@@ -658,7 +661,8 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
                 markdownContent.AppendLine("## Global Variables");
                 foreach (var kvp in _globals)
                 {
-                    markdownContent.AppendLine($"- **{kvp.Key}**: {kvp.Value}");
+                    var maskedValue = securityMasker.RegisterForMasking(kvp.Key, kvp.Value);
+                    markdownContent.AppendLine($"- **{kvp.Key}**: {maskedValue}");
                 }
                 markdownContent.AppendLine();
             }
@@ -720,7 +724,7 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
                 }
 
                 // Write markdown content to file
-                await File.WriteAllTextAsync(outputFile, markdownContent.ToString());
+                await File.WriteAllTextAsync(outputFile, securityMasker.ApplyMasking(markdownContent.ToString()));
 
                 // Display console summary
                 Console.WriteLine($"---------------------------------------------------");
@@ -758,7 +762,7 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
 
                 try
                 {
-                    await File.WriteAllTextAsync(outputFile, markdownContent.ToString());
+                    await File.WriteAllTextAsync(outputFile, securityMasker.ApplyMasking(markdownContent.ToString()));
                     Console.WriteLine($"Partial debug report saved to: {outputFile}");
                 }
                 catch
