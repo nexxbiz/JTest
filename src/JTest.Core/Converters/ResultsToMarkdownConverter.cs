@@ -116,15 +116,15 @@ public class ResultsToMarkdownConverter
     {
         var details = new List<string>();
         
-        if (assertion.ActualValue != null)
+        if (assertion.ActualValue != null || !string.IsNullOrEmpty(assertion.ErrorMessage))
         {
-            _securityMasker.RegisterForMasking("actual", assertion.ActualValue);
+            _securityMasker.RegisterForMasking("actual", assertion.ActualValue ?? "null");
             details.Add($"**Actual:** {assertion.ActualValue}");
         }
         
-        if (assertion.ExpectedValue != null)
+        if (assertion.ExpectedValue != null || !string.IsNullOrEmpty(assertion.ErrorMessage))
         {
-            _securityMasker.RegisterForMasking("expected", assertion.ExpectedValue);
+            _securityMasker.RegisterForMasking("expected", assertion.ExpectedValue??"null");
             details.Add($"**Expected:** {assertion.ExpectedValue}");
         }
         

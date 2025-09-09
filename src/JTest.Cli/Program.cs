@@ -354,9 +354,8 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
                 continue;
             }
 
-            Console.WriteLine($"\n{'=' * 60}");
             Console.WriteLine($"Running test file: {testFile}");
-            Console.WriteLine($"{'=' * 60}");
+
 
             try
             {
@@ -407,9 +406,9 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
         }
 
         // Display overall summary
-        Console.WriteLine($"\n{'=' * 60}");
+
         Console.WriteLine($"OVERALL TEST SUMMARY");
-        Console.WriteLine($"{'=' * 60}");
+
         Console.WriteLine($"Files processed: {processedFiles}");
         Console.WriteLine($"Files failed: {failedFiles}");
         Console.WriteLine($"Total tests: {allResults.Count}");
@@ -510,13 +509,12 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
             var outputFile = Path.ChangeExtension(testFile, ".md");
             allOutputFiles.Add(outputFile);
 
-            Console.WriteLine($"\n{'=' * 60}");
+            Console.WriteLine($"---------------------------------------------------");
             Console.WriteLine($"Running test file in debug mode: {testFile}");
             Console.WriteLine("Debug mode: ON");
             Console.WriteLine("Verbose output: ON");
             Console.WriteLine("Markdown logging: ON");
             Console.WriteLine($"Debug output will be saved to: {outputFile}");
-            Console.WriteLine($"{'=' * 60}");
 
             var markdownContent = new StringBuilder();
 
@@ -588,6 +586,7 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
                 }
 
                 // Add summary to markdown
+
                 markdownContent.AppendLine("## Summary");
                 markdownContent.AppendLine($"- **Total tests:** {results.Count}");
                 markdownContent.AppendLine($"- **Passed:** {totalSuccess}");
@@ -608,6 +607,7 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
                 await File.WriteAllTextAsync(outputFile, markdownContent.ToString());
 
                 // Display console summary
+                Console.WriteLine($"---------------------------------------------------");
                 Console.WriteLine($"Total tests: {results.Count}");
                 Console.WriteLine($"Passed: {totalSuccess}");
                 Console.WriteLine($"Failed: {totalFailed}");
@@ -655,9 +655,9 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
         }
 
         // Display overall summary
-        Console.WriteLine($"\n{'=' * 60}");
+
         Console.WriteLine($"DEBUG SUMMARY");
-        Console.WriteLine($"{'=' * 60}");
+
         Console.WriteLine($"Files processed successfully: {processedFiles}");
         Console.WriteLine($"Files failed: {failedFiles}");
         Console.WriteLine($"Debug reports generated: {allOutputFiles.Count}");
