@@ -70,13 +70,13 @@ public class ResultsToMarkdownConverter
         
         if (!string.IsNullOrEmpty(step.DetailedDescription))
         {
-            content.AppendLine($"  {step.DetailedDescription}");
+            content.AppendLine($"{step.DetailedDescription}");
         }
         
         if (!step.Success && !string.IsNullOrEmpty(step.ErrorMessage))
         {
             _securityMasker.RegisterForMasking("error", step.ErrorMessage);
-            content.AppendLine($"  - **Error:** {step.ErrorMessage}");
+            content.AppendLine($"- **Error:** {step.ErrorMessage}");
         }
         
         AppendSavedValues(content, step.ContextChanges);
@@ -90,7 +90,7 @@ public class ResultsToMarkdownConverter
     {
         if (assertions.Count == 0) return;
         
-        content.AppendLine("  - **Assertions:**");
+        content.AppendLine("- **Assertions:**");
         
         foreach (var assertion in assertions)
         {
@@ -107,7 +107,7 @@ public class ResultsToMarkdownConverter
             ? assertion.Operation 
             : assertion.Description;
             
-        content.AppendLine($"    - {status}: {description}");
+        content.AppendLine($"- {status}: {description}");
         
             AppendAssertionDetails(content, assertion);
     }
@@ -136,7 +136,7 @@ public class ResultsToMarkdownConverter
         
         if (details.Count > 0)
         {
-            content.AppendLine($"      {string.Join(", \n", details)}\n");
+            content.AppendLine($"{string.Join(", \n", details)}\n");
         }
     }
 
@@ -145,23 +145,42 @@ public class ResultsToMarkdownConverter
         if (contextChanges == null) return;
         if (contextChanges.Added.Count == 0 && contextChanges.Modified.Count == 0) return;
         
-        content.AppendLine("- **Saved Values:**");
-        AppendSavedVariables(content, contextChanges.Added, "Added");
-        AppendSavedVariables(content, contextChanges.Modified, "Modified");
+        content.AppendLine("**Saved Values:**");
+        content.AppendLine();
+        
+        // Create table for saved variables
+        var hasVariables = false;
+        var tableContent = new StringBuilder();
+        tableContent.AppendLine("| Action | Variable | Value |");
+        tableContent.AppendLine("|--------|----------|-------|");
+        
+        foreach (var variable in contextChanges.Added)
+        {
+            if (ShouldSkipVariable(variable.Key)) continue;
+            _securityMasker.RegisterForMasking(variable.Key, variable.Value);
+            var valueDisplay = FormatVariableValueForTable(variable.Value, variable.Key);
+            tableContent.AppendLine($"| Added | {variable.Key} | {valueDisplay} |");
+            hasVariables = true;
+        }
+        
+        foreach (var variable in contextChanges.Modified)
+        {
+            if (ShouldSkipVariable(variable.Key)) continue;
+            _securityMasker.RegisterForMasking(variable.Key, variable.Value);
+            var valueDisplay = FormatVariableValueForTable(variable.Value, variable.Key);
+            tableContent.AppendLine($"| Modified | {variable.Key} | {valueDisplay} |");
+            hasVariables = true;
+        }
+        
+        if (hasVariables)
+        {
+            content.Append(tableContent.ToString());
+        }
         
         content.AppendLine();
     }
 
-    private void AppendSavedVariables(StringBuilder content, Dictionary<string, object> variables, string category)
-    {
-        if (variables.Count == 0) return;
-        
-        foreach (var variable in variables)
-        {
-            if (ShouldSkipVariable(variable.Key)) continue;
-            AppendSingleSavedVariable(content, variable, category);
-        }
-    }
+
 
     private bool ShouldSkipVariable(string variableName)
     {
@@ -169,20 +188,11 @@ public class ResultsToMarkdownConverter
         return variableName.Equals("this", StringComparison.OrdinalIgnoreCase);
     }
 
-    private void AppendSingleSavedVariable(StringBuilder content, KeyValuePair<string, object> variable, string category)
-    {
-        // Register sensitive values for masking
-        _securityMasker.RegisterForMasking(variable.Key, variable.Value);
-        
-        var valueDisplay = FormatVariableValue(variable.Value, variable.Key);
-        content.AppendLine($"    - **{category}:** {variable.Key} = {valueDisplay}");
-    }
-
     private void AppendInnerSteps(StringBuilder content, List<StepResult> innerResults)
     {
         if (innerResults.Count == 0) return;
         
-        content.AppendLine("  - **Template Steps:**");
+        content.AppendLine("- **Template Steps:**");
         foreach (var innerStep in innerResults)
         {
             AppendInnerStepResult(content, innerStep);
@@ -195,14 +205,19 @@ public class ResultsToMarkdownConverter
     {
         var status = step.Success ? "PASSED" : "FAILED";
         var description = GetInnerStepDescription(step);
-        content.AppendLine($"  - **{description}** {status} ({step.DurationMs}ms)");
+        content.AppendLine($"- **{description}:** {status} ({step.DurationMs}ms)");
         
         AppendInnerStepDetails(content, step);
     }
 
     private string GetInnerStepDescription(StepResult stepResult)
     {
-       
+        // Use DetailedDescription if available, otherwise fall back to step description or type
+        if (!string.IsNullOrEmpty(stepResult.DetailedDescription))
+        {
+            return stepResult.DetailedDescription;
+        }
+        
         return !string.IsNullOrEmpty(stepResult.Step.GetStepDescription()) 
             ? stepResult.Step.GetStepDescription()
             : $"{stepResult.Step.Type} step";
@@ -238,7 +253,7 @@ public class ResultsToMarkdownConverter
         
         if (details.Count > 0)
         {
-            content.AppendLine($"      ({string.Join(", ", details)})");
+            content.AppendLine($"({string.Join(", ", details)})");
         }
         
         // Add full variable details as collapsible sections if needed
@@ -342,6 +357,15 @@ public class ResultsToMarkdownConverter
         
         return FormatComplexValue(value, variableKey);
     }
+
+    private string FormatVariableValueForTable(object value, string variableKey = "")
+    {
+        if (value == null) return "null";
+        if (value is string str) return $"\"{str}\"";
+        if (value.GetType().IsValueType) return value.ToString() ?? "null";
+        
+        return FormatComplexValueForTable(value, variableKey);
+    }
     
     private string FormatComplexValue(object value, string variableKey = "")
     {
@@ -357,6 +381,28 @@ public class ResultsToMarkdownConverter
             
             // Don't register complex JSON for masking here - it will be handled by ApplyMasking at the end
             return $"\n\n<details><summary>show</summary>\n\n```json\n{json}\n```\n</details>\n\n";
+
+        }
+        catch
+        {
+            return value.ToString() ?? "null";
+        }
+    }
+
+    private string FormatComplexValueForTable(object value, string variableKey = "")
+    {
+        try
+        {
+            var options = new JsonSerializerOptions
+            {
+                WriteIndented = true,
+                PropertyNamingPolicy = null
+            };
+            
+            var json = JsonSerializer.Serialize(value, options);
+            
+            // For tables, use a more compact collapsible format
+            return $"<details><summary>show JSON</summary><pre>{json}</pre></details>";
 
         }
         catch

@@ -219,9 +219,9 @@ public class TemplateIntegrationTests
 
         // Assert markdown contains template steps section
         Assert.Contains("**Template Steps:**", markdown);
-        Assert.Contains("wait step:", markdown);
+        Assert.Contains("Wait 50ms:", markdown);
         
-        // Verify inner step details are shown (variables saved in inner steps)
+        // Verify inner step details are shown (variables saved in inner steps)  
         Assert.Contains("waitResult = \"first-step-completed\"", markdown);
         Assert.Contains("secondResult = ", markdown); // Variable is saved, interpolation may not resolve in this context
         
