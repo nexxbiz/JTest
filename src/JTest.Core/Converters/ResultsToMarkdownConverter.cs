@@ -233,7 +233,9 @@ public class ResultsToMarkdownConverter
     {
         if (innerResults.Count == 0) return;
         
-        content.AppendLine("**Template Steps:**");
+        // Wrap entire Template Steps section in collapsible panel
+        content.AppendLine("<details>");
+        content.AppendLine("<summary><strong>Template Steps</strong></summary>");
         content.AppendLine();
         
         // Use HTML table for template steps
@@ -250,6 +252,14 @@ public class ResultsToMarkdownConverter
         
         content.AppendLine("</tbody>");
         content.AppendLine("</table>");
+        
+        // Add variable details after the main table, properly separated
+        foreach (var innerStep in innerResults)
+        {
+            AppendInnerStepVariableDetails(content, innerStep);
+        }
+        
+        content.AppendLine("</details>");
         content.AppendLine();
     }
 
@@ -264,13 +274,6 @@ public class ResultsToMarkdownConverter
         details = System.Net.WebUtility.HtmlEncode(details);
         
         content.AppendLine($"<tr><td>{description}</td><td>{status}</td><td>{step.DurationMs}ms</td><td>{details}</td></tr>");
-        
-        // Add full variable details as separate content if needed
-        if (step.ContextChanges != null && 
-            (step.ContextChanges.Added.Count > 0 || step.ContextChanges.Modified.Count > 0))
-        {
-            AppendTemplateStepVariables(content, step.ContextChanges);
-        }
     }
 
     private void AppendInnerStepResult(StringBuilder content, StepResult step)
@@ -313,11 +316,34 @@ public class ResultsToMarkdownConverter
         return string.Join("; ", details);
     }
 
+    private void AppendInnerStepVariableDetails(StringBuilder content, StepResult step)
+    {
+        // Only add variable details if there are variables and they should be displayed
+        if (step.ContextChanges == null || 
+            (step.ContextChanges.Added.Count == 0 && step.ContextChanges.Modified.Count == 0))
+        {
+            return;
+        }
+        
+        // Check if there are any non-skipped variables
+        var hasVisibleVariables = step.ContextChanges.Added.Any(v => !ShouldSkipVariable(v.Key)) ||
+                                 step.ContextChanges.Modified.Any(v => !ShouldSkipVariable(v.Key));
+        
+        if (!hasVisibleVariables) return;
+        
+        // Add a section header for this step's variables
+        var stepDescription = GetInnerStepDescription(step);
+        content.AppendLine();
+        content.AppendLine($"**Variables for {stepDescription}:**");
+        content.AppendLine();
+        
+        AppendTemplateStepVariables(content, step.ContextChanges);
+    }
+
     private void AppendTemplateStepVariables(StringBuilder content, ContextChanges contextChanges)
     {
         var hasVariables = false;
         var tableContent = new StringBuilder();
-        tableContent.AppendLine();
         tableContent.AppendLine("<table>");
         tableContent.AppendLine("<thead>");
         tableContent.AppendLine("<tr><th>Action</th><th>Variable</th><th>Value</th></tr>");

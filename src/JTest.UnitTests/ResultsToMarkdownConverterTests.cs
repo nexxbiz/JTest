@@ -140,11 +140,13 @@ public class ResultsToMarkdownConverterTests
         // Act
         var markdown = converter.ConvertToMarkdown(results);
 
-        // Assert - Verify template steps section is shown
-        Assert.Contains("**Template Steps:**", markdown);
+        // Assert - Verify template steps section is shown in collapsible format
+        Assert.Contains("<details>", markdown);
+        Assert.Contains("<summary><strong>Template Steps</strong></summary>", markdown);
         Assert.Contains("<table>", markdown);
         Assert.Contains("<tr><td>Wait 100ms</td><td>PASSED</td><td>100ms</td><td></td></tr>", markdown);
         Assert.Contains("<tr><td>HTTP GET request</td><td>FAILED</td><td>50ms</td><td>Error: HTTP request failed</td></tr>", markdown);
+        Assert.Contains("</details>", markdown);
     }
 
     [Fact]

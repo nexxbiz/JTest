@@ -217,9 +217,11 @@ public class TemplateIntegrationTests
         Assert.True(templateStepResult.Success);
         Assert.Equal(2, templateStepResult.InnerResults.Count);
 
-        // Assert markdown contains template steps section
-        Assert.Contains("**Template Steps:**", markdown);
+        // Assert markdown contains template steps section with collapsible structure
+        Assert.Contains("<details>", markdown);
+        Assert.Contains("<summary><strong>Template Steps</strong></summary>", markdown);
         Assert.Contains("<tr><td>Wait 50ms</td><td>PASSED</td>", markdown);
+        Assert.Contains("</details>", markdown);
         
         // Verify inner step details are shown (variables saved in inner steps)  
         Assert.Contains("<tr><td>Added</td><td>waitResult</td><td>\"first-step-completed\"</td></tr>", markdown);
