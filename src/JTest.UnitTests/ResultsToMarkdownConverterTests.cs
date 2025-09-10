@@ -46,10 +46,11 @@ public class ResultsToMarkdownConverterTests
 
         // Assert
         Assert.Contains("**Saved Values:**", markdown);
-        Assert.Contains("| Added | newVar | \"test-value\" |", markdown);
-        Assert.Contains("| Added | $.globals.token | \"masked\" |", markdown); // Sensitive values should be masked
-        Assert.Contains("| Modified | existingVar | \"updated-value\" |", markdown);
-        Assert.DoesNotContain("| Added | this |", markdown); // Should be filtered out
+        Assert.Contains("<table>", markdown);
+        Assert.Contains("<tr><td>Added</td><td>newVar</td><td>\"test-value\"</td></tr>", markdown);
+        Assert.Contains("<tr><td>Added</td><td>$.globals.token</td><td>\"masked\"</td></tr>", markdown); // Sensitive values should be masked
+        Assert.Contains("<tr><td>Modified</td><td>existingVar</td><td>\"updated-value\"</td></tr>", markdown);
+        Assert.DoesNotContain("<tr><td>Added</td><td>this</td>", markdown); // Should be filtered out
         Assert.DoesNotContain("abc123", markdown); // Sensitive token value should not appear in output
     }
 

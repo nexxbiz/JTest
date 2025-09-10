@@ -148,18 +148,21 @@ public class ResultsToMarkdownConverter
         content.AppendLine("**Saved Values:**");
         content.AppendLine();
         
-        // Create table for saved variables
+        // Use HTML table instead of markdown table to support proper formatting
         var hasVariables = false;
         var tableContent = new StringBuilder();
-        tableContent.AppendLine("| Action | Variable | Value |");
-        tableContent.AppendLine("|--------|----------|-------|");
+        tableContent.AppendLine("<table>");
+        tableContent.AppendLine("<thead>");
+        tableContent.AppendLine("<tr><th>Action</th><th>Variable</th><th>Value</th></tr>");
+        tableContent.AppendLine("</thead>");
+        tableContent.AppendLine("<tbody>");
         
         foreach (var variable in contextChanges.Added)
         {
             if (ShouldSkipVariable(variable.Key)) continue;
             _securityMasker.RegisterForMasking(variable.Key, variable.Value);
-            var valueDisplay = FormatVariableValueForTable(variable.Value, variable.Key);
-            tableContent.AppendLine($"| Added | {variable.Key} | {valueDisplay} |");
+            var valueDisplay = FormatVariableValueForHtmlTable(variable.Value, variable.Key);
+            tableContent.AppendLine($"<tr><td>Added</td><td>{variable.Key}</td><td>{valueDisplay}</td></tr>");
             hasVariables = true;
         }
         
@@ -167,10 +170,13 @@ public class ResultsToMarkdownConverter
         {
             if (ShouldSkipVariable(variable.Key)) continue;
             _securityMasker.RegisterForMasking(variable.Key, variable.Value);
-            var valueDisplay = FormatVariableValueForTable(variable.Value, variable.Key);
-            tableContent.AppendLine($"| Modified | {variable.Key} | {valueDisplay} |");
+            var valueDisplay = FormatVariableValueForHtmlTable(variable.Value, variable.Key);
+            tableContent.AppendLine($"<tr><td>Modified</td><td>{variable.Key}</td><td>{valueDisplay}</td></tr>");
             hasVariables = true;
         }
+        
+        tableContent.AppendLine("</tbody>");
+        tableContent.AppendLine("</table>");
         
         if (hasVariables)
         {
@@ -408,6 +414,40 @@ public class ResultsToMarkdownConverter
         catch
         {
             return value.ToString() ?? "null";
+        }
+    }
+
+    private string FormatVariableValueForHtmlTable(object value, string variableKey = "")
+    {
+        if (value == null) return "null";
+        if (value is string str) return $"\"{str}\"";
+        if (value.GetType().IsValueType) return value.ToString() ?? "null";
+        
+        return FormatComplexValueForHtmlTable(value, variableKey);
+    }
+    
+    private string FormatComplexValueForHtmlTable(object value, string variableKey = "")
+    {
+        try
+        {
+            var options = new JsonSerializerOptions
+            {
+                WriteIndented = true,  // Use proper indented JSON for HTML tables
+                PropertyNamingPolicy = null
+            };
+            
+            var json = JsonSerializer.Serialize(value, options);
+            
+            // HTML-encode the JSON to prevent issues with HTML parsing
+            json = System.Net.WebUtility.HtmlEncode(json);
+            
+            // For HTML tables, use proper indented format with details/summary for collapsible content
+            return $"<details><summary>show JSON</summary><pre>{json}</pre></details>";
+
+        }
+        catch
+        {
+            return System.Net.WebUtility.HtmlEncode(value.ToString() ?? "null");
         }
     }
 }
