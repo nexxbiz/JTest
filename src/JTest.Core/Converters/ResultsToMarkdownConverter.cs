@@ -395,13 +395,13 @@ public class ResultsToMarkdownConverter
         {
             var options = new JsonSerializerOptions
             {
-                WriteIndented = true,
+                WriteIndented = false,  // Use compact JSON for table cells to avoid linebreaks
                 PropertyNamingPolicy = null
             };
             
             var json = JsonSerializer.Serialize(value, options);
             
-            // For tables, use a more compact collapsible format
+            // For tables, use a compact collapsible format that fits in a single table cell
             return $"<details><summary>show JSON</summary><pre>{json}</pre></details>";
 
         }
