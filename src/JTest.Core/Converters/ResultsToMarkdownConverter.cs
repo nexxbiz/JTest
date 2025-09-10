@@ -90,14 +90,49 @@ public class ResultsToMarkdownConverter
     {
         if (assertions.Count == 0) return;
         
-        content.AppendLine("- **Assertions:**");
+        content.AppendLine("**Assertions:**");
+        content.AppendLine();
+        
+        // Use HTML table for assertions
+        content.AppendLine("<table>");
+        content.AppendLine("<thead>");
+        content.AppendLine("<tr><th>Status</th><th>Description</th><th>Actual</th><th>Expected</th></tr>");
+        content.AppendLine("</thead>");
+        content.AppendLine("<tbody>");
         
         foreach (var assertion in assertions)
         {
-            AppendSingleAssertion(content, assertion);
+            AppendAssertionAsTableRow(content, assertion);
         }
         
+        content.AppendLine("</tbody>");
+        content.AppendLine("</table>");
         content.AppendLine();
+    }
+
+    private void AppendAssertionAsTableRow(StringBuilder content, AssertionResult assertion)
+    {
+        var status = assertion.Success ? "PASSED" : "FAILED";
+        var description = string.IsNullOrEmpty(assertion.Description) 
+            ? assertion.Operation 
+            : assertion.Description;
+        
+        // HTML encode all values to prevent HTML issues
+        description = System.Net.WebUtility.HtmlEncode(description ?? "");
+        var actualValue = System.Net.WebUtility.HtmlEncode(assertion.ActualValue?.ToString() ?? "");
+        var expectedValue = System.Net.WebUtility.HtmlEncode(assertion.ExpectedValue?.ToString() ?? "");
+        
+        // Register for masking before HTML encoding
+        if (assertion.ActualValue != null)
+        {
+            _securityMasker.RegisterForMasking("actual", assertion.ActualValue);
+        }
+        if (assertion.ExpectedValue != null)
+        {
+            _securityMasker.RegisterForMasking("expected", assertion.ExpectedValue);
+        }
+        
+        content.AppendLine($"<tr><td>{status}</td><td>{description}</td><td>{actualValue}</td><td>{expectedValue}</td></tr>");
     }
 
     private void AppendSingleAssertion(StringBuilder content, AssertionResult assertion)
@@ -198,13 +233,44 @@ public class ResultsToMarkdownConverter
     {
         if (innerResults.Count == 0) return;
         
-        content.AppendLine("- **Template Steps:**");
+        content.AppendLine("**Template Steps:**");
+        content.AppendLine();
+        
+        // Use HTML table for template steps
+        content.AppendLine("<table>");
+        content.AppendLine("<thead>");
+        content.AppendLine("<tr><th>Step</th><th>Status</th><th>Duration</th><th>Details</th></tr>");
+        content.AppendLine("</thead>");
+        content.AppendLine("<tbody>");
+        
         foreach (var innerStep in innerResults)
         {
-            AppendInnerStepResult(content, innerStep);
+            AppendInnerStepResultAsTableRow(content, innerStep);
         }
         
+        content.AppendLine("</tbody>");
+        content.AppendLine("</table>");
         content.AppendLine();
+    }
+
+    private void AppendInnerStepResultAsTableRow(StringBuilder content, StepResult step)
+    {
+        var status = step.Success ? "PASSED" : "FAILED";
+        var description = GetInnerStepDescription(step);
+        var details = GetInnerStepTableDetails(step);
+        
+        // HTML encode the description and details to prevent HTML issues
+        description = System.Net.WebUtility.HtmlEncode(description);
+        details = System.Net.WebUtility.HtmlEncode(details);
+        
+        content.AppendLine($"<tr><td>{description}</td><td>{status}</td><td>{step.DurationMs}ms</td><td>{details}</td></tr>");
+        
+        // Add full variable details as separate content if needed
+        if (step.ContextChanges != null && 
+            (step.ContextChanges.Added.Count > 0 || step.ContextChanges.Modified.Count > 0))
+        {
+            AppendTemplateStepVariables(content, step.ContextChanges);
+        }
     }
 
     private void AppendInnerStepResult(StringBuilder content, StepResult step)
@@ -214,6 +280,76 @@ public class ResultsToMarkdownConverter
         content.AppendLine($"- **{description}:** {status} ({step.DurationMs}ms)");
         
         AppendInnerStepDetails(content, step);
+    }
+
+    private string GetInnerStepTableDetails(StepResult step)
+    {
+        var details = new List<string>();
+        
+        if (!step.Success && !string.IsNullOrEmpty(step.ErrorMessage))
+        {
+            _securityMasker.RegisterForMasking("error", step.ErrorMessage);
+            details.Add($"Error: {step.ErrorMessage}");
+        }
+        
+        // Add saved values summary 
+        if (step.ContextChanges != null && 
+            (step.ContextChanges.Added.Count > 0 || step.ContextChanges.Modified.Count > 0))
+        {
+            var savedSummary = GetSavedValuesSummary(step.ContextChanges);
+            if (!string.IsNullOrEmpty(savedSummary))
+            {
+                details.Add($"Saved: {savedSummary}");
+            }
+        }
+        
+        // Add assertions summary
+        if (step.AssertionResults.Count > 0)
+        {
+            var assertionSummary = GetAssertionsSummary(step.AssertionResults);
+            details.Add($"Assertions: {assertionSummary}");
+        }
+        
+        return string.Join("; ", details);
+    }
+
+    private void AppendTemplateStepVariables(StringBuilder content, ContextChanges contextChanges)
+    {
+        var hasVariables = false;
+        var tableContent = new StringBuilder();
+        tableContent.AppendLine();
+        tableContent.AppendLine("<table>");
+        tableContent.AppendLine("<thead>");
+        tableContent.AppendLine("<tr><th>Action</th><th>Variable</th><th>Value</th></tr>");
+        tableContent.AppendLine("</thead>");
+        tableContent.AppendLine("<tbody>");
+        
+        foreach (var variable in contextChanges.Added)
+        {
+            if (ShouldSkipVariable(variable.Key)) continue;
+            _securityMasker.RegisterForMasking(variable.Key, variable.Value);
+            var valueDisplay = FormatVariableValueForHtmlTable(variable.Value, variable.Key);
+            tableContent.AppendLine($"<tr><td>Added</td><td>{variable.Key}</td><td>{valueDisplay}</td></tr>");
+            hasVariables = true;
+        }
+        
+        foreach (var variable in contextChanges.Modified)
+        {
+            if (ShouldSkipVariable(variable.Key)) continue;
+            _securityMasker.RegisterForMasking(variable.Key, variable.Value);
+            var valueDisplay = FormatVariableValueForHtmlTable(variable.Value, variable.Key);
+            tableContent.AppendLine($"<tr><td>Modified</td><td>{variable.Key}</td><td>{valueDisplay}</td></tr>");
+            hasVariables = true;
+        }
+        
+        tableContent.AppendLine("</tbody>");
+        tableContent.AppendLine("</table>");
+        
+        if (hasVariables)
+        {
+            content.Append(tableContent.ToString());
+        }
+        content.AppendLine();
     }
 
     private string GetInnerStepDescription(StepResult stepResult)

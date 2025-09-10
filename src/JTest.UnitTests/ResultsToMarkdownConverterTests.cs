@@ -142,9 +142,52 @@ public class ResultsToMarkdownConverterTests
 
         // Assert - Verify template steps section is shown
         Assert.Contains("**Template Steps:**", markdown);
-        Assert.Contains("**Wait 100ms:** PASSED (100ms)", markdown);
-        Assert.Contains("**HTTP GET request:** FAILED (50ms)", markdown);
-        Assert.Contains("**Error:** HTTP request failed", markdown);
+        Assert.Contains("<table>", markdown);
+        Assert.Contains("<tr><td>Wait 100ms</td><td>PASSED</td><td>100ms</td><td></td></tr>", markdown);
+        Assert.Contains("<tr><td>HTTP GET request</td><td>FAILED</td><td>50ms</td><td>Error: HTTP request failed</td></tr>", markdown);
+    }
+
+    [Fact]
+    public void ConvertToMarkdown_WithAssertions_DisplaysAssertionsAsTable()
+    {
+        // Arrange
+        var converter = new ResultsToMarkdownConverter();
+        var mockStep = new MockTestStep();
+        
+        var assertion1 = new JTest.Core.Assertions.AssertionResult(true) { Description = "Workflow instance ID should exist", ActualValue = "7b05846c2a980394" };
+        var assertion2 = new JTest.Core.Assertions.AssertionResult(true) { Description = "Workflow expected end value: 10", ActualValue = "10", ExpectedValue = "10" };
+        var assertion3 = new JTest.Core.Assertions.AssertionResult(false) { Description = "Activity execution numbers expected : 11", ActualValue = "9", ExpectedValue = "11" };
+        
+        var stepResult = new StepResult
+        {
+            Step = mockStep,
+            Success = true,
+            DurationMs = 150,
+            AssertionResults = new List<JTest.Core.Assertions.AssertionResult> { assertion1, assertion2, assertion3 }
+        };
+
+        var testCaseResult = new JTestCaseResult
+        {
+            TestCaseName = "Test Case with Assertions",
+            Success = true,
+            DurationMs = 200,
+            StepResults = new List<StepResult> { stepResult }
+        };
+
+        var results = new List<JTestCaseResult> { testCaseResult };
+
+        // Act
+        var markdown = converter.ConvertToMarkdown(results);
+
+        // Assert - Verify assertions section uses HTML table
+        Assert.Contains("**Assertions:**", markdown);
+        Assert.Contains("<table>", markdown);
+        Assert.Contains("<thead>", markdown);
+        Assert.Contains("<tr><th>Status</th><th>Description</th><th>Actual</th><th>Expected</th></tr>", markdown);
+        Assert.Contains("<tbody>", markdown);
+        Assert.Contains("<tr><td>PASSED</td><td>Workflow instance ID should exist</td><td>7b05846c2a980394</td><td></td></tr>", markdown);
+        Assert.Contains("<tr><td>PASSED</td><td>Workflow expected end value: 10</td><td>10</td><td>10</td></tr>", markdown);
+        Assert.Contains("<tr><td>FAILED</td><td>Activity execution numbers expected : 11</td><td>9</td><td>11</td></tr>", markdown);
     }
 }
 
