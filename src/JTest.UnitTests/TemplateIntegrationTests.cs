@@ -217,13 +217,15 @@ public class TemplateIntegrationTests
         Assert.True(templateStepResult.Success);
         Assert.Equal(2, templateStepResult.InnerResults.Count);
 
-        // Assert markdown contains template steps section
-        Assert.Contains("**Template Steps:**", markdown);
-        Assert.Contains("wait step:", markdown);
+        // Assert markdown contains template steps section with collapsible structure
+        Assert.Contains("<details>", markdown);
+        Assert.Contains("<summary><strong>Template Steps</strong></summary>", markdown);
+        Assert.Contains("<tr><td>Wait 50ms</td><td>PASSED</td>", markdown);
+        Assert.Contains("</details>", markdown);
         
-        // Verify inner step details are shown (variables saved in inner steps)
-        Assert.Contains("waitResult = \"first-step-completed\"", markdown);
-        Assert.Contains("secondResult = ", markdown); // Variable is saved, interpolation may not resolve in this context
+        // Verify inner step details are shown (variables saved in inner steps)  
+        Assert.Contains("<tr><td>Added</td><td>waitResult</td><td>\"first-step-completed\"</td></tr>", markdown);
+        Assert.Contains("<tr><td>Added</td><td>secondResult</td><td>\"{{inputValue}}-processed\"</td></tr>", markdown); // Variable is saved, interpolation may not resolve in this context
         
         // Print the markdown for manual verification
         Console.WriteLine("Generated Markdown with Inner Steps:");

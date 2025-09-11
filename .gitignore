@@ -423,3 +423,4 @@ elsa-templates.json
 *.msix
 *.msm
 *.msp
+*debug.md
