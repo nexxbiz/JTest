@@ -65,8 +65,9 @@ public class HttpStep : BaseStep
     private async Task<object> PerformHttpRequest(IExecutionContext context, Stopwatch stopwatch)
     {
         var request = BuildHttpRequest(context);
+        var requestDetails = await CaptureRequestDetails(request, context);
         var response = await _httpClient.SendAsync(request);
-        return await CreateResponseData(response, stopwatch);
+        return await CreateResponseData(response, stopwatch, requestDetails);
     }
 
     private HttpRequestMessage BuildHttpRequest(IExecutionContext context)
@@ -217,7 +218,27 @@ public class HttpStep : BaseStep
         return new StringContent(content, Encoding.UTF8, "application/json");
     }
 
-    private async Task<object> CreateResponseData(HttpResponseMessage response, Stopwatch stopwatch)
+    private async Task<object> CaptureRequestDetails(HttpRequestMessage request, IExecutionContext context)
+    {
+        var headers = request.Headers
+            .Concat(request.Content?.Headers ?? Enumerable.Empty<KeyValuePair<string, IEnumerable<string>>>())
+            .Select(h => new { name = h.Key, value = string.Join(", ", h.Value) })
+            .ToArray();
+
+        var body = request.Content != null 
+            ? await request.Content.ReadAsStringAsync()
+            : null;
+
+        return new
+        {
+            url = request.RequestUri?.ToString() ?? "",
+            method = request.Method.Method,
+            headers = headers,
+            body = body
+        };
+    }
+
+    private async Task<object> CreateResponseData(HttpResponseMessage response, Stopwatch stopwatch, object requestDetails)
     {
         var body = await GetResponseBody(response);
         var headers = GetResponseHeaders(response);
@@ -226,7 +247,8 @@ public class HttpStep : BaseStep
             status = (int)response.StatusCode,
             headers = headers,
             body = body,
-            duration = stopwatch.ElapsedMilliseconds
+            duration = stopwatch.ElapsedMilliseconds,
+            request = requestDetails
         };
     }
 

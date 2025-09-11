@@ -191,6 +191,72 @@ public class ResultsToMarkdownConverterTests
         Assert.Contains("<tr><td>PASSED</td><td>Workflow expected end value: 10</td><td>10</td><td>10</td></tr>", markdown);
         Assert.Contains("<tr><td>FAILED</td><td>Activity execution numbers expected : 11</td><td>9</td><td>11</td></tr>", markdown);
     }
+
+    [Fact]
+    public void ConvertToMarkdown_WithHttpStepRequestDetails_DisplaysHttpRequestTable()
+    {
+        // Arrange
+        var converter = new ResultsToMarkdownConverter();
+        var mockHttpStep = new MockTestStep { Type = "http" };
+
+        // Create mock request data structure that matches what HttpStep produces
+        var requestData = new
+        {
+            url = "https://api.example.com/users",
+            method = "POST",
+            headers = new[]
+            {
+                new { name = "Authorization", value = "Bearer token123" },
+                new { name = "Content-Type", value = "application/json" }
+            },
+            body = "{\"name\":\"John Doe\",\"email\":\"john@example.com\"}"
+        };
+
+        var responseData = new
+        {
+            status = 201,
+            headers = new[] { new { name = "Content-Type", value = "application/json" } },
+            body = new { id = 123, name = "John Doe" },
+            duration = 250,
+            request = requestData
+        };
+
+        var stepResult = new StepResult
+        {
+            Step = mockHttpStep,
+            Success = true,
+            DurationMs = 250,
+            Data = responseData
+        };
+
+        var testCaseResult = new JTestCaseResult
+        {
+            TestCaseName = "Test HTTP Request Display",
+            Success = true,
+            DurationMs = 300,
+            StepResults = new List<StepResult> { stepResult }
+        };
+
+        var results = new List<JTestCaseResult> { testCaseResult };
+
+        // Act
+        var markdown = converter.ConvertToMarkdown(results);
+
+        // Assert
+        Assert.Contains("**HTTP Request:**", markdown);
+        Assert.Contains("<table>", markdown);
+        Assert.Contains("<tr><th>Field</th><th>Value</th></tr>", markdown);
+        Assert.Contains("<tr><td>URL</td><td>https://api.example.com/users</td></tr>", markdown);
+        Assert.Contains("<tr><td>Method</td><td>POST</td></tr>", markdown);
+        Assert.Contains("<tr><td>Headers</td>", markdown);
+        Assert.Contains("Authorization: masked", markdown); // Should be masked due to sensitive header
+        Assert.Contains("Content-Type: application/json", markdown);
+        Assert.Contains("<tr><td>Body</td>", markdown);
+        Assert.Contains("show JSON", markdown); // Should be collapsible JSON
+        
+        // Sensitive token should be masked
+        Assert.DoesNotContain("token123", markdown);
+    }
 }
 
 /// <summary>

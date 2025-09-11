@@ -321,4 +321,105 @@ public class HttpStepTests
         Assert.True(responseType.GetProperty("body") != null);
         Assert.True(responseType.GetProperty("duration") != null);
     }
+
+    [Fact]
+    public async Task ExecuteAsync_CapturesRequestDetails_IncludesUrlHeadersAndBody()
+    {
+        var response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent("{\"result\":\"success\"}", Encoding.UTF8, "application/json")
+        };
+
+        var step = CreateHttpStep(response);
+        var context = new TestExecutionContext();
+        context.Variables["auth"] = new { token = "bearer123" };
+
+        var config = JsonSerializer.SerializeToElement(new
+        {
+            method = "POST",
+            url = "https://api.example.com/users",
+            headers = new[]
+            {
+                new { name = "Authorization", value = "Bearer {{$.auth.token}}" },
+                new { name = "Content-Type", value = "application/json" }
+            },
+            body = new
+            {
+                name = "John Doe",
+                email = "john@example.com"
+            }
+        });
+
+        step.ValidateConfiguration(config);
+        var result = await step.ExecuteAsync(context);
+
+        Assert.True(result.Success);
+        Assert.True(context.Variables.ContainsKey("this"));
+        
+        var responseData = context.Variables["this"];
+        Assert.NotNull(responseData);
+        
+        // Verify the response data structure includes request details
+        var responseType = responseData.GetType();
+        Assert.True(responseType.GetProperty("request") != null);
+        
+        // Verify request details structure
+        var requestProperty = responseType.GetProperty("request");
+        var requestData = requestProperty?.GetValue(responseData);
+        Assert.NotNull(requestData);
+        
+        var requestType = requestData.GetType();
+        Assert.True(requestType.GetProperty("url") != null);
+        Assert.True(requestType.GetProperty("method") != null);
+        Assert.True(requestType.GetProperty("headers") != null);
+        Assert.True(requestType.GetProperty("body") != null);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_CapturesRequestDetails_WithActualValues()
+    {
+        var response = new HttpResponseMessage(HttpStatusCode.Created)
+        {
+            Content = new StringContent("{\"id\":456,\"name\":\"John\"}", Encoding.UTF8, "application/json")
+        };
+
+        var step = CreateHttpStep(response);
+        var context = new TestExecutionContext();
+        context.Variables["auth"] = new { token = "bearer123" };
+
+        var config = JsonSerializer.SerializeToElement(new
+        {
+            method = "POST",
+            url = "https://api.example.com/users",
+            headers = new[]
+            {
+                new { name = "Authorization", value = "Bearer {{$.auth.token}}" },
+                new { name = "Content-Type", value = "application/json" }
+            },
+            body = new
+            {
+                name = "John Doe",
+                email = "john@example.com"
+            }
+        });
+
+        step.ValidateConfiguration(config);
+        var result = await step.ExecuteAsync(context);
+
+        // Verify the captured request details have the correct values
+        var responseData = context.Variables["this"];
+        var responseType = responseData.GetType();
+        var requestProperty = responseType.GetProperty("request");
+        var requestData = requestProperty?.GetValue(responseData);
+        
+        var requestType = requestData.GetType();
+        var url = requestType.GetProperty("url")?.GetValue(requestData)?.ToString();
+        var method = requestType.GetProperty("method")?.GetValue(requestData)?.ToString();
+        var body = requestType.GetProperty("body")?.GetValue(requestData)?.ToString();
+        
+        Assert.Equal("https://api.example.com/users", url);
+        Assert.Equal("POST", method);
+        Assert.Contains("John Doe", body);
+        Assert.Contains("john@example.com", body);
+    }
 }
