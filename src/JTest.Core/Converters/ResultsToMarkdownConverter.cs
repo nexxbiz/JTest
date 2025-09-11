@@ -80,10 +80,163 @@ public class ResultsToMarkdownConverter
         }
         
         AppendSavedValues(content, step.ContextChanges);
+        AppendHttpRequestDetails(content, step);
         AppendAssertionResults(content, step.AssertionResults);
         AppendInnerSteps(content, step.InnerResults);
         
         content.AppendLine();
+    }
+
+    private void AppendHttpRequestDetails(StringBuilder content, StepResult step)
+    {
+        // Only show HTTP request details for HTTP steps
+        if (step.Step.Type != "http" || step.Data == null) return;
+
+        var requestData = ExtractRequestDetails(step.Data);
+        if (requestData == null) return;
+
+        content.AppendLine("**HTTP Request:**");
+        content.AppendLine();
+        
+        // Use HTML table for HTTP request details
+        content.AppendLine("<table>");
+        content.AppendLine("<thead>");
+        content.AppendLine("<tr><th>Field</th><th>Value</th></tr>");
+        content.AppendLine("</thead>");
+        content.AppendLine("<tbody>");
+
+        // Add URL
+        var url = System.Net.WebUtility.HtmlEncode(requestData.Url ?? "");
+        content.AppendLine($"<tr><td>URL</td><td>{url}</td></tr>");
+
+        // Add Method
+        var method = System.Net.WebUtility.HtmlEncode(requestData.Method ?? "");
+        content.AppendLine($"<tr><td>Method</td><td>{method}</td></tr>");
+
+        // Add Headers
+        if (requestData.Headers != null && requestData.Headers.Length > 0)
+        {
+            var headersDisplay = FormatHttpHeaders(requestData.Headers);
+            content.AppendLine($"<tr><td>Headers</td><td>{headersDisplay}</td></tr>");
+        }
+
+        // Add Body
+        if (!string.IsNullOrEmpty(requestData.Body))
+        {
+            var bodyDisplay = FormatHttpBody(requestData.Body);
+            content.AppendLine($"<tr><td>Body</td><td>{bodyDisplay}</td></tr>");
+        }
+
+        content.AppendLine("</tbody>");
+        content.AppendLine("</table>");
+        content.AppendLine();
+    }
+
+    private HttpRequestDetails? ExtractRequestDetails(object stepData)
+    {
+        try
+        {
+            var dataType = stepData.GetType();
+            var requestProperty = dataType.GetProperty("request");
+            if (requestProperty == null) return null;
+
+            var requestData = requestProperty.GetValue(stepData);
+            if (requestData == null) return null;
+
+            var requestType = requestData.GetType();
+            var url = requestType.GetProperty("url")?.GetValue(requestData)?.ToString();
+            var method = requestType.GetProperty("method")?.GetValue(requestData)?.ToString();
+            var headers = requestType.GetProperty("headers")?.GetValue(requestData) as object[];
+            var body = requestType.GetProperty("body")?.GetValue(requestData)?.ToString();
+
+            return new HttpRequestDetails
+            {
+                Url = url,
+                Method = method,
+                Headers = headers,
+                Body = body
+            };
+        }
+        catch
+        {
+            // If we can't extract request details, just don't show them
+            return null;
+        }
+    }
+
+    private string FormatHttpHeaders(object[] headers)
+    {
+        try
+        {
+            var headerStrings = new List<string>();
+            foreach (var header in headers)
+            {
+                var headerType = header.GetType();
+                var name = headerType.GetProperty("name")?.GetValue(header)?.ToString();
+                var value = headerType.GetProperty("value")?.GetValue(header)?.ToString();
+                
+                if (!string.IsNullOrEmpty(name) && !string.IsNullOrEmpty(value))
+                {
+                    // Register sensitive headers for masking
+                    if (IsSensitiveHeader(name))
+                    {
+                        _securityMasker.RegisterForMasking(name, value);
+                    }
+                    
+                    var encodedName = System.Net.WebUtility.HtmlEncode(name);
+                    var encodedValue = System.Net.WebUtility.HtmlEncode(value);
+                    headerStrings.Add($"{encodedName}: {encodedValue}");
+                }
+            }
+            
+            if (headerStrings.Count == 0) return "None";
+            
+            return $"<pre>{string.Join("<br/>", headerStrings)}</pre>";
+        }
+        catch
+        {
+            return "Unable to display headers";
+        }
+    }
+
+    private string FormatHttpBody(string body)
+    {
+        if (string.IsNullOrEmpty(body)) return "Empty";
+
+        // Register body for masking in case it contains sensitive data
+        _securityMasker.RegisterForMasking("requestBody", body);
+
+        // Try to format as JSON if it looks like JSON
+        if (IsJsonString(body))
+        {
+            try
+            {
+                var jsonElement = JsonSerializer.Deserialize<JsonElement>(body);
+                var formatted = JsonSerializer.Serialize(jsonElement, new JsonSerializerOptions { WriteIndented = true });
+                var encoded = System.Net.WebUtility.HtmlEncode(formatted);
+                return $"<details><summary>show JSON</summary><pre>{encoded}</pre></details>";
+            }
+            catch
+            {
+                // Fall back to plain text display
+            }
+        }
+
+        // Display as plain text
+        var encodedBody = System.Net.WebUtility.HtmlEncode(body);
+        return $"<pre>{encodedBody}</pre>";
+    }
+
+    private bool IsSensitiveHeader(string headerName)
+    {
+        var sensitiveHeaders = new[] { "authorization", "x-api-key", "x-auth-token", "cookie", "set-cookie" };
+        return sensitiveHeaders.Contains(headerName.ToLowerInvariant());
+    }
+
+    private bool IsJsonString(string str)
+    {
+        str = str.Trim();
+        return (str.StartsWith("{") && str.EndsWith("}")) || (str.StartsWith("[") && str.EndsWith("]"));
     }
 
     private void AppendAssertionResults(StringBuilder content, List<AssertionResult> assertions)
@@ -612,4 +765,13 @@ public class ResultsToMarkdownConverter
             return System.Net.WebUtility.HtmlEncode(value.ToString() ?? "null");
         }
     }
+}
+
+// Helper class for HTTP request details
+internal class HttpRequestDetails
+{
+    public string? Url { get; set; }
+    public string? Method { get; set; }
+    public object[]? Headers { get; set; }
+    public string? Body { get; set; }
 }

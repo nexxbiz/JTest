@@ -145,6 +145,15 @@ HTTP steps automatically populate the context with response information:
     },
     "body": {
         // Parsed JSON response (if Content-Type is application/json)
+    },
+    "request": {
+        "url": "https://api.example.com/users/123",
+        "method": "POST", 
+        "headers": [
+            {"name": "Authorization", "value": "Bearer token"},
+            {"name": "Content-Type", "value": "application/json"}
+        ],
+        "body": "{\"name\":\"John\",\"email\":\"john@example.com\"}"
     }
 }
 ```
@@ -162,9 +171,29 @@ HTTP steps automatically populate the context with response information:
 "{{$.this.body.user.id}}"
 "{{$.this.body.data[0].name}}"
 
+// Request details (NEW)
+"{{$.this.request.url}}"
+"{{$.this.request.method}}"
+"{{$.this.request.headers[0].name}}"
+
 // From a named step
 "{{$.loginStep.body.token}}"
 ```
+
+### HTTP Request Details in Reports
+
+When using markdown output format, HTTP steps now display detailed request information in a convenient table format:
+
+**HTTP Request:**
+
+| Field   | Value |
+|---------|-------|
+| URL     | https://api.example.com/users/123 |
+| Method  | POST |
+| Headers | Authorization: masked<br/>Content-Type: application/json |
+| Body    | <details><summary>show JSON</summary>...</details> |
+
+*Note: Sensitive headers like Authorization are automatically masked for security.*
 
 ## Common HTTP Patterns
 
