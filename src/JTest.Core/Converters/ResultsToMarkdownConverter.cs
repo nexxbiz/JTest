@@ -92,6 +92,7 @@ public class ResultsToMarkdownConverter
         // Only show HTTP request details for HTTP steps
         if (step.Step.Type != "http" || step.Data == null) return;
 
+        content.AppendLine();
         var requestData = ExtractRequestDetails(step.Data);
         if (requestData == null) return;
 
@@ -427,6 +428,7 @@ public class ResultsToMarkdownConverter
         details = System.Net.WebUtility.HtmlEncode(details);
         
         content.AppendLine($"<tr><td>{description}</td><td>{status}</td><td>{step.DurationMs}ms</td><td>{details}</td></tr>");
+        AppendHttpRequestDetails(content, step);
     }
 
     private void AppendInnerStepResult(StringBuilder content, StepResult step)
