@@ -24,7 +24,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\JTest.Core\JTest.Core.csproj" />
+    <ProjectReference Include="..\..\src\JTest.Core\JTest.Core.csproj" />
   </ItemGroup>
 
 </Project>
