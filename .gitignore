@@ -424,3 +424,7 @@ elsa-templates.json
 *.msm
 *.msp
 *debug.md
+
+.idea/
+
+.DS_Store

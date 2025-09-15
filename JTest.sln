@@ -7,8 +7,41 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JTest.Core", "src\JTest.Cor
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JTest.Cli", "src\JTest.Cli\JTest.Cli.csproj", "{3C76D6D8-B7E7-7860-F790-5BD98DE03F3B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JTest.UnitTests", "src\JTest.UnitTests\JTest.UnitTests.csproj", "{DFAFFBC6-ED40-CDB3-C9A9-DBE6E561F051}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{3BEF5577-E39D-4B46-B4DB-D03E217CE4B7}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{B7BEC33C-4905-4F61-9011-81C8B41884B1}"
+	ProjectSection(SolutionItems) = preProject
+		docs\ci-cd-integration.md = docs\ci-cd-integration.md
+		docs\file-structure-reference.md = docs\file-structure-reference.md
+		docs\01-getting-started.md = docs\01-getting-started.md
+		docs\troubleshooting.md = docs\troubleshooting.md
+		docs\extensibility.md = docs\extensibility.md
+		docs\cli-usage.md = docs\cli-usage.md
+		docs\README.md = docs\README.md
+		docs\samples\set-variable-tests.md = docs\samples\set-variable-tests.md
+		docs\samples\set-variable-tests.json = docs\samples\set-variable-tests.json
+		docs\samples\if-else-tests.md = docs\samples\if-else-tests.md
+		docs\samples\if-else-tests.json = docs\samples\if-else-tests.json
+		docs\06-best-practices.md = docs\06-best-practices.md
+		docs\steps\assert-step.md = docs\steps\assert-step.md
+		docs\steps\http-step.md = docs\steps\http-step.md
+		docs\steps\use-step.md = docs\steps\use-step.md
+		docs\JTest-AI-Guide.md = docs\JTest-AI-Guide.md
+		docs\COPILOT_GUIDANCE.md = docs\COPILOT_GUIDANCE.md
+		docs\05-assertions.md = docs\05-assertions.md
+		docs\03-context-and-variables.md = docs\03-context-and-variables.md
+		docs\02-test-structure.md = docs\02-test-structure.md
+		docs\04-templates.md = docs\04-templates.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{03262C1F-D710-4FB4-A945-CFEEF2DBC71C}"
+	ProjectSection(SolutionItems) = preProject
+
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JTest.UnitTests", "tests\JTest.UnitTests\JTest.UnitTests.csproj", "{A269700D-9F3F-4315-99A3-455F7753EFEC}"
+EndProject
+
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -23,12 +56,19 @@ Global
 		{3C76D6D8-B7E7-7860-F790-5BD98DE03F3B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3C76D6D8-B7E7-7860-F790-5BD98DE03F3B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3C76D6D8-B7E7-7860-F790-5BD98DE03F3B}.Release|Any CPU.Build.0 = Release|Any CPU
-		{DFAFFBC6-ED40-CDB3-C9A9-DBE6E561F051}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{DFAFFBC6-ED40-CDB3-C9A9-DBE6E561F051}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{DFAFFBC6-ED40-CDB3-C9A9-DBE6E561F051}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{DFAFFBC6-ED40-CDB3-C9A9-DBE6E561F051}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A269700D-9F3F-4315-99A3-455F7753EFEC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A269700D-9F3F-4315-99A3-455F7753EFEC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A269700D-9F3F-4315-99A3-455F7753EFEC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A269700D-9F3F-4315-99A3-455F7753EFEC}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{3C76D6D8-B7E7-7860-F790-5BD98DE03F3B} = {3BEF5577-E39D-4B46-B4DB-D03E217CE4B7}
+		{F9A65FB5-7EBC-C3C1-6299-7FD8C4D48A4C} = {3BEF5577-E39D-4B46-B4DB-D03E217CE4B7}
+		{0D613210-CEFB-42C5-96F0-3A67BF0A4FEB} = {03262C1F-D710-4FB4-A945-CFEEF2DBC71C}
+		{1080B815-727B-4761-AE97-10702416C1E2} = {03262C1F-D710-4FB4-A945-CFEEF2DBC71C}
+		{A269700D-9F3F-4315-99A3-455F7753EFEC} = {03262C1F-D710-4FB4-A945-CFEEF2DBC71C}
 	EndGlobalSection
 EndGlobal

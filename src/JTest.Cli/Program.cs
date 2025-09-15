@@ -31,10 +31,13 @@ public class JTestCli
     private Dictionary<string, string> _globals = new();
     private readonly TestRunner _testRunner;
     private int _parallelCount = 1; // Default to sequential execution
+    private readonly string _debugOutputDir = "./bin/debug";
+    private const string DebugPathEnvVar = "debugPath"; // Define debug output via config 
 
     public JTestCli()
     {
         _testRunner = new TestRunner();
+        _debugOutputDir = Environment.GetEnvironmentVariable(DebugPathEnvVar) ?? _debugOutputDir;
     }
 
     private static readonly string HelpText = @"JTEST CLI v1.0 - Universal Test Definition Language
@@ -622,7 +625,9 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
             }
 
             // Generate output markdown file name for each test file
-            var outputFile = Path.ChangeExtension(testFile, ".md");
+            var testFilePath = Path.ChangeExtension(testFile, ".md");
+            var outputFileName = Path.GetRelativePath("./",testFilePath);
+            var outputFile = Path.Combine(_debugOutputDir, outputFileName);
             outputFile = Path.GetFileNameWithoutExtension(outputFile) + $"- {DateTime.Now.ToString("yyyyMMdd-HHmmss")}" + "_debug.md";
             allOutputFiles.Add(outputFile);
 
