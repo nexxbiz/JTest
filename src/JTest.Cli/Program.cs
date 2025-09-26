@@ -415,7 +415,7 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
                     var environment = _envVars.ToDictionary(kvp => kvp.Key, kvp => (object)kvp.Value);
                     var globals = _globals.ToDictionary(kvp => kvp.Key, kvp => (object)kvp.Value);
 
-                    var results = _testRunner.RunTestAsync(jsonContent, environment, globals).Result;
+                    var results = _testRunner.RunTestAsync(jsonContent, testFile, environment, globals).Result;
                     
                     foreach (var result in results)
                     {
@@ -478,7 +478,7 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
                     var environment = _envVars.ToDictionary(kvp => kvp.Key, kvp => (object)kvp.Value);
                     var globals = _globals.ToDictionary(kvp => kvp.Key, kvp => (object)kvp.Value);
 
-                    var results = await _testRunner.RunTestAsync(jsonContent, environment, globals);
+                    var results = await _testRunner.RunTestAsync(jsonContent, testFile, environment, globals);
                     allResults.AddRange(results);
 
                     // Display results for this file
@@ -683,7 +683,7 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
 
 
 
-                var results = await _testRunner.RunTestAsync(jsonContent, environment, globals);
+                var results = await _testRunner.RunTestAsync(jsonContent, testFile, environment, globals);
 
                 Console.WriteLine("\nTest execution completed");
 
