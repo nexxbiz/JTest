@@ -66,11 +66,11 @@ dotnet build src/JTest.Cli
 - **[Getting Started](docs/01-getting-started.md)** - Your first test in minutes
 - **[Test Structure](docs/02-test-structure.md)** - Understanding the JSON format  
 - **[HTTP Step](docs/steps/http-step.md)** - Making HTTP requests
-- **[Assertions](docs/assertions.md)** - Validating responses
-- **[Templates](docs/templates.md)** - Reusable test components
-- **[CLI Usage](docs/cli-usage.md)** - Command-line options
-- **[Best Practices](docs/best-practices.md)** - Proven patterns
-- **[Troubleshooting](docs/troubleshooting.md)** - Debugging help
+- **[Assertions](docs/05-assertions.md)** - Validating responses
+- **[Templates](docs/04-templates.md)** - Reusable test components
+- **[CLI Usage](docs/07-cli-usage.md)** - Command-line options
+- **[Best Practices](docs/06-best-practices.md)** - Proven patterns
+- **[Troubleshooting](docs/08-troubleshooting.md)** - Debugging help
 
 ## Key Features
 
