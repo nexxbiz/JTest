@@ -23,10 +23,10 @@
       "commandLineArgs": "debug *.json",
       "workingDirectory": "C:\\Repos\\Nexxbiz\\JTest-elsa-tests"
     },
-    "debug decisions in dev": {
+    "debug activity-tests": {
       "commandName": "Project",
-      "commandLineArgs": "debug decision-tests.json --env-file ./environments/dev.json",
-      "workingDirectory": "C:\\Repos\\Nexxbiz\\JTest-elsa-tests"
+      "commandLineArgs": "debug activity-tests/*.json --env-file ./environments/dev.json",
+      "workingDirectory": "C:\\Repos\\Nexxbiz\\JTest-elsa-tests2\\tests\\"
     }
   }
 }
