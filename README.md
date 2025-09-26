@@ -4,27 +4,39 @@ A powerful JSON-based API testing framework that lets you write comprehensive te
 
 ## Quick Start
 
-Create your first test:
+Create your first test file `my-test.json`:
 
 ```json
 {
     "version": "1.0",
     "info": {
-        "name": "My First API Test"
+        "name": "My First Test"
+    },
+    "env": {
+        "testValue": "hello-world"
     },
     "tests": [
         {
-            "name": "Health Check",
+            "name": "Basic Variable Test",
             "steps": [
                 {
-                    "type": "http",
-                    "method": "GET",
-                    "url": "https://jsonplaceholder.typicode.com/posts/1",
+                    "type": "wait",
+                    "ms": 100,
                     "assert": [
                         {
                             "op": "equals",
-                            "actualValue": "{{$.this.statusCode}}",
-                            "expectedValue": 200
+                            "actualValue": "{{$.this.ms}}",
+                            "expectedValue": 100
+                        }
+                    ]
+                },
+                {
+                    "type": "assert",
+                    "assert": [
+                        {
+                            "op": "equals",
+                            "actualValue": "{{$.env.testValue}}",
+                            "expectedValue": "hello-world"
                         }
                     ]
                 }
@@ -34,10 +46,15 @@ Create your first test:
 }
 ```
 
-Run it:
+Build and run it:
 ```bash
-dotnet tool install -g JTest.Cli
-jtest run my-test.json
+# Clone and build the project
+git clone https://github.com/nexxbiz/JTest.git
+cd JTest
+dotnet build src/JTest.Cli
+
+# Run your test
+./src/JTest.Cli/bin/Debug/net8.0/JTest run my-test.json
 ```
 
 ## Documentation
@@ -49,47 +66,85 @@ jtest run my-test.json
 - **[Getting Started](docs/01-getting-started.md)** - Your first test in minutes
 - **[Test Structure](docs/02-test-structure.md)** - Understanding the JSON format  
 - **[HTTP Step](docs/steps/http-step.md)** - Making HTTP requests
-- **[Assertions](docs/assertions.md)** - Validating responses
-- **[Templates](docs/templates.md)** - Reusable test components
-- **[CLI Usage](docs/cli-usage.md)** - Command-line options
-- **[Best Practices](docs/best-practices.md)** - Proven patterns
-- **[Troubleshooting](docs/troubleshooting.md)** - Debugging help
+- **[Assertions](docs/05-assertions.md)** - Validating responses
+- **[Templates](docs/04-templates.md)** - Reusable test components
+- **[CLI Usage](docs/07-cli-usage.md)** - Command-line options
+- **[Best Practices](docs/06-best-practices.md)** - Proven patterns
+- **[Troubleshooting](docs/08-troubleshooting.md)** - Debugging help
 
 ## Key Features
 
 - **JSON-Based** - Write tests using familiar JSON syntax
 - **Powerful Assertions** - Comprehensive validation with JSONPath expressions
 - **Template System** - Create reusable test components
-- **CLI Tool** - Command-line interface for running tests
-- **Multiple Output Formats** - Console, JSON, JUnit XML, Markdown
-- **CI/CD Ready** - Designed for continuous integration pipelines
+- **Variable System** - Environment and global variables with JSONPath access
+- **Multiple Step Types** - HTTP requests, assertions, wait steps, and templates
+- **CLI Interface** - Command-line tool for running and debugging tests
 - **Extensible** - Add custom step types and functionality
 
-## Installation
+## How to Use JTest
 
-Install as a global .NET tool:
+Since JTest is currently a project (not a published package), you need to build it from source:
 
+### 1. Get the Source Code
 ```bash
-dotnet tool install -g JTest.Cli
+git clone https://github.com/nexxbiz/JTest.git
+cd JTest
+```
+
+### 2. Build the Project
+```bash
+dotnet build src/JTest.Cli
+```
+
+### 3. Run Tests
+```bash
+# Run a test file
+./src/JTest.Cli/bin/Debug/net8.0/JTest run your-test.json
+
+# Run multiple test files
+./src/JTest.Cli/bin/Debug/net8.0/JTest run tests/*.json
+
+# Get help
+./src/JTest.Cli/bin/Debug/net8.0/JTest --help
 ```
 
 ## Usage Examples
 
-### Basic HTTP Test
+### Basic Variable and Assertion Test
 ```json
 {
     "version": "1.0",
+    "env": {
+        "testValue": "hello-world",
+        "timeout": 1000
+    },
+    "globals": {
+        "expectedResult": "success"
+    },
     "tests": [
         {
-            "name": "Get User",
+            "name": "Variable Test",
             "steps": [
                 {
-                    "type": "http",
-                    "method": "GET", 
-                    "url": "https://api.example.com/users/123",
+                    "type": "wait",
+                    "ms": "{{$.env.timeout}}",
                     "assert": [
-                        {"op": "equals", "actualValue": "{{$.this.statusCode}}", "expectedValue": 200},
-                        {"op": "exists", "actualValue": "{{$.this.body.user.id}}"}
+                        {
+                            "op": "greaterthan",
+                            "actualValue": "{{$.this.ms}}",
+                            "expectedValue": 500
+                        }
+                    ]
+                },
+                {
+                    "type": "assert",
+                    "assert": [
+                        {
+                            "op": "equals",
+                            "actualValue": "{{$.env.testValue}}",
+                            "expectedValue": "hello-world"
+                        }
                     ]
                 }
             ]
@@ -98,44 +153,62 @@ dotnet tool install -g JTest.Cli
 }
 ```
 
-### Authentication Flow
+### Using Templates
+Templates allow you to reuse common patterns. First, create `auth-template.json`:
+
 ```json
 {
-    "tests": [
-        {
-            "name": "Authenticated Request",
-            "steps": [
-                {
-                    "type": "http",
-                    "id": "login",
-                    "method": "POST",
-                    "url": "/auth/login",
-                    "body": {"username": "user@example.com", "password": "password"}
+    "version": "1.0",
+    "components": {
+        "templates": [
+            {
+                "name": "authenticate",
+                "description": "Generate test authentication token",
+                "params": {
+                    "username": { "type": "string", "required": true },
+                    "password": { "type": "string", "required": true }
                 },
-                {
-                    "type": "http",
-                    "method": "GET",
-                    "url": "/user/profile",
-                    "headers": {"Authorization": "Bearer {{$.login.body.token}}"}
+                "steps": [],
+                "output": {
+                    "token": "{{$.username}}-{{$.password}}-token",
+                    "authHeader": "Bearer {{$.username}}-{{$.password}}-token"
                 }
-            ]
-        }
-    ]
+            }
+        ]
+    }
 }
 ```
 
-### Using Templates
+Then use it in your test:
+
 ```json
 {
-    "using": ["./templates/auth.json"],
+    "version": "1.0",
+    "using": ["./auth-template.json"],
     "tests": [
         {
-            "name": "Template Example",
+            "name": "Template Usage Example",
             "steps": [
                 {
                     "type": "use",
                     "template": "authenticate",
-                    "params": {"username": "test@example.com", "password": "password"}
+                    "with": {
+                        "username": "testuser",
+                        "password": "secret123"
+                    },
+                    "save": {
+                        "$.globals.authToken": "{{$.this.token}}"
+                    }
+                },
+                {
+                    "type": "assert",
+                    "assert": [
+                        {
+                            "op": "equals",
+                            "actualValue": "{{$.globals.authToken}}",
+                            "expectedValue": "testuser-secret123-token"
+                        }
+                    ]
                 }
             ]
         }
@@ -146,20 +219,20 @@ dotnet tool install -g JTest.Cli
 ## CLI Commands
 
 ```bash
-# Run tests
-jtest run tests.json
+# Run tests (using built binary)
+./src/JTest.Cli/bin/Debug/net8.0/JTest run tests.json
 
-# Run with specific environment
-jtest run tests.json --environment staging
+# Run multiple test files with wildcards
+./src/JTest.Cli/bin/Debug/net8.0/JTest run tests/*.json
 
-# Generate JUnit XML report
-jtest run tests.json --output junit
+# Run with environment variables
+./src/JTest.Cli/bin/Debug/net8.0/JTest run tests.json --env baseUrl=https://api.example.com
 
-# Run tests in parallel
-jtest run tests.json --parallel 4
+# Validate test files
+./src/JTest.Cli/bin/Debug/net8.0/JTest validate tests.json
 
-# Debug mode
-jtest run tests.json --debug --verbose
+# Debug mode with verbose output
+./src/JTest.Cli/bin/Debug/net8.0/JTest debug tests.json
 ```
 
 ## Project Structure

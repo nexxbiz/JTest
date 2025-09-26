@@ -18,7 +18,7 @@ A JTest suite is the main container for your tests. It follows this structure:
 
 ```json
 {
-    "version": "1.1",
+    "version": "1.0",
     "info": {
         "name": "Test Suite Name",
         "description": "Description of what this suite tests"
@@ -46,7 +46,7 @@ A JTest suite is the main container for your tests. It follows this structure:
 
 | Property | Type | Required | Description |
 |----------|------|----------|-------------|
-| `version` | string | Yes | Version of the JTest format (e.g., "1.1") |
+| `version` | string | Yes | Version of the JTest format (e.g., "1.0") |
 | `info` | object | No | Metadata about the test suite |
 | `info.name` | string | No | Human-readable name for the suite |
 | `info.description` | string | No | Description of the test suite purpose |
