@@ -1,0 +1,20 @@
+{
+    "version": "1.0",
+    "components": {
+        "templates": [
+            {
+                "name": "authenticate",
+                "description": "Generate test authentication token",
+                "params": {
+                    "username": { "type": "string", "required": true },
+                    "password": { "type": "string", "required": true }
+                },
+                "steps": [],
+                "output": {
+                    "token": "{{$.username}}-{{$.password}}-token",
+                    "authHeader": "Bearer {{$.username}}-{{$.password}}-token"
+                }
+            }
+        ]
+    }
+}

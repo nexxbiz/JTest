@@ -1,0 +1,32 @@
+{
+    "version": "1.0",
+    "using": ["./auth-template.json"],
+    "tests": [
+        {
+            "name": "Template Usage Example",
+            "steps": [
+                {
+                    "type": "use",
+                    "template": "authenticate",
+                    "with": {
+                        "username": "testuser",
+                        "password": "secret123"
+                    },
+                    "save": {
+                        "$.globals.authToken": "{{$.this.token}}"
+                    }
+                },
+                {
+                    "type": "assert",
+                    "assert": [
+                        {
+                            "op": "equals",
+                            "actualValue": "{{$.globals.authToken}}",
+                            "expectedValue": "testuser-secret123-token"
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}
