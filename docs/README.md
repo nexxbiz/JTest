@@ -35,7 +35,7 @@ Practical guides for development and deployment:
 
 ## Quick Reference
 
-- **[File Structure Reference](file-structure-reference.md)** - Comprehensive structure documentation
+- **[File Structure Reference](07-file-structure-reference.md)** - Comprehensive structure documentation
 
 ### Common Patterns
 

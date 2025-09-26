@@ -94,7 +94,7 @@ Now let's add one assertion to check the status code:
 
 ```json
 {
-    "version": "1.1",
+    "version": "1.0",
     "info": {
         "name": "My First API Test",
         "description": "A simple test with basic validation"

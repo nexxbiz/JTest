@@ -17,10 +17,10 @@ Error: Could not find test file 'my-tests.json'
 1. Check file path and spelling:
 ```bash
 # Use absolute path
-jtest run /full/path/to/tests.json
+./src/JTest.Cli/bin/Debug/net8.0/JTest run /full/path/to/tests.json
 
 # Use relative path from current directory
-jtest run ./tests/my-tests.json
+./src/JTest.Cli/bin/Debug/net8.0/JTest run ./tests/my-tests.json
 
 # List files to verify
 ls -la tests/
@@ -253,7 +253,7 @@ Error: Request timeout after 30000ms
 
 2. **Set global timeout:**
 ```bash
-jtest run tests.json --timeout 120
+./src/JTest.Cli/bin/Debug/net8.0/JTest run tests.json --timeout 120
 ```
 
 3. **Check API performance:**
@@ -598,19 +598,19 @@ cat jtest.config.json | jq .
 1. **CLI debug flags:**
 ```bash
 # Verbose output
-jtest run tests.json --verbose
+./src/JTest.Cli/bin/Debug/net8.0/JTest run tests.json --verbose
 
 # Debug mode
-jtest run tests.json --debug
+./src/JTest.Cli/bin/Debug/net8.0/JTest run tests.json --debug
 
 # Maximum detail
-jtest run tests.json --debug --verbose
+./src/JTest.Cli/bin/Debug/net8.0/JTest run tests.json --debug --verbose
 ```
 
 2. **Environment variable:**
 ```bash
 export JTEST_LOG_LEVEL=debug
-jtest run tests.json
+./src/JTest.Cli/bin/Debug/net8.0/JTest run tests.json
 ```
 
 ### Debug Output Strategies
@@ -685,10 +685,10 @@ jtest run tests.json
 2. **Simplify complex tests:**
 ```bash
 # Run single test file
-jtest run single-test.json --debug
+./src/JTest.Cli/bin/Debug/net8.0/JTest run single-test.json --debug
 
 # Filter specific test
-jtest run tests.json --filter "specific test name" --debug
+./src/JTest.Cli/bin/Debug/net8.0/JTest run tests.json --filter "specific test name" --debug
 ```
 
 3. **Use minimal configuration:**
@@ -726,7 +726,7 @@ jtest run tests.json --filter "specific test name" --debug
 
 1. **Check step timing:**
 ```bash
-jtest run tests.json --verbose | grep "Duration:"
+./src/JTest.Cli/bin/Debug/net8.0/JTest run tests.json --verbose | grep "Duration:"
 ```
 
 2. **Profile API endpoints:**
@@ -750,10 +750,10 @@ netstat -an | grep ESTABLISHED
 1. **Optimize parallel execution:**
 ```bash
 # Adjust parallel count based on system
-jtest run tests.json --parallel 4
+./src/JTest.Cli/bin/Debug/net8.0/JTest run tests.json --parallel 4
 
 # For I/O bound tests, use higher count
-jtest run tests.json --parallel 16
+./src/JTest.Cli/bin/Debug/net8.0/JTest run tests.json --parallel 16
 ```
 
 2. **Reduce timeout for development:**
@@ -799,15 +799,15 @@ Error: Out of memory exception
 
 1. **Reduce parallel execution:**
 ```bash
-jtest run tests.json --parallel 1
+./src/JTest.Cli/bin/Debug/net8.0/JTest run tests.json --parallel 1
 ```
 
 2. **Break large test suites:**
 ```bash
 # Run tests in batches
-jtest run auth-tests.json
-jtest run user-tests.json
-jtest run order-tests.json
+./src/JTest.Cli/bin/Debug/net8.0/JTest run auth-tests.json
+./src/JTest.Cli/bin/Debug/net8.0/JTest run user-tests.json
+./src/JTest.Cli/bin/Debug/net8.0/JTest run order-tests.json
 ```
 
 3. **Optimize test data:**
@@ -891,7 +891,7 @@ export PATH="$PATH:$HOME/.dotnet/tools"
 
 # Verify installation
 which jtest
-jtest --version
+./src/JTest.Cli/bin/Debug/net8.0/JTest --version
 ```
 
 **Environment Configuration:**
@@ -920,11 +920,11 @@ When reporting issues, collect relevant logs:
 
 ```bash
 # Run with maximum debugging
-jtest run tests.json --debug --verbose > debug.log 2>&1
+./src/JTest.Cli/bin/Debug/net8.0/JTest run tests.json --debug --verbose > debug.log 2>&1
 
 # Include system information
 dotnet --info > system-info.log
-jtest --version >> system-info.log
+./src/JTest.Cli/bin/Debug/net8.0/JTest --version >> system-info.log
 ```
 
 ### Minimal Reproduction
