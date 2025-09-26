@@ -9,39 +9,25 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JTest.Cli", "src\JTest.Cli\
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{3BEF5577-E39D-4B46-B4DB-D03E217CE4B7}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{B7BEC33C-4905-4F61-9011-81C8B41884B1}"
-	ProjectSection(SolutionItems) = preProject
-		docs\ci-cd-integration.md = docs\ci-cd-integration.md
-		docs\file-structure-reference.md = docs\file-structure-reference.md
-		docs\01-getting-started.md = docs\01-getting-started.md
-		docs\troubleshooting.md = docs\troubleshooting.md
-		docs\extensibility.md = docs\extensibility.md
-		docs\cli-usage.md = docs\cli-usage.md
-		docs\README.md = docs\README.md
-		docs\samples\set-variable-tests.md = docs\samples\set-variable-tests.md
-		docs\samples\set-variable-tests.json = docs\samples\set-variable-tests.json
-		docs\samples\if-else-tests.md = docs\samples\if-else-tests.md
-		docs\samples\if-else-tests.json = docs\samples\if-else-tests.json
-		docs\06-best-practices.md = docs\06-best-practices.md
-		docs\steps\assert-step.md = docs\steps\assert-step.md
-		docs\steps\http-step.md = docs\steps\http-step.md
-		docs\steps\use-step.md = docs\steps\use-step.md
-		docs\JTest-AI-Guide.md = docs\JTest-AI-Guide.md
-		docs\COPILOT_GUIDANCE.md = docs\COPILOT_GUIDANCE.md
-		docs\05-assertions.md = docs\05-assertions.md
-		docs\03-context-and-variables.md = docs\03-context-and-variables.md
-		docs\02-test-structure.md = docs\02-test-structure.md
-		docs\04-templates.md = docs\04-templates.md
-	EndProjectSection
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{03262C1F-D710-4FB4-A945-CFEEF2DBC71C}"
-	ProjectSection(SolutionItems) = preProject
-
-	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JTest.UnitTests", "tests\JTest.UnitTests\JTest.UnitTests.csproj", "{A269700D-9F3F-4315-99A3-455F7753EFEC}"
 EndProject
-
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{8EC462FD-D22E-90A8-E5CE-7E832BA40C5D}"
+	ProjectSection(SolutionItems) = preProject
+		docs\01-getting-started.md = docs\01-getting-started.md
+		docs\02-test-structure.md = docs\02-test-structure.md
+		docs\03-context-and-variables.md = docs\03-context-and-variables.md
+		docs\04-templates.md = docs\04-templates.md
+		docs\05-assertions.md = docs\05-assertions.md
+		docs\06-best-practices.md = docs\06-best-practices.md
+		docs\07-cli-usage.md = docs\07-cli-usage.md
+		docs\08-troubleshooting.md = docs\08-troubleshooting.md
+		docs\09-extensibility.md = docs\09-extensibility.md
+		docs\10-ci-cd-integration.md = docs\10-ci-cd-integration.md
+		docs\11-file-structure-reference.md = docs\11-file-structure-reference.md
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -65,10 +51,11 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
-		{3C76D6D8-B7E7-7860-F790-5BD98DE03F3B} = {3BEF5577-E39D-4B46-B4DB-D03E217CE4B7}
 		{F9A65FB5-7EBC-C3C1-6299-7FD8C4D48A4C} = {3BEF5577-E39D-4B46-B4DB-D03E217CE4B7}
-		{0D613210-CEFB-42C5-96F0-3A67BF0A4FEB} = {03262C1F-D710-4FB4-A945-CFEEF2DBC71C}
-		{1080B815-727B-4761-AE97-10702416C1E2} = {03262C1F-D710-4FB4-A945-CFEEF2DBC71C}
+		{3C76D6D8-B7E7-7860-F790-5BD98DE03F3B} = {3BEF5577-E39D-4B46-B4DB-D03E217CE4B7}
 		{A269700D-9F3F-4315-99A3-455F7753EFEC} = {03262C1F-D710-4FB4-A945-CFEEF2DBC71C}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {DF18B181-3CD9-4879-B798-65525C8C3DCB}
 	EndGlobalSection
 EndGlobal

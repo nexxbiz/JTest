@@ -232,4 +232,4 @@ Now that you've mastered the basics, learn about:
 ]
 ```
 
-Remember: **There's no need to create tests for your tests**. Keep them simple and focused.
+Remember: **There should be no need to create tests for your tests**. Keep them simple and focused.
