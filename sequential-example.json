@@ -1,0 +1,48 @@
+{
+    "version": "1.0",
+    "globals": {
+        "counter": 0
+    },
+    "tests": [
+        {
+            "name": "Sequential Steps Example",
+            "steps": [
+                {
+                    "type": "wait",
+                    "id": "step1",
+                    "ms": 50,
+                    "save": {
+                        "$.globals.step1Time": "{{$.this.ms}}"
+                    }
+                },
+                {
+                    "type": "wait",
+                    "id": "step2", 
+                    "ms": 100,
+                    "assert": [
+                        {
+                            "op": "greaterthan",
+                            "actualValue": "{{$.this.ms}}",
+                            "expectedValue": "{{$.globals.step1Time}}"
+                        }
+                    ]
+                },
+                {
+                    "type": "assert",
+                    "assert": [
+                        {
+                            "op": "equals",
+                            "actualValue": "{{$.step1.ms}}",
+                            "expectedValue": 50
+                        },
+                        {
+                            "op": "equals",
+                            "actualValue": "{{$.step2.ms}}",
+                            "expectedValue": 100
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}

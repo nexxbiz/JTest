@@ -1,0 +1,42 @@
+{
+    "version": "1.0",
+    "info": {
+        "name": "My First JTest",
+        "description": "A simple test to get started with JTest"
+    },
+    "env": {
+        "testMessage": "Hello JTest!",
+        "waitTime": 100
+    },
+    "tests": [
+        {
+            "name": "Basic Variable and Wait Test",
+            "description": "Test variables and wait functionality",
+            "steps": [
+                {
+                    "type": "wait",
+                    "id": "waitStep",
+                    "ms": "{{$.env.waitTime}}",
+                    "assert": [
+                        {
+                            "op": "equals",
+                            "actualValue": "{{$.this.ms}}",
+                            "expectedValue": 100
+                        }
+                    ]
+                },
+                {
+                    "type": "assert",
+                    "id": "checkVariables",
+                    "assert": [
+                        {
+                            "op": "equals",
+                            "actualValue": "{{$.env.testMessage}}",
+                            "expectedValue": "Hello JTest!"
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}

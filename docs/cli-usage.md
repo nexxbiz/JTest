@@ -1,25 +1,30 @@
 # CLI Usage
 
-The JTest CLI is the primary way to run tests, debug issues, and integrate with CI/CD pipelines. This guide covers all command-line functionality.
+The JTest CLI is the primary way to run tests, debug issues, and validate test files. This guide covers all command-line functionality.
 
-## Installation
+## Getting the CLI
 
-Install JTest as a global .NET tool:
+Since JTest is currently a development project (not a published package), you need to build it from source:
 
 ```bash
-dotnet tool install -g JTest.Cli
+# Clone the repository
+git clone https://github.com/nexxbiz/JTest.git
+cd JTest
+
+# Build the CLI
+dotnet build src/JTest.Cli
+
+# The executable will be at: ./src/JTest.Cli/bin/Debug/net8.0/JTest
 ```
 
-Update to the latest version:
+For convenience, you can create an alias:
 
 ```bash
-dotnet tool update -g JTest.Cli
-```
+# Linux/macOS
+alias jtest='./src/JTest.Cli/bin/Debug/net8.0/JTest'
 
-Verify installation:
-
-```bash
-jtest --version
+# Windows (PowerShell)
+Set-Alias ./src/JTest.Cli/bin/Debug/net8.0/JTest './src/JTest.Cli/bin/Debug/net8.0/JTest.exe'
 ```
 
 ## Basic Usage
@@ -29,25 +34,25 @@ jtest --version
 Run a single test file:
 
 ```bash
-jtest run my-tests.json
+./src/JTest.Cli/bin/Debug/net8.0/JTest run my-tests.json
 ```
 
 Run multiple test files:
 
 ```bash
-jtest run auth-tests.json user-tests.json order-tests.json
+./src/JTest.Cli/bin/Debug/net8.0/JTest run auth-tests.json user-tests.json order-tests.json
 ```
 
 Run all tests in a directory:
 
 ```bash
-jtest run tests/
+./src/JTest.Cli/bin/Debug/net8.0/JTest run tests/
 ```
 
 Run tests with a pattern:
 
 ```bash
-jtest run tests/*-integration.json
+./src/JTest.Cli/bin/Debug/net8.0/JTest run tests/*-integration.json
 ```
 
 ## Command Reference
@@ -57,7 +62,7 @@ jtest run tests/*-integration.json
 Execute test files:
 
 ```bash
-jtest run [options] <test-files...>
+./src/JTest.Cli/bin/Debug/net8.0/JTest run [options] <test-files...>
 ```
 
 #### Options
@@ -66,17 +71,17 @@ jtest run [options] <test-files...>
 Specify environment configuration:
 
 ```bash
-jtest run tests.json -e staging
-jtest run tests.json --environment production
+./src/JTest.Cli/bin/Debug/net8.0/JTest run tests.json -e staging
+./src/JTest.Cli/bin/Debug/net8.0/JTest run tests.json --environment production
 ```
 
 **`--output` / `-o`**
 Set output format:
 
 ```bash
-jtest run tests.json -o json
-jtest run tests.json --output markdown
-jtest run tests.json --output junit
+./src/JTest.Cli/bin/Debug/net8.0/JTest run tests.json -o json
+./src/JTest.Cli/bin/Debug/net8.0/JTest run tests.json --output markdown
+./src/JTest.Cli/bin/Debug/net8.0/JTest run tests.json --output junit
 ```
 
 Available formats:
@@ -89,60 +94,60 @@ Available formats:
 Enable verbose output:
 
 ```bash
-jtest run tests.json -v
-jtest run tests.json --verbose
+./src/JTest.Cli/bin/Debug/net8.0/JTest run tests.json -v
+./src/JTest.Cli/bin/Debug/net8.0/JTest run tests.json --verbose
 ```
 
 **`--debug` / `-d`**
 Enable debug mode with detailed logging:
 
 ```bash
-jtest run tests.json -d
-jtest run tests.json --debug
+./src/JTest.Cli/bin/Debug/net8.0/JTest run tests.json -d
+./src/JTest.Cli/bin/Debug/net8.0/JTest run tests.json --debug
 ```
 
 **`--parallel` / `-p`**
 Run tests in parallel:
 
 ```bash
-jtest run tests.json -p 4
-jtest run tests.json --parallel 8
+./src/JTest.Cli/bin/Debug/net8.0/JTest run tests.json -p 4
+./src/JTest.Cli/bin/Debug/net8.0/JTest run tests.json --parallel 8
 ```
 
 **`--timeout` / `-t`**
 Set global timeout (in seconds):
 
 ```bash
-jtest run tests.json -t 60
-jtest run tests.json --timeout 120
+./src/JTest.Cli/bin/Debug/net8.0/JTest run tests.json -t 60
+./src/JTest.Cli/bin/Debug/net8.0/JTest run tests.json --timeout 120
 ```
 
 **`--filter` / `-f`**
 Filter tests by name or pattern:
 
 ```bash
-jtest run tests.json -f "user creation"
-jtest run tests.json --filter "*auth*"
+./src/JTest.Cli/bin/Debug/net8.0/JTest run tests.json -f "user creation"
+./src/JTest.Cli/bin/Debug/net8.0/JTest run tests.json --filter "*auth*"
 ```
 
 **`--skip-cleanup`**
 Skip cleanup steps (useful for debugging):
 
 ```bash
-jtest run tests.json --skip-cleanup
+./src/JTest.Cli/bin/Debug/net8.0/JTest run tests.json --skip-cleanup
 ```
 
 **`--fail-fast`**
 Stop on first test failure:
 
 ```bash
-jtest run tests.json --fail-fast
+./src/JTest.Cli/bin/Debug/net8.0/JTest run tests.json --fail-fast
 ```
 
 ### Complete Example
 
 ```bash
-jtest run \
+./src/JTest.Cli/bin/Debug/net8.0/JTest run \
   --environment staging \
   --output junit \
   --verbose \
@@ -185,7 +190,7 @@ Create environment-specific configuration files:
 Use with:
 
 ```bash
-jtest run tests.json -e staging
+./src/JTest.Cli/bin/Debug/net8.0/JTest run tests.json -e staging
 ```
 
 ### Global Configuration
@@ -244,7 +249,7 @@ Summary:
 Machine-readable format for CI/CD:
 
 ```bash
-jtest run tests.json -o json > results.json
+./src/JTest.Cli/bin/Debug/net8.0/JTest run tests.json -o json > results.json
 ```
 
 ```json
@@ -271,7 +276,7 @@ jtest run tests.json -o json > results.json
 Documentation-friendly format:
 
 ```bash
-jtest run tests.json -o markdown > test-report.md
+./src/JTest.Cli/bin/Debug/net8.0/JTest run tests.json -o markdown > test-report.md
 ```
 
 ```markdown
@@ -298,7 +303,7 @@ Steps executed successfully.
 For CI/CD integration:
 
 ```bash
-jtest run tests.json -o junit > junit-results.xml
+./src/JTest.Cli/bin/Debug/net8.0/JTest run tests.json -o junit > junit-results.xml
 ```
 
 ```xml
@@ -335,15 +340,15 @@ JTest supports environment variable substitution:
 # Linux/macOS
 export API_BASE_URL=https://api.example.com
 export API_KEY=your-api-key
-jtest run tests.json
+./src/JTest.Cli/bin/Debug/net8.0/JTest run tests.json
 
 # Windows
 set API_BASE_URL=https://api.example.com
 set API_KEY=your-api-key
-jtest run tests.json
+./src/JTest.Cli/bin/Debug/net8.0/JTest run tests.json
 
 # Inline
-API_BASE_URL=https://api.example.com jtest run tests.json
+API_BASE_URL=https://api.example.com ./src/JTest.Cli/bin/Debug/net8.0/JTest run tests.json
 ```
 
 ### .env File Support
@@ -370,7 +375,7 @@ JTest automatically loads `.env` files from:
 Get detailed execution information:
 
 ```bash
-jtest run tests.json --verbose
+./src/JTest.Cli/bin/Debug/net8.0/JTest run tests.json --verbose
 ```
 
 Output includes:
@@ -384,7 +389,7 @@ Output includes:
 Maximum debugging information:
 
 ```bash
-jtest run tests.json --debug
+./src/JTest.Cli/bin/Debug/net8.0/JTest run tests.json --debug
 ```
 
 Includes everything from verbose mode plus:
@@ -398,7 +403,7 @@ Includes everything from verbose mode plus:
 Filter and debug specific tests:
 
 ```bash
-jtest run tests.json --filter "user creation" --debug --verbose
+./src/JTest.Cli/bin/Debug/net8.0/JTest run tests.json --filter "user creation" --debug --verbose
 ```
 
 ### Save Debug Output
@@ -406,7 +411,7 @@ jtest run tests.json --filter "user creation" --debug --verbose
 Capture debug output to file:
 
 ```bash
-jtest run tests.json --debug --verbose > debug.log 2>&1
+./src/JTest.Cli/bin/Debug/net8.0/JTest run tests.json --debug --verbose > debug.log 2>&1
 ```
 
 ## Integration Examples
@@ -434,7 +439,7 @@ jobs:
         run: dotnet tool install -g JTest.Cli
         
       - name: Run Tests
-        run: jtest run tests/ --output junit --environment staging
+        run: ./src/JTest.Cli/bin/Debug/net8.0/JTest run tests/ --output junit --environment staging
         env:
           API_BASE_URL: ${{ secrets.STAGING_API_URL }}
           API_KEY: ${{ secrets.STAGING_API_KEY }}
@@ -459,7 +464,7 @@ api-tests:
   image: mcr.microsoft.com/dotnet/sdk:8.0
   script:
     - dotnet tool install -g JTest.Cli
-    - jtest run tests/ --output junit --environment staging
+    - ./src/JTest.Cli/bin/Debug/net8.0/JTest run tests/ --output junit --environment staging
   variables:
     API_BASE_URL: $STAGING_API_URL
     API_KEY: $STAGING_API_KEY
@@ -488,7 +493,7 @@ pipeline {
         
         stage('Run API Tests') {
             steps {
-                sh 'jtest run tests/ --output junit --environment staging'
+                sh './src/JTest.Cli/bin/Debug/net8.0/JTest run tests/ --output junit --environment staging'
             }
             post {
                 always {
@@ -532,9 +537,9 @@ docker run --env-file .env api-tests
 ```json
 {
     "scripts": {
-        "test:api": "jtest run tests/",
-        "test:api:staging": "jtest run tests/ -e staging",
-        "test:api:ci": "jtest run tests/ --output junit --fail-fast"
+        "test:api": "./src/JTest.Cli/bin/Debug/net8.0/JTest run tests/",
+        "test:api:staging": "./src/JTest.Cli/bin/Debug/net8.0/JTest run tests/ -e staging",
+        "test:api:ci": "./src/JTest.Cli/bin/Debug/net8.0/JTest run tests/ --output junit --fail-fast"
     }
 }
 ```
@@ -551,7 +556,7 @@ npm run test:api:staging
 Create custom output processors:
 
 ```bash
-jtest run tests.json -o json | jq '.testResults[] | select(.status == "failed")'
+./src/JTest.Cli/bin/Debug/net8.0/JTest run tests.json -o json | jq '.testResults[] | select(.status == "failed")'
 ```
 
 ### Test Report Generation
@@ -560,10 +565,10 @@ Generate comprehensive reports:
 
 ```bash
 # Generate HTML report
-jtest run tests.json -o markdown | pandoc -f markdown -t html > report.html
+./src/JTest.Cli/bin/Debug/net8.0/JTest run tests.json -o markdown | pandoc -f markdown -t html > report.html
 
 # Generate PDF report  
-jtest run tests.json -o markdown | pandoc -f markdown -t pdf > report.pdf
+./src/JTest.Cli/bin/Debug/net8.0/JTest run tests.json -o markdown | pandoc -f markdown -t pdf > report.pdf
 ```
 
 ### Parallel Execution Tuning
@@ -572,13 +577,13 @@ Optimize parallel execution:
 
 ```bash
 # CPU-bound: Use CPU count
-jtest run tests.json --parallel $(nproc)
+./src/JTest.Cli/bin/Debug/net8.0/JTest run tests.json --parallel $(nproc)
 
 # I/O-bound: Use higher count
-jtest run tests.json --parallel 16
+./src/JTest.Cli/bin/Debug/net8.0/JTest run tests.json --parallel 16
 
 # Conservative: Use half CPU count
-jtest run tests.json --parallel $(($(nproc)/2))
+./src/JTest.Cli/bin/Debug/net8.0/JTest run tests.json --parallel $(($(nproc)/2))
 ```
 
 ### Conditional Test Execution
@@ -588,9 +593,9 @@ Run tests based on conditions:
 ```bash
 # Only run integration tests in CI
 if [ "$CI" = "true" ]; then
-    jtest run tests/ --filter "*integration*"
+    ./src/JTest.Cli/bin/Debug/net8.0/JTest run tests/ --filter "*integration*"
 else
-    jtest run tests/ --filter "*unit*"
+    ./src/JTest.Cli/bin/Debug/net8.0/JTest run tests/ --filter "*unit*"
 fi
 ```
 
@@ -600,12 +605,12 @@ fi
 
 1. **Use parallel execution** for independent tests:
 ```bash
-jtest run tests.json --parallel 8
+./src/JTest.Cli/bin/Debug/net8.0/JTest run tests.json --parallel 8
 ```
 
 2. **Filter tests** during development:
 ```bash
-jtest run tests.json --filter "auth*"
+./src/JTest.Cli/bin/Debug/net8.0/JTest run tests.json --filter "auth*"
 ```
 
 3. **Optimize templates** to reduce HTTP calls
@@ -621,7 +626,7 @@ jtest run tests.json --filter "auth*"
 
 5. **Skip cleanup** during debugging:
 ```bash
-jtest run tests.json --skip-cleanup
+./src/JTest.Cli/bin/Debug/net8.0/JTest run tests.json --skip-cleanup
 ```
 
 ## Troubleshooting CLI Issues
@@ -658,7 +663,7 @@ chmod +x ~/.dotnet/tools/jtest
 **Environment variable issues:**
 ```bash
 # Debug environment variables
-jtest run tests.json --debug | grep -i "environment"
+./src/JTest.Cli/bin/Debug/net8.0/JTest run tests.json --debug | grep -i "environment"
 
 # Check variable substitution
 echo $API_BASE_URL
@@ -669,13 +674,13 @@ echo $API_BASE_URL
 Enable maximum logging:
 
 ```bash
-JTEST_LOG_LEVEL=debug jtest run tests.json --debug --verbose
+JTEST_LOG_LEVEL=debug ./src/JTest.Cli/bin/Debug/net8.0/JTest run tests.json --debug --verbose
 ```
 
 Check configuration loading:
 
 ```bash
-jtest run tests.json --debug 2>&1 | grep -i "config"
+./src/JTest.Cli/bin/Debug/net8.0/JTest run tests.json --debug 2>&1 | grep -i "config"
 ```
 
 ## Exit Codes
@@ -692,7 +697,7 @@ JTest uses standard exit codes:
 Use in scripts:
 
 ```bash
-if jtest run tests.json; then
+if ./src/JTest.Cli/bin/Debug/net8.0/JTest run tests.json; then
     echo "All tests passed!"
 else
     echo "Tests failed with exit code $?"

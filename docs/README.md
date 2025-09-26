@@ -39,23 +39,38 @@ Practical guides for development and deployment:
 
 ### Common Patterns
 
-#### Simple HTTP Test
+### Common Patterns
+
+#### Simple Variable Test
 ```json
 {
     "version": "1.0",
+    "env": {
+        "testValue": "hello-world",
+        "timeout": 1000
+    },
     "tests": [
         {
-            "name": "API Health Check",
+            "name": "Basic Variable Test",
             "steps": [
                 {
-                    "type": "http",
-                    "method": "GET",
-                    "url": "https://api.example.com/health",
+                    "type": "wait",
+                    "ms": "{{$.env.timeout}}",
+                    "assert": [
+                        {
+                            "op": "greaterthan",
+                            "actualValue": "{{$.this.ms}}",
+                            "expectedValue": 500
+                        }
+                    ]
+                },
+                {
+                    "type": "assert",
                     "assert": [
                         {
                             "op": "equals",
-                            "actualValue": "{{$.this.statusCode}}",
-                            "expectedValue": 200
+                            "actualValue": "{{$.env.testValue}}",
+                            "expectedValue": "hello-world"
                         }
                     ]
                 }
@@ -65,30 +80,51 @@ Practical guides for development and deployment:
 }
 ```
 
-#### Authentication Flow
+#### Sequential Step Execution
 ```json
 {
+    "version": "1.0",
+    "globals": {
+        "counter": 0
+    },
     "tests": [
         {
-            "name": "Authenticated Request",
+            "name": "Sequential Steps Example",
             "steps": [
                 {
-                    "type": "http",
-                    "id": "login",
-                    "method": "POST",
-                    "url": "/auth/login",
-                    "body": {
-                        "username": "{{$.env.username}}",
-                        "password": "{{$.env.password}}"
+                    "type": "wait",
+                    "id": "step1",
+                    "ms": 50,
+                    "save": {
+                        "$.globals.step1Time": "{{$.this.ms}}"
                     }
                 },
                 {
-                    "type": "http",
-                    "method": "GET",
-                    "url": "/user/profile",
-                    "headers": {
-                        "Authorization": "Bearer {{$.login.body.token}}"
-                    }
+                    "type": "wait",
+                    "id": "step2", 
+                    "ms": 100,
+                    "assert": [
+                        {
+                            "op": "greaterthan",
+                            "actualValue": "{{$.this.ms}}",
+                            "expectedValue": "{{$.globals.step1Time}}"
+                        }
+                    ]
+                },
+                {
+                    "type": "assert",
+                    "assert": [
+                        {
+                            "op": "equals",
+                            "actualValue": "{{$.step1.ms}}",
+                            "expectedValue": 50
+                        },
+                        {
+                            "op": "equals",
+                            "actualValue": "{{$.step2.ms}}",
+                            "expectedValue": 100
+                        }
+                    ]
                 }
             ]
         }
@@ -99,7 +135,8 @@ Practical guides for development and deployment:
 #### Using Templates
 ```json
 {
-    "using": ["./templates/auth-templates.json"],
+    "version": "1.0",
+    "using": ["./auth-template.json"],
     "tests": [
         {
             "name": "Template Usage Example",
@@ -107,10 +144,23 @@ Practical guides for development and deployment:
                 {
                     "type": "use",
                     "template": "authenticate",
-                    "params": {
-                        "username": "{{$.env.username}}",
-                        "password": "{{$.env.password}}"
+                    "with": {
+                        "username": "testuser",
+                        "password": "secret123"
+                    },
+                    "save": {
+                        "$.globals.authToken": "{{$.this.token}}"
                     }
+                },
+                {
+                    "type": "assert",
+                    "assert": [
+                        {
+                            "op": "equals",
+                            "actualValue": "{{$.globals.authToken}}",
+                            "expectedValue": "testuser-secret123-token"
+                        }
+                    ]
                 }
             ]
         }

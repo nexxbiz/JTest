@@ -1,40 +1,21 @@
-# CI/CD Integration
+# CI/CD Integration (Future Enhancement)
 
-JTest is designed to work seamlessly in continuous integration and delivery pipelines. This guide covers integration patterns for popular CI/CD platforms.
+> **Note**: This functionality requires JTest to be published as a NuGet package, which is not yet available. 
+> Currently, JTest must be built from source and run using the binary directly.
 
-## Overview
+JTest is designed to work seamlessly in continuous integration and delivery pipelines once packaged. For now, you can integrate it by:
 
-### Key Benefits
+1. **Building from source** in your CI pipeline
+2. **Running the binary directly** 
+3. **Using standard exit codes** to determine success/failure
 
-- **CLI-First Design** - Easy to integrate with any CI/CD platform
-- **Multiple Output Formats** - Console, JSON, JUnit XML, Markdown
-- **Environment Configuration** - Flexible environment-specific settings
-- **Exit Code Standards** - Standard exit codes for success/failure
-- **Parallel Execution** - Fast test execution for CI environments
+## Current Integration Example
 
-### Basic Integration Pattern
-
-```bash
-# 1. Install JTest
-dotnet tool install -g JTest.Cli
-
-# 2. Run tests with appropriate output format
-jtest run tests/ --output junit --environment ci
-
-# 3. Publish results (platform-specific)
-```
-
-## GitHub Actions
-
-### Basic Workflow
+For GitHub Actions, you could use:
 
 ```yaml
 name: API Tests
-on:
-  push:
-    branches: [ main, develop ]
-  pull_request:
-    branches: [ main ]
+on: [push, pull_request]
 
 jobs:
   api-tests:
@@ -48,6 +29,33 @@ jobs:
       uses: actions/setup-dotnet@v3
       with:
         dotnet-version: '8.0.x'
+        
+    - name: Build JTest
+      run: |
+        git clone https://github.com/nexxbiz/JTest.git jtest-source
+        cd jtest-source
+        dotnet build src/JTest.Cli
+        
+    - name: Run Tests
+      run: |
+        cd jtest-source
+        ./src/JTest.Cli/bin/Debug/net8.0/JTest run ../tests/*.json
+```
+
+## Standard Exit Codes
+
+JTest uses standard exit codes for CI integration:
+
+- `0` - All tests passed
+- `1` - One or more tests failed  
+- `2` - Invalid command line arguments
+- `3` - Configuration error
+- `4` - File not found error
+- `5` - Runtime error
+
+## Future Enhancements
+
+Once JTest is published as a NuGet package, full CI/CD integration will be available with simpler installation and usage patterns.
         
     - name: Install JTest
       run: dotnet tool install -g JTest.Cli

@@ -1,39 +1,68 @@
 # Getting Started with JTest
 
-JTest is a JSON-based API testing framework that lets you write tests using simple JSON files. This guide will help you create your first test in minutes.
+JTest is a JSON-based testing framework that lets you write tests using simple JSON files. This guide will help you create your first test in minutes.
 
-## Installation
+## Getting JTest
 
-JTest is a .NET tool that can be installed globally:
+Since JTest is currently a development project, you need to build it from source:
 
 ```bash
-dotnet tool install -g JTest.Cli
+# Clone the repository
+git clone https://github.com/nexxbiz/JTest.git
+cd JTest
+
+# Build the CLI
+dotnet build src/JTest.Cli
+
+# The executable will be at: ./src/JTest.Cli/bin/Debug/net8.0/JTest
 ```
 
 ## Your First Test
 
-Let's start with the absolute simplest test - making an HTTP request. We'll build up complexity gradually.
+Let's start with a simple test that demonstrates the core concepts without requiring external APIs.
 
 ### 1. Create a Basic Test File
 
-Create a file called `my-first-test.json` with just the essential structure:
+Create a file called `my-first-test.json`:
 
 ```json
 {
-    "version": "1.1",
+    "version": "1.0",
     "info": {
-        "name": "My First API Test",
+        "name": "My First JTest",
         "description": "A simple test to get started with JTest"
+    },
+    "env": {
+        "testMessage": "Hello JTest!",
+        "waitTime": 100
     },
     "tests": [
         {
-            "name": "Test JSONPlaceholder API",
-            "description": "Make a GET request to a public API",
+            "name": "Basic Variable and Wait Test",
+            "description": "Test variables and wait functionality",
             "steps": [
                 {
-                    "type": "http",
-                    "method": "GET",
-                    "url": "https://jsonplaceholder.typicode.com/posts/1"
+                    "type": "wait",
+                    "id": "waitStep",
+                    "ms": "{{$.env.waitTime}}",
+                    "assert": [
+                        {
+                            "op": "equals",
+                            "actualValue": "{{$.this.ms}}",
+                            "expectedValue": 100
+                        }
+                    ]
+                },
+                {
+                    "type": "assert",
+                    "id": "checkVariables",
+                    "assert": [
+                        {
+                            "op": "equals",
+                            "actualValue": "{{$.env.testMessage}}",
+                            "expectedValue": "Hello JTest!"
+                        }
+                    ]
                 }
             ]
         }
@@ -41,12 +70,10 @@ Create a file called `my-first-test.json` with just the essential structure:
 }
 ```
 
-This is the absolute minimum test - it just makes an HTTP request. No complexity, no advanced features.
-
 ### 2. Run Your Test
 
 ```bash
-jtest run my-first-test.json
+./src/JTest.Cli/bin/Debug/net8.0/JTest run my-first-test.json
 ```
 
 You should see output showing your test passed!
