@@ -1,0 +1,206 @@
+// Jenkins Pipeline for JTest
+// Add this to your Jenkinsfile
+
+pipeline {
+    agent any
+    
+    parameters {
+        choice(
+            name: 'ENVIRONMENT',
+            choices: ['staging', 'production'],
+            description: 'Target environment for testing'
+        )
+        booleanParam(
+            name: 'PARALLEL_EXECUTION',
+            defaultValue: true,
+            description: 'Run tests in parallel'
+        )
+        booleanParam(
+            name: 'CREATE_RELEASE',
+            defaultValue: false,
+            description: 'Create release packages'
+        )
+    }
+    
+    environment {
+        DOTNET_VERSION = '8.0.x'
+        PACKAGES_DIR = 'packages'
+        JTEST_VERSION = '1.0.0'
+    }
+    
+    stages {
+        stage('Setup') {
+            steps {
+                script {
+                    // Clean workspace
+                    cleanWs()
+                    
+                    // Checkout code
+                    checkout scm
+                    
+                    // Setup .NET
+                    sh '''
+                        curl -sSL https://dot.net/v1/dotnet-install.sh | bash /dev/stdin --version 8.0
+                        export PATH="$PATH:$HOME/.dotnet:$HOME/.dotnet/tools"
+                        dotnet --version
+                    '''
+                }
+            }
+        }
+        
+        stage('Build and Test') {
+            steps {
+                sh '''
+                    export PATH="$PATH:$HOME/.dotnet:$HOME/.dotnet/tools"
+                    
+                    # Restore dependencies
+                    dotnet restore
+                    
+                    # Build solution
+                    dotnet build --configuration Release --no-restore
+                    
+                    # Run unit tests
+                    dotnet test --configuration Release --no-build --verbosity normal
+                '''
+            }
+            post {
+                always {
+                    // Publish test results if available
+                    publishTestResults testResultsPattern: 'tests/*/TestResults/*.xml'
+                }
+            }
+        }
+        
+        stage('Create Packages') {
+            steps {
+                sh '''
+                    export PATH="$PATH:$HOME/.dotnet:$HOME/.dotnet/tools"
+                    
+                    # Build packages
+                    ./scripts/build-packages.sh --configuration Release
+                '''
+                
+                // Archive packages
+                archiveArtifacts artifacts: 'packages/*.nupkg', allowEmptyArchive: false
+            }
+        }
+        
+        stage('Test Installation') {
+            steps {
+                sh '''
+                    export PATH="$PATH:$HOME/.dotnet:$HOME/.dotnet/tools"
+                    
+                    # Install CLI tool from local packages
+                    dotnet tool install --global --add-source ./packages JTest.Cli
+                    
+                    # Verify installation
+                    jtest --version
+                    jtest --help
+                    
+                    # Create and run a simple test
+                    echo '{"version":"1.0","tests":[{"name":"Jenkins Test","steps":[{"type":"wait","ms":100}]}]}' > jenkins-test.json
+                    jtest run jenkins-test.json
+                '''
+            }
+        }
+        
+        stage('Integration Tests') {
+            when {
+                anyOf {
+                    environment name: 'ENVIRONMENT', value: 'staging'
+                    environment name: 'ENVIRONMENT', value: 'production'
+                }
+            }
+            environment {
+                API_BASE_URL = credentials("${params.ENVIRONMENT}-api-url")
+                API_KEY = credentials("${params.ENVIRONMENT}-api-key")
+            }
+            steps {
+                script {
+                    def parallelFlag = params.PARALLEL_EXECUTION ? '--parallel 4' : ''
+                    sh """
+                        export PATH="\$PATH:\$HOME/.dotnet/tools"
+                        jtest run tests/ \\
+                            --output junit \\
+                            --environment ${params.ENVIRONMENT} \\
+                            ${parallelFlag} \\
+                            --timeout 300
+                    """
+                }
+            }
+            post {
+                always {
+                    junit 'junit-results.xml'
+                    archiveArtifacts artifacts: 'junit-results.xml', allowEmptyArchive: true
+                }
+            }
+        }
+        
+        stage('Docker Build') {
+            steps {
+                script {
+                    // Build Docker image
+                    def image = docker.build("jtest:${env.BUILD_NUMBER}")
+                    
+                    // Test Docker image
+                    image.inside() {
+                        sh 'jtest --help'
+                    }
+                    
+                    // Clean up
+                    sh "docker rmi jtest:${env.BUILD_NUMBER}"
+                }
+            }
+        }
+        
+        stage('Release') {
+            when {
+                allOf {
+                    branch 'main'
+                    params.CREATE_RELEASE
+                }
+            }
+            steps {
+                script {
+                    // Create GitHub release
+                    sh '''
+                        export PATH="$PATH:$HOME/.dotnet:$HOME/.dotnet/tools"
+                        
+                        # Tag the release
+                        git tag "v${JTEST_VERSION}"
+                        git push origin "v${JTEST_VERSION}"
+                        
+                        echo "Release v${JTEST_VERSION} created successfully"
+                    '''
+                    
+                    // Optionally push to NuGet (uncomment when ready)
+                    // withCredentials([string(credentialsId: 'nuget-api-key', variable: 'NUGET_API_KEY')]) {
+                    //     sh '''
+                    //         dotnet nuget push packages/*.nupkg \\
+                    //             --api-key $NUGET_API_KEY \\
+                    //             --source https://api.nuget.org/v3/index.json \\
+                    //             --skip-duplicate
+                    //     '''
+                    // }
+                }
+            }
+        }
+    }
+    
+    post {
+        always {
+            // Clean up workspace
+            cleanWs()
+        }
+        success {
+            echo 'Pipeline completed successfully!'
+            // Send success notification
+            // slackSend(color: 'good', message: "JTest build ${env.BUILD_NUMBER} completed successfully")
+        }
+        failure {
+            echo 'Pipeline failed!'
+            // Send failure notification
+            // slackSend(color: 'danger', message: "JTest build ${env.BUILD_NUMBER} failed")
+        }
+    }
+}

@@ -1,0 +1,125 @@
+# GitLab CI Configuration for JTest
+# Add this to your .gitlab-ci.yml file
+
+stages:
+  - build
+  - test
+  - package
+  - deploy
+
+variables:
+  DOTNET_VERSION: "8.0.x"
+
+# Cache for faster builds
+cache:
+  paths:
+    - .nuget/
+
+before_script:
+  - apt-get update -qy
+  - apt-get install -y curl git
+  - curl -sSL https://dot.net/v1/dotnet-install.sh | bash /dev/stdin --version $DOTNET_VERSION
+  - export PATH="$PATH:$HOME/.dotnet:$HOME/.dotnet/tools"
+  - export DOTNET_ROOT="$HOME/.dotnet"
+
+# Build and test
+build-and-test:
+  stage: build
+  image: mcr.microsoft.com/dotnet/sdk:8.0
+  script:
+    - dotnet restore
+    - dotnet build --configuration Release --no-restore
+    - dotnet test --configuration Release --no-build --verbosity normal
+  artifacts:
+    reports:
+      junit: tests/*/TestResults/test-results.xml
+    paths:
+      - src/*/bin/Release/
+    expire_in: 1 hour
+
+# Package creation
+create-packages:
+  stage: package
+  image: mcr.microsoft.com/dotnet/sdk:8.0
+  dependencies:
+    - build-and-test
+  script:
+    - ./scripts/build-packages.sh --configuration Release
+  artifacts:
+    paths:
+      - packages/*.nupkg
+    expire_in: 1 week
+
+# Test installation
+test-installation:
+  stage: test
+  image: mcr.microsoft.com/dotnet/sdk:8.0
+  dependencies:
+    - create-packages
+  script:
+    - dotnet tool install --global --add-source ./packages JTest.Cli
+    - export PATH="$PATH:$HOME/.dotnet/tools"
+    - jtest --help
+    - echo '{"version":"1.0","tests":[{"name":"Test","steps":[{"type":"wait","ms":1}]}]}' > test.json
+    - jtest run test.json
+
+# Docker build test
+docker-test:
+  stage: test
+  image: docker:20.10.16
+  services:
+    - docker:20.10.16-dind
+  script:
+    - docker build -t jtest:test .
+    - docker run --rm jtest:test jtest --help
+
+# Environment-specific testing
+.test-template: &test-template
+  stage: test
+  image: mcr.microsoft.com/dotnet/sdk:8.0
+  dependencies:
+    - create-packages
+  before_script:
+    - dotnet tool install --global --add-source ./packages JTest.Cli
+    - export PATH="$PATH:$HOME/.dotnet/tools"
+  script:
+    - jtest run tests/ --output junit --environment $ENVIRONMENT --parallel 4
+  artifacts:
+    reports:
+      junit: junit-results.xml
+    when: always
+
+test-staging:
+  <<: *test-template
+  variables:
+    ENVIRONMENT: staging
+    API_BASE_URL: $STAGING_API_URL
+    API_KEY: $STAGING_API_KEY
+  only:
+    - merge_requests
+    - develop
+
+test-production:
+  <<: *test-template
+  variables:
+    ENVIRONMENT: production
+    API_BASE_URL: $PROD_API_URL
+    API_KEY: $PROD_API_KEY
+  only:
+    - main
+  when: manual
+
+# Release deployment (for tags)
+deploy-release:
+  stage: deploy
+  image: mcr.microsoft.com/dotnet/sdk:8.0
+  dependencies:
+    - create-packages
+  script:
+    - echo "Deploying release packages..."
+    # Add your deployment logic here
+    # For example, push to internal NuGet feed:
+    # - dotnet nuget push packages/*.nupkg --source $INTERNAL_NUGET_FEED --api-key $NUGET_API_KEY
+  only:
+    - tags
+  when: manual

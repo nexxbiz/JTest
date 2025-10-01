@@ -1,0 +1,263 @@
+# Azure DevOps Pipeline for JTest
+# Add this to your azure-pipelines.yml file
+
+trigger:
+  branches:
+    include:
+      - main
+      - develop
+  tags:
+    include:
+      - v*
+
+pr:
+  branches:
+    include:
+      - main
+
+variables:
+  buildConfiguration: 'Release'
+  dotnetVersion: '8.0.x'
+  packagesDirectory: 'packages'
+
+stages:
+- stage: BuildAndTest
+  displayName: 'Build and Test'
+  jobs:
+  - job: Build
+    displayName: 'Build and Unit Test'
+    pool:
+      vmImage: 'ubuntu-latest'
+    
+    steps:
+    - task: UseDotNet@2
+      displayName: 'Setup .NET SDK'
+      inputs:
+        packageType: 'sdk'
+        version: '$(dotnetVersion)'
+    
+    - task: DotNetCoreCLI@2
+      displayName: 'Restore packages'
+      inputs:
+        command: 'restore'
+        projects: '**/*.csproj'
+    
+    - task: DotNetCoreCLI@2
+      displayName: 'Build solution'
+      inputs:
+        command: 'build'
+        projects: '**/*.csproj'
+        arguments: '--configuration $(buildConfiguration) --no-restore'
+    
+    - task: DotNetCoreCLI@2
+      displayName: 'Run unit tests'
+      inputs:
+        command: 'test'
+        projects: 'tests/**/*.csproj'
+        arguments: '--configuration $(buildConfiguration) --no-build --logger trx --collect:"XPlat Code Coverage"'
+    
+    - task: PublishTestResults@2
+      displayName: 'Publish test results'
+      inputs:
+        testResultsFormat: 'VSTest'
+        testResultsFiles: '**/*.trx'
+        mergeTestResults: true
+    
+    - task: PublishCodeCoverageResults@1
+      displayName: 'Publish code coverage'
+      inputs:
+        codeCoverageTool: 'Cobertura'
+        summaryFileLocation: '**/coverage.cobertura.xml'
+
+- stage: Package
+  displayName: 'Create Packages'
+  dependsOn: BuildAndTest
+  jobs:
+  - job: CreatePackages
+    displayName: 'Create NuGet Packages'
+    pool:
+      vmImage: 'ubuntu-latest'
+    
+    steps:
+    - task: UseDotNet@2
+      displayName: 'Setup .NET SDK'
+      inputs:
+        packageType: 'sdk'
+        version: '$(dotnetVersion)'
+    
+    - bash: |
+        chmod +x scripts/build-packages.sh
+        ./scripts/build-packages.sh --configuration $(buildConfiguration)
+      displayName: 'Build packages'
+    
+    - task: PublishBuildArtifacts@1
+      displayName: 'Publish package artifacts'
+      inputs:
+        PathtoPublish: '$(packagesDirectory)'
+        ArtifactName: 'nuget-packages'
+        publishLocation: 'Container'
+
+- stage: TestInstallation
+  displayName: 'Test Installation'
+  dependsOn: Package
+  jobs:
+  - job: TestCLI
+    displayName: 'Test CLI Installation'
+    pool:
+      vmImage: 'ubuntu-latest'
+    
+    steps:
+    - task: UseDotNet@2
+      displayName: 'Setup .NET SDK'
+      inputs:
+        packageType: 'sdk'
+        version: '$(dotnetVersion)'
+    
+    - task: DownloadBuildArtifacts@0
+      displayName: 'Download packages'
+      inputs:
+        buildType: 'current'
+        downloadType: 'single'
+        artifactName: 'nuget-packages'
+        downloadPath: '$(System.ArtifactsDirectory)'
+    
+    - bash: |
+        # Install CLI tool from artifacts
+        dotnet tool install --global --add-source $(System.ArtifactsDirectory)/nuget-packages JTest.Cli
+        
+        # Verify installation
+        export PATH="$PATH:$HOME/.dotnet/tools"
+        jtest --help
+        
+        # Create and run test
+        echo '{"version":"1.0","tests":[{"name":"Azure Test","steps":[{"type":"wait","ms":50}]}]}' > azure-test.json
+        jtest run azure-test.json
+      displayName: 'Test CLI installation'
+
+- stage: DockerBuild
+  displayName: 'Docker Build'
+  dependsOn: BuildAndTest
+  jobs:
+  - job: Docker
+    displayName: 'Build Docker Image'
+    pool:
+      vmImage: 'ubuntu-latest'
+    
+    steps:
+    - task: Docker@2
+      displayName: 'Build Docker image'
+      inputs:
+        command: 'build'
+        Dockerfile: 'Dockerfile'
+        tags: |
+          jtest:$(Build.BuildNumber)
+          jtest:latest
+    
+    - bash: |
+        # Test Docker image
+        docker run --rm jtest:$(Build.BuildNumber) jtest --help
+        
+        # Test with sample file
+        echo '{"version":"1.0","tests":[{"name":"Docker Test","steps":[{"type":"wait","ms":25}]}]}' > docker-test.json
+        docker run --rm -v $(pwd):/app/workspace -w /app/workspace jtest:$(Build.BuildNumber) jtest run docker-test.json
+      displayName: 'Test Docker image'
+
+- stage: IntegrationTests
+  displayName: 'Integration Tests'
+  dependsOn: Package
+  condition: and(succeeded(), or(eq(variables['Build.SourceBranch'], 'refs/heads/main'), eq(variables['Build.SourceBranch'], 'refs/heads/develop')))
+  jobs:
+  - deployment: StagingTests
+    displayName: 'Staging Environment Tests'
+    environment: 'staging'
+    pool:
+      vmImage: 'ubuntu-latest'
+    
+    variables:
+      API_BASE_URL: $(STAGING_API_URL)
+      API_KEY: $(STAGING_API_KEY)
+    
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: UseDotNet@2
+            displayName: 'Setup .NET SDK'
+            inputs:
+              packageType: 'sdk'
+              version: '$(dotnetVersion)'
+          
+          - task: DownloadBuildArtifacts@0
+            displayName: 'Download packages'
+            inputs:
+              buildType: 'current'
+              downloadType: 'single'
+              artifactName: 'nuget-packages'
+              downloadPath: '$(System.ArtifactsDirectory)'
+          
+          - bash: |
+              # Install JTest
+              dotnet tool install --global --add-source $(System.ArtifactsDirectory)/nuget-packages JTest.Cli
+              export PATH="$PATH:$HOME/.dotnet/tools"
+              
+              # Run integration tests
+              if [ -d "tests" ]; then
+                jtest run tests/ --output junit --environment staging --parallel 4
+              else
+                echo "No integration tests found"
+              fi
+            displayName: 'Run staging tests'
+          
+          - task: PublishTestResults@2
+            condition: always()
+            displayName: 'Publish integration test results'
+            inputs:
+              testResultsFormat: 'JUnit'
+              testResultsFiles: 'junit-results.xml'
+              mergeTestResults: true
+
+- stage: Release
+  displayName: 'Release'
+  dependsOn: 
+    - TestInstallation
+    - DockerBuild
+  condition: and(succeeded(), startsWith(variables['Build.SourceBranch'], 'refs/tags/v'))
+  jobs:
+  - deployment: PublishRelease
+    displayName: 'Publish Release'
+    environment: 'production'
+    pool:
+      vmImage: 'ubuntu-latest'
+    
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: DownloadBuildArtifacts@0
+            displayName: 'Download packages'
+            inputs:
+              buildType: 'current'
+              downloadType: 'single'
+              artifactName: 'nuget-packages'
+              downloadPath: '$(System.ArtifactsDirectory)'
+          
+          - task: GitHubRelease@1
+            displayName: 'Create GitHub Release'
+            inputs:
+              gitHubConnection: 'GitHub'
+              repositoryName: '$(Build.Repository.Name)'
+              action: 'create'
+              target: '$(Build.SourceVersion)'
+              tagSource: 'gitTag'
+              title: 'JTest $(Build.SourceBranchName)'
+              assets: '$(System.ArtifactsDirectory)/nuget-packages/*.nupkg'
+              addChangeLog: true
+          
+          # Uncomment when ready to publish to NuGet.org
+          # - task: NuGetCommand@2
+          #   displayName: 'Publish to NuGet.org'
+          #   inputs:
+          #     command: 'push'
+          #     packagesToPush: '$(System.ArtifactsDirectory)/nuget-packages/*.nupkg'
+          #     nuGetFeedType: 'external'
+          #     publishFeedCredentials: 'NuGet.org'

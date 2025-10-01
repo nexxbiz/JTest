@@ -5,10 +5,10 @@ WORKDIR /src
 # Copy project files
 COPY src/JTest.Core/JTest.Core.csproj src/JTest.Core/
 COPY src/JTest.Cli/JTest.Cli.csproj src/JTest.Cli/
-COPY JTest.sln .
 
-# Restore dependencies
-RUN dotnet restore
+# Restore dependencies for specific projects
+RUN dotnet restore src/JTest.Core/JTest.Core.csproj
+RUN dotnet restore src/JTest.Cli/JTest.Cli.csproj
 
 # Copy source code
 COPY src/ src/
