@@ -82,32 +82,34 @@ dotnet build src/JTest.Cli
 - **CLI Interface** - Command-line tool for running and debugging tests
 - **Extensible** - Add custom step types and functionality
 
-## How to Use JTest
+## Installation
 
-Since JTest is currently a project (not a published package), you need to build it from source:
+### 🚀 Quick Setup (Recommended)
 
-### 1. Get the Source Code
+**One-command installation:**
+
 ```bash
-git clone https://github.com/nexxbiz/JTest.git
-cd JTest
+# Linux/macOS
+git clone https://github.com/nexxbiz/JTest.git && cd JTest && ./setup.sh
+
+# Windows (PowerShell)  
+git clone https://github.com/nexxbiz/JTest.git; cd JTest; .\setup.ps1
 ```
 
-### 2. Build the Project
+This installs the `jtest` CLI tool globally. After setup:
+
 ```bash
-dotnet build src/JTest.Cli
+jtest --help                    # Show help
+jtest create "My First Test"    # Create a new test
+jtest run my-test.json         # Run tests
 ```
 
-### 3. Run Tests
-```bash
-# Run a test file
-./src/JTest.Cli/bin/Debug/net8.0/JTest run your-test.json
+### 📦 Other Installation Methods
 
-# Run multiple test files
-./src/JTest.Cli/bin/Debug/net8.0/JTest run tests/*.json
-
-# Get help
-./src/JTest.Cli/bin/Debug/net8.0/JTest --help
-```
+- **[Complete Installation Guide](INSTALLATION.md)** - All installation options
+- **Docker:** `./docker.sh build && ./docker.sh run --help`
+- **From Source:** `dotnet build && ./src/JTest.Cli/bin/Debug/net8.0/JTest --help`
+- **CI/CD Integration:** See [Installation Guide](INSTALLATION.md#cicd-integration)
 
 ## Usage Examples
 
@@ -219,20 +221,20 @@ Then use it in your test:
 ## CLI Commands
 
 ```bash
-# Run tests (using built binary)
-./src/JTest.Cli/bin/Debug/net8.0/JTest run tests.json
+# Run tests (using globally installed tool)
+jtest run tests.json
 
 # Run multiple test files with wildcards
-./src/JTest.Cli/bin/Debug/net8.0/JTest run tests/*.json
+jtest run tests/*.json
 
 # Run with environment variables
-./src/JTest.Cli/bin/Debug/net8.0/JTest run tests.json --env baseUrl=https://api.example.com
+jtest run tests.json --env baseUrl=https://api.example.com
 
 # Validate test files
-./src/JTest.Cli/bin/Debug/net8.0/JTest validate tests.json
+jtest validate tests.json
 
 # Debug mode with verbose output
-./src/JTest.Cli/bin/Debug/net8.0/JTest debug tests.json
+jtest debug tests.json
 ```
 
 ## Project Structure

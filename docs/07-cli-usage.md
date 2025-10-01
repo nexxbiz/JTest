@@ -4,7 +4,40 @@ The JTest CLI is the primary way to run tests, debug issues, and validate test f
 
 ## Getting the CLI
 
-Since JTest is currently a development project (not a published package), you need to build it from source:
+### 🚀 Quick Installation (Recommended)
+
+Install JTest globally with our setup script:
+
+```bash
+# Linux/macOS
+git clone https://github.com/nexxbiz/JTest.git && cd JTest && ./setup.sh
+
+# Windows (PowerShell)
+git clone https://github.com/nexxbiz/JTest.git; cd JTest; .\setup.ps1
+```
+
+After installation, use `jtest` command anywhere:
+
+```bash
+jtest --help
+jtest run tests.json
+```
+
+### 📦 Manual Installation
+
+```bash
+# Clone and build packages
+git clone https://github.com/nexxbiz/JTest.git
+cd JTest
+./scripts/build-packages.sh
+
+# Install globally
+dotnet tool install --global --add-source ./packages JTest.Cli
+```
+
+### 🔧 Development Build
+
+For development or latest changes:
 
 ```bash
 # Clone the repository
@@ -14,18 +47,12 @@ cd JTest
 # Build the CLI
 dotnet build src/JTest.Cli
 
-# The executable will be at: ./src/JTest.Cli/bin/Debug/net8.0/JTest
-```
-
-For convenience, you can create an alias:
-
-```bash
-# Linux/macOS
+# Use directly: ./src/JTest.Cli/bin/Debug/net8.0/JTest
+# Or create an alias for convenience:
 alias jtest='./src/JTest.Cli/bin/Debug/net8.0/JTest'
-
-# Windows (PowerShell)
-Set-Alias ./src/JTest.Cli/bin/Debug/net8.0/JTest './src/JTest.Cli/bin/Debug/net8.0/JTest.exe'
 ```
+
+See **[INSTALLATION.md](../INSTALLATION.md)** for complete installation options including Docker and CI/CD integration.
 
 ## Basic Usage
 
@@ -34,25 +61,25 @@ Set-Alias ./src/JTest.Cli/bin/Debug/net8.0/JTest './src/JTest.Cli/bin/Debug/net8
 Run a single test file:
 
 ```bash
-./src/JTest.Cli/bin/Debug/net8.0/JTest run my-tests.json
+jtest run my-tests.json
 ```
 
 Run multiple test files:
 
 ```bash
-./src/JTest.Cli/bin/Debug/net8.0/JTest run auth-tests.json user-tests.json order-tests.json
+jtest run auth-tests.json user-tests.json order-tests.json
 ```
 
 Run all tests in a directory:
 
 ```bash
-./src/JTest.Cli/bin/Debug/net8.0/JTest run tests/
+jtest run tests/
 ```
 
 Run tests with a pattern:
 
 ```bash
-./src/JTest.Cli/bin/Debug/net8.0/JTest run tests/*-integration.json
+jtest run tests/*-integration.json
 ```
 
 ## Command Reference
@@ -62,7 +89,7 @@ Run tests with a pattern:
 Execute test files:
 
 ```bash
-./src/JTest.Cli/bin/Debug/net8.0/JTest run [options] <test-files...>
+jtest run [options] <test-files...>
 ```
 
 #### Options
