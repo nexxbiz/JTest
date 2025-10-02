@@ -55,6 +55,10 @@ jobs:
     runs-on: ubuntu-latest
     needs: build-and-test
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      is_release: ${{ steps.version.outputs.is_release }}
+      release_name: ${{ steps.version.outputs.release_name }}
     
     steps:
     - name: Checkout code
@@ -70,35 +74,90 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore
 
-    - name: Determine version
+    - name: Determine version and release info
       id: version
       run: |
         if [[ ${{ github.ref }} =~ refs/tags/v([0-9]+\.[0-9]+\.[0-9]+.*) ]]; then
-          echo "version=${BASH_REMATCH[1]}" >> $GITHUB_OUTPUT
+          VERSION="${BASH_REMATCH[1]}"
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
           echo "is_release=true" >> $GITHUB_OUTPUT
+          echo "release_name=JTest v${VERSION}" >> $GITHUB_OUTPUT
         else
-          # For main branch builds, use version with pre-release suffix
-          echo "version=1.0.0-preview.${{ github.run_number }}" >> $GITHUB_OUTPUT
+          # For main branch builds, use semantic versioning with build number
+          BASE_VERSION="1.0.0"
+          BUILD_NUMBER="${{ github.run_number }}"
+          SHORT_SHA="${{ github.sha }}"
+          SHORT_SHA="${SHORT_SHA:0:7}"
+          
+          # Create a development version
+          DEV_VERSION="${BASE_VERSION}-dev.${BUILD_NUMBER}+${SHORT_SHA}"
+          echo "version=${DEV_VERSION}" >> $GITHUB_OUTPUT
           echo "is_release=false" >> $GITHUB_OUTPUT
+          echo "release_name=JTest Development Build ${BUILD_NUMBER}" >> $GITHUB_OUTPUT
         fi
 
+    - name: Update package versions
+      run: |
+        VERSION="${{ steps.version.outputs.version }}"
+        # Update version in project files
+        sed -i "s/<PackageVersion>.*<\/PackageVersion>/<PackageVersion>${VERSION}<\/PackageVersion>/g" src/JTest.Core/JTest.Core.csproj
+        sed -i "s/<PackageVersion>.*<\/PackageVersion>/<PackageVersion>${VERSION}<\/PackageVersion>/g" src/JTest.Cli/JTest.Cli.csproj
+
     - name: Build and Pack JTest.Core
-      run: dotnet pack src/JTest.Core/ --configuration Release --no-restore -p:PackageVersion=${{ steps.version.outputs.version }} --output packages/
+      run: dotnet pack src/JTest.Core/ --configuration Release --no-restore --output packages/
 
     - name: Build and Pack JTest.Cli
-      run: dotnet pack src/JTest.Cli/ --configuration Release --no-restore -p:PackageVersion=${{ steps.version.outputs.version }} --output packages/
+      run: dotnet pack src/JTest.Cli/ --configuration Release --no-restore --output packages/
+
+    - name: Create distribution archive
+      run: |
+        mkdir -p dist
+        # Copy packages
+        cp packages/*.nupkg dist/
+        cp packages/*.snupkg dist/
+        
+        # Create a standalone CLI distribution
+        dotnet publish src/JTest.Cli/ --configuration Release --output dist/standalone --no-restore --self-contained false
+        
+        # Create version info file
+        cat > dist/version.json << EOF
+        {
+          "version": "${{ steps.version.outputs.version }}",
+          "buildNumber": "${{ github.run_number }}",
+          "commitHash": "${{ github.sha }}",
+          "buildDate": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+          "isRelease": ${{ steps.version.outputs.is_release }},
+          "downloadUrl": "https://github.com/nexxbiz/JTest/releases/download/${{ steps.version.outputs.version }}/jtest-${{ steps.version.outputs.version }}.zip"
+        }
+        EOF
+        
+        # Create archives for different platforms
+        cd dist/standalone
+        zip -r ../jtest-${{ steps.version.outputs.version }}-standalone.zip .
+        cd ../..
+        
+        # Create a combined distribution
+        cd dist
+        zip -r jtest-${{ steps.version.outputs.version }}.zip *.nupkg *.snupkg version.json
+        cd ..
 
     - name: Upload packages as artifacts
       uses: actions/upload-artifact@v3
       with:
-        name: nuget-packages
+        name: nuget-packages-${{ steps.version.outputs.version }}
         path: packages/*.nupkg
 
     - name: Upload symbol packages as artifacts
       uses: actions/upload-artifact@v3
       with:
-        name: nuget-symbol-packages
+        name: nuget-symbol-packages-${{ steps.version.outputs.version }}
         path: packages/*.snupkg
+
+    - name: Upload distribution artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: jtest-distribution-${{ steps.version.outputs.version }}
+        path: dist/*
 
   publish:
     name: Publish to NuGet
@@ -111,13 +170,13 @@ jobs:
     - name: Download package artifacts
       uses: actions/download-artifact@v3
       with:
-        name: nuget-packages
+        name: nuget-packages-${{ needs.package.outputs.version }}
         path: packages/
 
     - name: Download symbol package artifacts
       uses: actions/download-artifact@v3
       with:
-        name: nuget-symbol-packages
+        name: nuget-symbol-packages-${{ needs.package.outputs.version }}
         path: packages/
 
     - name: Setup .NET
@@ -133,3 +192,143 @@ jobs:
         done
       env:
         NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+
+  create-development-release:
+    name: Create Development Release
+    runs-on: ubuntu-latest
+    needs: package
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Download distribution artifacts
+      uses: actions/download-artifact@v3
+      with:
+        name: jtest-distribution-${{ needs.package.outputs.version }}
+        path: dist/
+
+    - name: Delete existing development release
+      continue-on-error: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        # Delete the previous development release if it exists
+        gh release delete "development" --yes || true
+        git push --delete origin development || true
+
+    - name: Create development release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: "development"
+        name: "${{ needs.package.outputs.release_name }}"
+        body: |
+          ## 🚧 Development Build - JTest v${{ needs.package.outputs.version }}
+          
+          **⚠️ This is an automated development build from the main branch.**
+          
+          ### Quick Installation
+          
+          **Download and install:**
+          ```bash
+          # Download the latest development build
+          curl -L -o jtest-dev.zip https://github.com/nexxbiz/JTest/releases/download/development/jtest-${{ needs.package.outputs.version }}.zip
+          unzip jtest-dev.zip
+          
+          # Install CLI tool from downloaded packages
+          dotnet tool install --global --add-source . JTest.Cli --version ${{ needs.package.outputs.version }}
+          ```
+          
+          **Or install directly from NuGet:**
+          ```bash
+          dotnet tool install --global JTest.Cli --version ${{ needs.package.outputs.version }} --prerelease
+          ```
+          
+          ### What's in this build:
+          - 📦 **NuGet Packages**: `JTest.Core` and `JTest.Cli` v${{ needs.package.outputs.version }}
+          - 🛠️ **Standalone CLI**: Ready-to-run JTest CLI tool
+          - 📋 **Version Info**: Complete build metadata
+          
+          ### Build Information
+          - **Build Number**: ${{ github.run_number }}
+          - **Commit**: ${{ github.sha }}
+          - **Built**: $(date -u +%Y-%m-%d\ %H:%M:%S\ UTC)
+          
+          ### Quick Start
+          ```bash
+          # Show help
+          jtest --help
+          
+          # Create a new test
+          jtest create "My API Test" my-test.json
+          
+          # Run tests
+          jtest run my-test.json
+          ```
+          
+          ---
+          *This release is automatically updated with each merge to main. For stable releases, see the [latest release](https://github.com/nexxbiz/JTest/releases/latest).*
+        files: |
+          dist/jtest-${{ needs.package.outputs.version }}.zip
+          dist/jtest-${{ needs.package.outputs.version }}-standalone.zip
+          dist/*.nupkg
+          dist/version.json
+        prerelease: true
+        make_latest: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  create-stable-release:
+    name: Create Stable Release
+    runs-on: ubuntu-latest
+    needs: package
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Download distribution artifacts
+      uses: actions/download-artifact@v3
+      with:
+        name: jtest-distribution-${{ needs.package.outputs.version }}
+        path: dist/
+
+    - name: Generate changelog
+      id: changelog
+      run: |
+        # Get the previous tag
+        PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+        
+        if [ -n "$PREVIOUS_TAG" ]; then
+          echo "## What's Changed" > changelog.md
+          echo "" >> changelog.md
+          
+          # Get commits since previous tag
+          git log --pretty=format:"- %s (%h)" ${PREVIOUS_TAG}..HEAD >> changelog.md
+          
+          echo "" >> changelog.md
+          echo "**Full Changelog**: https://github.com/nexxbiz/JTest/compare/${PREVIOUS_TAG}...v${{ needs.package.outputs.version }}" >> changelog.md
+        else
+          echo "## What's Changed" > changelog.md
+          echo "" >> changelog.md
+          echo "Initial release of JTest v${{ needs.package.outputs.version }}" >> changelog.md
+        fi
+
+    - name: Create stable release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: "v${{ needs.package.outputs.version }}"
+        name: "JTest v${{ needs.package.outputs.version }}"
+        body_path: changelog.md
+        files: |
+          dist/jtest-${{ needs.package.outputs.version }}.zip
+          dist/jtest-${{ needs.package.outputs.version }}-standalone.zip
+          dist/*.nupkg
+          dist/version.json
+        draft: false
+        prerelease: false
+        make_latest: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -20,6 +20,23 @@ This directory contains build scripts and CI/CD configurations for the JTest pro
 .\setup.ps1
 ```
 
+### Version Manager
+
+**`scripts/version-manager.sh`** - Download and install different versions
+- List all available JTest versions
+- Download specific versions or development builds
+- Install versions globally
+- Get detailed version information
+
+```bash
+./scripts/version-manager.sh list                    # List all versions
+./scripts/version-manager.sh latest                  # Show latest stable version
+./scripts/version-manager.sh dev                     # Show latest development version
+./scripts/version-manager.sh download v1.0.0        # Download specific version
+./scripts/version-manager.sh install development    # Install dev build globally
+./scripts/version-manager.sh info v1.0.0           # Show version details
+```
+
 ### Build Scripts
 
 **`scripts/build-packages.sh` / `scripts/build-packages.ps1`** - Create NuGet packages
@@ -130,6 +147,22 @@ packages/
    dotnet tool install --global --add-source ./packages JTest.Cli
    jtest --help
    ```
+
+### Version Management Workflow
+
+```bash
+# Check what versions are available
+./scripts/version-manager.sh list
+
+# Install latest development build
+./scripts/version-manager.sh install development
+
+# Install specific stable version
+./scripts/version-manager.sh install v1.0.0
+
+# Download for offline use
+./scripts/version-manager.sh download development ./my-jtest-version
+```
 
 ## 🐳 Docker Usage
 

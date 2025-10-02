@@ -2,6 +2,48 @@
 
 JTest provides multiple installation methods to fit different workflows and environments.
 
+## Version Management
+
+JTest provides an automated version system with different release channels:
+
+### 🚀 **Stable Releases**
+- Tagged releases (e.g., `v1.0.0`, `v1.1.0`)
+- Manually created for major milestones
+- Published to NuGet.org
+- Available via GitHub Releases
+
+### 🚧 **Development Builds**
+- Automatically generated on every merge to main
+- Version format: `1.0.0-dev.{build-number}+{commit-hash}`
+- Pre-release packages available on GitHub
+- Updated continuously with latest changes
+
+### 📦 **Version Manager Tool**
+
+Use the included version manager to easily work with different versions:
+
+```bash
+# List all available versions
+./scripts/version-manager.sh list
+
+# Get latest stable version
+./scripts/version-manager.sh latest
+
+# Get latest development version  
+./scripts/version-manager.sh dev
+
+# Download specific version
+./scripts/version-manager.sh download v1.0.0
+./scripts/version-manager.sh download development
+
+# Install specific version globally
+./scripts/version-manager.sh install v1.0.0
+./scripts/version-manager.sh install development
+
+# Get version information
+./scripts/version-manager.sh info development
+```
+
 ## Quick Setup (Recommended)
 
 ### 🚀 One-Command Setup

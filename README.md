@@ -104,6 +104,20 @@ jtest create "My First Test"    # Create a new test
 jtest run my-test.json         # Run tests
 ```
 
+### 📦 Version Management
+
+JTest offers different release channels:
+
+- **🚀 Stable releases**: Tagged versions (v1.0.0, etc.) for production use
+- **🚧 Development builds**: Auto-generated from main branch with latest features
+
+```bash
+# Use the version manager to download/install specific versions
+./scripts/version-manager.sh list                    # List all versions
+./scripts/version-manager.sh install development    # Install latest dev build
+./scripts/version-manager.sh install latest         # Install latest stable
+```
+
 ### 📦 Other Installation Methods
 
 - **[Complete Installation Guide](INSTALLATION.md)** - All installation options
