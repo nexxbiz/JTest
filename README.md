@@ -123,7 +123,7 @@ JTest offers different release channels:
 - **[Complete Installation Guide](INSTALLATION.md)** - All installation options
 - **Docker:** `./docker.sh build && ./docker.sh run --help`
 - **From Source:** `dotnet build && ./src/JTest.Cli/bin/Debug/net8.0/JTest --help`
-- **CI/CD Integration:** See [Installation Guide](INSTALLATION.md#cicd-integration)
+- **CI/CD Integration:** See [Installation Guide](INSTALLATION.md#cicd-integration) | [GitHub Actions Setup](.github/SETUP-ACTIONS.md)
 
 ## Usage Examples
 

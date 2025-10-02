@@ -156,6 +156,12 @@ echo '{"version":"1.0","tests":[{"name":"Test","steps":[{"type":"wait","ms":100}
 
 ### GitHub Actions
 
+JTest includes complete GitHub Actions workflows for automated building, testing, and releasing.
+
+**📋 Setup Required**: See [GitHub Actions Setup Guide](.github/SETUP-ACTIONS.md) for configuring secrets and environments.
+
+**Quick Start**: [Setup Checklist](.github/SETUP-ACTIONS-QUICKSTART.md)
+
 ```yaml
 name: API Tests
 on: [push, pull_request]
