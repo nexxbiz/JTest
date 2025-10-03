@@ -1,0 +1,61 @@
+name: Build and Test
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+        
+    - name: Restore dependencies
+      run: dotnet restore
+      
+    - name: Build
+      run: dotnet build --configuration Release --no-restore
+      
+    - name: Test
+      run: dotnet test --configuration Release --no-build --verbosity normal
+      
+    - name: Build packages
+      run: ./scripts/build-packages.sh --configuration Release
+      
+    - name: Upload packages
+      uses: actions/upload-artifact@v4
+      with:
+        name: nuget-packages
+        path: packages/*.nupkg
+        retention-days: 30
+        
+    - name: Test CLI installation
+      run: |
+        # Test that the CLI package can be installed
+        dotnet tool install --global --add-source ./packages JTest.Cli
+        jtest --help
+        
+  docker-build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      
+    - name: Build Docker image
+      run: docker build -t jtest:test .
+      
+    - name: Test Docker image
+      run: |
+        docker run --rm jtest:test jtest --help
+        echo '{"version":"1.0","tests":[{"name":"Test","steps":[{"type":"wait","ms":1}]}]}' > test.json
+        docker run --rm -v $(pwd):/app/workspace -w /app/workspace jtest:test jtest run test.json

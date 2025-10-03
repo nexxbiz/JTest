@@ -1,0 +1,88 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'  # Trigger on version tags like v1.0.0
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+        
+    - name: Get version from tag
+      id: get_version
+      run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+      
+    - name: Update package versions
+      run: |
+        # Update version in project files
+        sed -i "s/<PackageVersion>.*<\/PackageVersion>/<PackageVersion>${{ steps.get_version.outputs.VERSION }}<\/PackageVersion>/g" src/JTest.Core/JTest.Core.csproj
+        sed -i "s/<PackageVersion>.*<\/PackageVersion>/<PackageVersion>${{ steps.get_version.outputs.VERSION }}<\/PackageVersion>/g" src/JTest.Cli/JTest.Cli.csproj
+        
+    - name: Restore dependencies
+      run: dotnet restore
+      
+    - name: Build
+      run: dotnet build --configuration Release --no-restore
+      
+    - name: Test
+      run: dotnet test --configuration Release --no-build --verbosity normal
+      
+    - name: Build packages
+      run: ./scripts/build-packages.sh --configuration Release
+      
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          packages/*.nupkg
+        body: |
+          ## JTest v${{ steps.get_version.outputs.VERSION }}
+          
+          ### Installation
+          
+          **Install as global tool:**
+          ```bash
+          dotnet tool install --global JTest.Cli --version ${{ steps.get_version.outputs.VERSION }}
+          ```
+          
+          **Use in project:**
+          ```xml
+          <PackageReference Include="JTest.Core" Version="${{ steps.get_version.outputs.VERSION }}" />
+          ```
+          
+          ### Quick Start
+          ```bash
+          # Show help
+          jtest --help
+          
+          # Create a new test
+          jtest create "My API Test" my-test.json
+          
+          # Run tests
+          jtest run my-test.json
+          ```
+          
+          ### What's Changed
+          See [CHANGELOG.md](CHANGELOG.md) for detailed changes.
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
+    # Uncomment when ready to publish to NuGet.org
+    # - name: Publish to NuGet
+    #   run: |
+    #     dotnet nuget push packages/*.nupkg \
+    #       --api-key ${{ secrets.NUGET_API_KEY }} \
+    #       --source https://api.nuget.org/v3/index.json \
+    #       --skip-duplicate
