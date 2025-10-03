@@ -5,12 +5,9 @@ on:
   pull_request:
     branches: [ main ]
   
-  # Trigger on pushes to main branch
+  # Trigger on pushes to main branch and tag creation for releases
   push:
     branches: [ main ]
-  
-  # Trigger on tag creation for releases
-  push:
     tags: [ 'v*.*.*' ]
 
 env:
