@@ -6,6 +6,9 @@ WORKDIR /src
 COPY src/JTest.Core/JTest.Core.csproj src/JTest.Core/
 COPY src/JTest.Cli/JTest.Cli.csproj src/JTest.Cli/
 
+# Copy solution file
+COPY JTest.sln ./
+
 # Restore dependencies for specific projects
 RUN dotnet restore src/JTest.Core/JTest.Core.csproj
 RUN dotnet restore src/JTest.Cli/JTest.Cli.csproj
@@ -14,10 +17,11 @@ RUN dotnet restore src/JTest.Cli/JTest.Cli.csproj
 COPY src/ src/
 
 # Build and pack
+RUN dotnet build --configuration Release --no-restore
 RUN dotnet pack src/JTest.Cli/JTest.Cli.csproj \
     --configuration Release \
     --output /packages \
-    --no-restore
+    --no-build
 
 # Runtime stage
 FROM mcr.microsoft.com/dotnet/runtime:8.0 AS runtime
