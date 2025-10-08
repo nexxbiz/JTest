@@ -26,7 +26,7 @@ jobs:
       uses: actions/checkout@v4
       
     - name: Setup .NET
-      uses: actions/setup-dotnet@v3
+      uses: actions/setup-dotnet@v4
       with:
         dotnet-version: '8.0.x'
         
@@ -106,7 +106,7 @@ jobs:
     - uses: actions/checkout@v4
     
     - name: Setup .NET
-      uses: actions/setup-dotnet@v3
+      uses: actions/setup-dotnet@v4
       with:
         dotnet-version: '8.0.x'
         
@@ -133,7 +133,7 @@ jobs:
           --timeout 300
           
     - name: Upload Test Results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: test-results-${{ matrix.environment }}
@@ -182,7 +182,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Setup .NET
-      uses: actions/setup-dotnet@v3
+      uses: actions/setup-dotnet@v4
       with:
         dotnet-version: '8.0.x'
         
@@ -889,7 +889,7 @@ jtest run tests/ --parallel $PARALLEL_COUNT
 ```yaml
 # GitHub Actions - Cache .NET tools
 - name: Cache .NET tools
-  uses: actions/cache@v3
+  uses: actions/cache@v4
   with:
     path: ~/.dotnet/tools
     key: ${{ runner.os }}-dotnet-tools-${{ hashFiles('**/*.csproj') }}

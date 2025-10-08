@@ -182,9 +182,9 @@ public class AssertStepTests
 
         step.ValidateConfiguration(config);
 
-        // Use reflection to access the protected method for testing
+        // Use reflection to access the method for testing
         var method = typeof(AssertStep).GetMethod("GetStepDescription",
-            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
         var description = method?.Invoke(step, null) as string;
 
         Assert.Equal("Execute assertions", description);
