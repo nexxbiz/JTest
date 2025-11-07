@@ -1,6 +1,7 @@
 using JTest.Core.Execution;
 using JTest.Core.Utilities;
 using System.Diagnostics;
+using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 
@@ -9,17 +10,22 @@ namespace JTest.Core.Steps;
 /// <summary>
 /// HTTP step implementation for making HTTP requests
 /// </summary>
-public class HttpStep : BaseStep
+public class HttpStep(HttpClient httpClient) : BaseStep
 {
-    private readonly HttpClient _httpClient;
-    private string _stepDescription = "";
+    private const string stepType = "http";
+    private const string defaultHttpMethod = "GET";
+    private const string methodConfigurationProperty = "method";
+    private const string urlConfigurationProperty = "url";
+    private const string bodyConfigurationProperty = "body";
+    private const string headersConfigurationProperty = "headers";
+    private const string queryConfigurationProperty = "query";
+    private const string fileConfigurationProperty = "file";
+    private const string contentTypeConfigurationProperty = "contentType";
+    private const string jsonContentType = "application/json";
 
-    public HttpStep(HttpClient httpClient)
-    {
-        _httpClient = httpClient;
-    }
+    private string _stepDescription = string.Empty;
 
-    public override string Type => "http";
+    public override sealed string Type => stepType;
 
     public override bool ValidateConfiguration(JsonElement configuration)
     {
@@ -58,15 +64,15 @@ public class HttpStep : BaseStep
 
     private bool ValidateRequiredProperties()
     {
-        return Configuration.TryGetProperty("method", out _) &&
-               Configuration.TryGetProperty("url", out _);
+        return Configuration.TryGetProperty(methodConfigurationProperty, out _) &&
+               Configuration.TryGetProperty(urlConfigurationProperty, out _);
     }
 
     private async Task<object> PerformHttpRequest(IExecutionContext context, Stopwatch stopwatch)
     {
         var request = BuildHttpRequest(context);
         var requestDetails = await CaptureRequestDetails(request, context);
-        var response = await _httpClient.SendAsync(request);
+        var response = await httpClient.SendAsync(request);
         return await CreateResponseData(response, stopwatch, requestDetails);
     }
 
@@ -83,19 +89,19 @@ public class HttpStep : BaseStep
 
     private string GetResolvedMethod(IExecutionContext context)
     {
-        var method = Configuration.GetProperty("method").GetString() ?? "GET";
-        return VariableInterpolator.ResolveVariableTokens(method, context).ToString() ?? "GET";
+        var method = Configuration.GetProperty(methodConfigurationProperty).GetString() ?? defaultHttpMethod;
+        return VariableInterpolator.ResolveVariableTokens(method, context).ToString() ?? defaultHttpMethod;
     }
 
     private string GetResolvedUrl(IExecutionContext context)
     {
-        var url = Configuration.GetProperty("url").GetString() ?? "";
-        return VariableInterpolator.ResolveVariableTokens(url, context).ToString() ?? "";
+        var url = Configuration.GetProperty(urlConfigurationProperty).GetString() ?? string.Empty;
+        return VariableInterpolator.ResolveVariableTokens(url, context).ToString() ?? string.Empty;
     }
 
     private string AddQueryParameters(string url, IExecutionContext context)
     {
-        if (!Configuration.TryGetProperty("query", out var queryElement)) return url;
+        if (!Configuration.TryGetProperty(queryConfigurationProperty, out var queryElement)) return url;
         if (queryElement.ValueKind != JsonValueKind.Object) return url;
         var queryString = BuildQueryString(queryElement, context);
         return string.IsNullOrEmpty(queryString) ? url : $"{url}?{queryString}";
@@ -109,75 +115,117 @@ public class HttpStep : BaseStep
         return string.Join("&", parameters.Where(p => !string.IsNullOrEmpty(p)));
     }
 
-    private string BuildQueryParameter(JsonProperty property, IExecutionContext context)
+    private static string BuildQueryParameter(JsonProperty property, IExecutionContext context)
     {
         var key = Uri.EscapeDataString(property.Name);
         var value = ResolveQueryValue(property.Value, context);
-        return string.IsNullOrEmpty(value) ? "" : $"{key}={Uri.EscapeDataString(value)}";
+        return string.IsNullOrEmpty(value)
+            ? string.Empty
+            : $"{key}={Uri.EscapeDataString(value)}";
     }
 
-    private string ResolveQueryValue(JsonElement value, IExecutionContext context)
+    private static string ResolveQueryValue(JsonElement value, IExecutionContext context)
     {
         if (value.ValueKind == JsonValueKind.String)
-            return VariableInterpolator.ResolveVariableTokens(value.GetString() ?? "", context).ToString() ?? "";
-        return GetJsonElementValue(value).ToString() ?? "";
+        {
+            return VariableInterpolator.ResolveVariableTokens(value.GetString() ?? string.Empty, context).ToString() ?? string.Empty;
+        }
+
+        return GetJsonElementValue(value).ToString() ?? string.Empty;
     }
 
     private void AddResolvedHeaders(HttpRequestMessage request, IExecutionContext context)
     {
-        if (!Configuration.TryGetProperty("headers", out var headersElement)) return;
-        if (headersElement.ValueKind != JsonValueKind.Array) return;
+        if (!Configuration.TryGetProperty(headersConfigurationProperty, out var headersElement))
+            return;
+        if (headersElement.ValueKind != JsonValueKind.Array)
+            return;
+
         foreach (var header in headersElement.EnumerateArray())
         {
             AddSingleHeader(request, header, context);
         }
     }
 
-    private void AddSingleHeader(HttpRequestMessage request, JsonElement header, IExecutionContext context)
+    private static void AddSingleHeader(HttpRequestMessage request, JsonElement header, IExecutionContext context)
     {
         var name = GetHeaderName(header, context);
         var value = GetHeaderValue(header, context);
+
         if (!string.IsNullOrEmpty(name) && !string.IsNullOrEmpty(value))
+        {
             request.Headers.TryAddWithoutValidation(name, value);
+        }
     }
 
-    private string GetHeaderName(JsonElement header, IExecutionContext context)
+    private static string GetHeaderName(JsonElement header, IExecutionContext context)
     {
-        var name = header.GetProperty("name").GetString() ?? "";
-        return VariableInterpolator.ResolveVariableTokens(name, context).ToString() ?? "";
+        var name = header.GetProperty("name").GetString() ?? string.Empty;
+        return VariableInterpolator.ResolveVariableTokens(name, context).ToString() ?? string.Empty;
     }
 
-    private string GetHeaderValue(JsonElement header, IExecutionContext context)
+    private static string GetHeaderValue(JsonElement header, IExecutionContext context)
     {
-        var value = header.GetProperty("value").GetString() ?? "";
-        return VariableInterpolator.ResolveVariableTokens(value, context).ToString() ?? "";
+        var value = header.GetProperty("value").GetString() ?? string.Empty;
+        return VariableInterpolator.ResolveVariableTokens(value, context).ToString() ?? string.Empty;
     }
 
     private void AddResolvedBody(HttpRequestMessage request, IExecutionContext context)
     {
-        if (!Configuration.TryGetProperty("body", out var bodyElement)) return;
-        var content = CreateHttpContent(bodyElement, context);
-        if (content != null) request.Content = content;
+        if (Configuration.TryGetProperty(bodyConfigurationProperty, out var bodyElement))
+        {
+            request.Content = CreateJsonStringContent(bodyElement, context);
+        }
+
+        else if (Configuration.TryGetProperty(fileConfigurationProperty, out var filePath))
+        {
+            request.Content = CreateFileStreamContent(filePath, context);
+        }
     }
 
-    private HttpContent? CreateHttpContent(JsonElement bodyElement, IExecutionContext context)
+    private StringContent? CreateJsonStringContent(JsonElement bodyElement, IExecutionContext context)
     {
         var resolvedBody = ResolveBodyTokens(bodyElement, context);
         var jsonString = SerializeBodyToJson(resolvedBody);
         return CreateStringContent(jsonString);
     }
 
+    private StreamContent? CreateFileStreamContent(JsonElement filePathElement, IExecutionContext context)
+    {
+        var filePath = $"{ResolvePropertyValue(filePathElement, context)}";
+        if (!File.Exists(filePath))
+        {
+            context.Log.Add($"File at path '{filePath}' does not eixst");
+            return null;
+        }
+
+        var fileContent = File.OpenRead(filePath);
+        var result = new StreamContent(fileContent);
+
+        if (Configuration.TryGetProperty(contentTypeConfigurationProperty, out var contentType))
+        {
+            result.Headers.ContentType = new MediaTypeHeaderValue($"{ResolvePropertyValue(contentType, context)}");
+        }
+        else
+        {
+            context.Log.Add($"No content type specified; default {jsonContentType} content type is applied");
+            result.Headers.ContentType = new MediaTypeHeaderValue(jsonContentType);
+        }
+
+        return result;
+    }
+
     private object ResolveBodyTokens(JsonElement bodyElement, IExecutionContext context)
     {
         return bodyElement.ValueKind switch
         {
-            JsonValueKind.String => VariableInterpolator.ResolveVariableTokens(bodyElement.GetString() ?? "", context),
+            JsonValueKind.String => VariableInterpolator.ResolveVariableTokens(bodyElement.GetString() ?? string.Empty, context),
             JsonValueKind.Object => ResolveObjectTokens(bodyElement, context),
             _ => bodyElement
         };
     }
 
-    private object ResolveObjectTokens(JsonElement objectElement, IExecutionContext context)
+    private Dictionary<string, object> ResolveObjectTokens(JsonElement objectElement, IExecutionContext context)
     {
         var resolved = new Dictionary<string, object>();
         foreach (var property in objectElement.EnumerateObject())
@@ -191,13 +239,13 @@ public class HttpStep : BaseStep
     {
         return value.ValueKind switch
         {
-            JsonValueKind.String => VariableInterpolator.ResolveVariableTokens(value.GetString() ?? "", context),
+            JsonValueKind.String => VariableInterpolator.ResolveVariableTokens(value.GetString() ?? string.Empty, context),
             JsonValueKind.Object => ResolveObjectTokens(value, context),
             _ => GetJsonElementValue(value)
         };
     }
 
-    private object GetJsonElementValue(JsonElement element)
+    private static object GetJsonElementValue(JsonElement element)
     {
         return element.ValueKind switch
         {
@@ -208,69 +256,75 @@ public class HttpStep : BaseStep
         };
     }
 
-    private string SerializeBodyToJson(object body)
+    private static string SerializeBodyToJson(object body)
     {
         return body is string str ? str : JsonSerializer.Serialize(body);
     }
 
-    private HttpContent CreateStringContent(string content)
+    private static StringContent CreateStringContent(string content)
     {
-        return new StringContent(content, Encoding.UTF8, "application/json");
+        return new StringContent(content, Encoding.UTF8, jsonContentType);
     }
 
-    private async Task<object> CaptureRequestDetails(HttpRequestMessage request, IExecutionContext context)
+    private static async Task<object> CaptureRequestDetails(HttpRequestMessage request, IExecutionContext context)
     {
         var headers = request.Headers
             .Concat(request.Content?.Headers ?? Enumerable.Empty<KeyValuePair<string, IEnumerable<string>>>())
             .Select(h => new { name = h.Key, value = string.Join(", ", h.Value) })
             .ToArray();
 
-        var body = request.Content != null 
+        var body = request.Content != null
             ? await request.Content.ReadAsStringAsync()
             : null;
 
         return new
         {
-            url = request.RequestUri?.ToString() ?? "",
+            url = request.RequestUri?.ToString() ?? string.Empty,
             method = request.Method.Method,
-            headers = headers,
-            body = body
+            headers,
+            body
         };
     }
 
-    private async Task<object> CreateResponseData(HttpResponseMessage response, Stopwatch stopwatch, object requestDetails)
+    private static async Task<object> CreateResponseData(HttpResponseMessage response, Stopwatch stopwatch, object requestDetails)
     {
         var body = await GetResponseBody(response);
         var headers = GetResponseHeaders(response);
         return new
         {
             status = (int)response.StatusCode,
-            headers = headers,
-            body = body,
+            headers,
+            body,
             duration = stopwatch.ElapsedMilliseconds,
             request = requestDetails
         };
     }
 
-    private async Task<object> GetResponseBody(HttpResponseMessage response)
+    private static async Task<object> GetResponseBody(HttpResponseMessage response)
     {
         var content = await response.Content.ReadAsStringAsync();
         return IsJsonResponse(response) ? ParseJsonResponse(content) : content;
     }
 
-    private bool IsJsonResponse(HttpResponseMessage response)
+    private static bool IsJsonResponse(HttpResponseMessage response)
     {
         var contentType = response.Content.Headers.ContentType?.MediaType;
-        return contentType?.Contains("application/json") == true;
+        return contentType?.Contains(jsonContentType) == true;
     }
 
-    private object ParseJsonResponse(string content)
+    private static object ParseJsonResponse(string content)
     {
-        try { return JsonSerializer.Deserialize<object>(content) ?? content; }
-        catch { return content; }
+        try
+        {
+            return JsonSerializer.Deserialize<object>(content) ?? content;
+        }
+        catch
+        {
+            return content;
+        }
     }
 
-    private object[] GetResponseHeaders(HttpResponseMessage response)
+    private static object[] GetResponseHeaders(HttpResponseMessage response)
     {
         return response.Headers
             .Concat(response.Content.Headers)
@@ -278,10 +332,7 @@ public class HttpStep : BaseStep
             .ToArray();
     }
 
-    public override string GetStepDescription()
-    {
-        return _stepDescription;
-    }
+    public override string GetStepDescription() => _stepDescription;
 }
 
 internal static class TypeExtensions
