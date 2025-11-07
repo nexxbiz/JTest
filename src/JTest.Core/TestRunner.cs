@@ -13,15 +13,23 @@ public class TestRunner
 {
     private readonly TestCaseExecutor _executor;
     private readonly StepFactory _stepFactory;
-    private readonly TemplateProvider _templateProvider;
+    private readonly ITemplateProvider _templateProvider;
     private readonly HttpClient _httpClient;
+    private readonly GlobalConfiguration _globalConfiguration;
 
-    public TestRunner()
+    public TestRunner(GlobalConfiguration? globalConfiguration = null)
     {
         _templateProvider = new TemplateProvider();
         _stepFactory = new StepFactory(_templateProvider);
         _executor = new TestCaseExecutor(_stepFactory);
         _httpClient = new HttpClient();
+        _globalConfiguration = globalConfiguration ?? new ();
+    }
+
+    public TestRunner(ITemplateProvider templateProvider, GlobalConfiguration? globalConfiguration = null)
+        : this(globalConfiguration)
+    {        
+        _templateProvider = templateProvider;
     }
 
     /// <summary>
@@ -241,7 +249,10 @@ public class TestRunner
         // Create temporary context for template loading logging
         var tempContext = CreateExecutionContext(mergedEnvironment, mergedGlobals);
 
-        // Load templates from using statement before any test execution
+        // Load templates from GlobalConfiguration
+        await LoadTemplatesFromGlobalUsingPathsAsync(tempContext);
+
+        // Load templates from using statement before any test execution        
         await LoadTemplatesFromUsingAsync(testSuite.Using, tempContext, testFilePath);
 
         var allResults = new List<JTestCaseResult>();
@@ -371,6 +382,53 @@ public class TestRunner
             }
         }
     }
+
+    private Task LoadTemplatesFromGlobalUsingPathsAsync(IExecutionContext context)
+    {
+        if (_globalConfiguration.Templates is null)
+            return Task.CompletedTask;
+
+        var usingPaths = new List<string>();
+
+        usingPaths.AddRange(
+            FindTemplateJsonFilesInSearchPaths(_globalConfiguration.Templates.SearchPaths)
+        );
+
+        var resolvedTemplatePaths = _globalConfiguration.Templates.Paths?.Select(path =>
+        {
+            return ResolveTemplatePath(path, testFilePath: null);
+        });
+        usingPaths.AddRange(
+            resolvedTemplatePaths ?? []
+        );
+
+        return LoadTemplatesFromUsingAsync(usingPaths, context);
+    }
+
+    private static IEnumerable<string> FindTemplateJsonFilesInSearchPaths(IEnumerable<string>? searchPaths)
+    {
+        if (searchPaths is null)
+        {
+            return [];
+        }
+
+        return searchPaths.SelectMany(searchPath =>
+        {
+            if (string.IsNullOrWhiteSpace(searchPath) || !Directory.Exists(searchPath))
+            {
+                return [];
+            }
+
+            var jsonFiles = Directory.GetFiles(
+                searchPath,
+                "*.json",
+                SearchOption.AllDirectories
+            );
+
+            return jsonFiles;
+        });
+    }
+
 
     /// <summary>
     /// Loads content from either a file path or HTTP URL

@@ -27,17 +27,43 @@ class Program
 
 public class JTestCli
 {
-    private Dictionary<string, string> _envVars = new();
-    private Dictionary<string, string> _globals = new();
+    private readonly Dictionary<string, string> _envVars = [];
+    private readonly Dictionary<string, string> _globals = [];
     private readonly TestRunner _testRunner;
     private int _parallelCount = 1; // Default to sequential execution
     private readonly string _debugOutputDir = "./bin/debug";
     private const string DebugPathEnvVar = "debugPath"; // Define debug output via config 
+    private const string globalConfigFileEnvVar = "JTEST_CONFIG_FILE"; // Environment variable name for global config file path
+    private static readonly JsonSerializerOptions jsonSerializerOptions = new() { PropertyNameCaseInsensitive = true };
 
     public JTestCli()
     {
-        _testRunner = new TestRunner();
+        var globalConfig = LoadGlobalConfigurationFile();
+        _testRunner = new TestRunner(globalConfig);
         _debugOutputDir = Environment.GetEnvironmentVariable(DebugPathEnvVar) ?? _debugOutputDir;
+    }
+
+    private static GlobalConfiguration? LoadGlobalConfigurationFile()
+    {
+        var globalConfigFilePath = Environment.GetEnvironmentVariable(globalConfigFileEnvVar);
+        if (string.IsNullOrWhiteSpace(globalConfigFilePath))
+        {
+            return null;
+        }
+        if (!File.Exists(globalConfigFilePath))
+        {
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.WriteLine(
+                $"WARNING: Global configuration file at path '{globalConfigFilePath}' does not exist. Continuing without global config file."
+            );
+            Console.ResetColor();
+            return null;
+        }
+
+        return JsonSerializer.Deserialize<GlobalConfiguration>(
+            File.ReadAllText(globalConfigFilePath),
+            options: jsonSerializerOptions
+        );
     }
 
     private static readonly string HelpText = @"JTEST CLI v1.0 - Universal Test Definition Language
@@ -64,8 +90,11 @@ RUNTIME OPTIONS:
     --env key=value                     Set environment variable
     --env-file <path.json>              Load environment from JSON file
     --globals key=value                 Set global variable
-    --globals-file <path.json>          Load globals from JSON file
+    --globals-file <path.json>          Load globals from JSON file    
     --parallel <count>, -p <count>      Run test files in parallel (default: 1)
+
+ENVIRONMENT VARIABLES:    
+    JTEST_CONFIG_FILE                   Path to global JTest config file (JSON)    
 
 EXAMPLES:
     # Run a single test file
@@ -337,7 +366,7 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
         }
 
         var testFiles = new List<string>();
-        
+
         // Process all arguments as patterns/files
         foreach (var arg in args)
         {
@@ -377,12 +406,12 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
         if (_parallelCount > 1 && testFiles.Count > 1)
         {
             Console.WriteLine($"Running {testFiles.Count} test files in parallel (max concurrent: {_parallelCount})");
-            
+
             // Thread-safe collections for parallel execution
             var allResultsThreadSafe = new ConcurrentBag<JTestCaseResult>();
             var processedFilesThreadSafe = 0;
             var failedFilesThreadSafe = 0;
-            
+
             // Use Parallel.ForEach with MaxDegreeOfParallelism
             var parallelOptions = new ParallelOptions
             {
@@ -416,7 +445,7 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
                     var globals = _globals.ToDictionary(kvp => kvp.Key, kvp => (object)kvp.Value);
 
                     var results = _testRunner.RunTestAsync(jsonContent, testFile, environment, globals).Result;
-                    
+
                     foreach (var result in results)
                     {
                         allResultsThreadSafe.Add(result);
@@ -438,7 +467,7 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
                     {
                         Console.WriteLine($"\nFile Summary - {Path.GetFileName(testFile)}: {fileSuccess} passed, {fileFailed} failed");
                     }
-                    
+
                     Interlocked.Increment(ref processedFilesThreadSafe);
                 }
                 catch (Exception ex)
@@ -597,7 +626,7 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
         }
 
         var testFiles = new List<string>();
-        
+
         // Process all arguments as patterns/files
         foreach (var arg in args)
         {
@@ -626,7 +655,7 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
 
             // Generate output markdown file name for each test file
             var testFilePath = Path.ChangeExtension(testFile, ".md");
-            var outputFileName = Path.GetRelativePath("./",testFilePath);
+            var outputFileName = Path.GetRelativePath("./", testFilePath);
             var outputFile = Path.Combine(_debugOutputDir, outputFileName);
             outputFile = Path.GetFileNameWithoutExtension(outputFile) + $"- {DateTime.Now.ToString("yyyyMMdd-HHmmss")}" + "_debug.md";
             allOutputFiles.Add(outputFile);
@@ -853,7 +882,7 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
         }
 
         var testFiles = new List<string>();
-        
+
         // Process all arguments as patterns/files
         foreach (var arg in args)
         {
