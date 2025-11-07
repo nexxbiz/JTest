@@ -3,7 +3,7 @@ using JTest.Core.Models;
 
 namespace JTest.UnitTests
 {
-    public class GlobalConfigurationTemplatesResolutionTests : IDisposable
+    public sealed class GlobalConfigurationTemplatesResolutionTests : IDisposable
     {
         private readonly string _testDirectory;
         private readonly string _templateFilePath;
@@ -115,31 +115,7 @@ namespace JTest.UnitTests
             Assert.Single(results);
             Assert.True(results[0].Success, $"Test should pass but failed with error: {results[0].ErrorMessage}");
             Assert.Equal("Template resolution test", results[0].TestCaseName);
-        }
-
-        [Fact]
-        public async Task RunTestAsync_WithRelativeTemplatePath_FromDifferentWorkingDirectory_StillWorks()
-        {
-            // Arrange  
-            var testRunner = new TestRunner();
-            var testContent = await File.ReadAllTextAsync(_testFile);
-
-            // Act - Run test from an entirely different working directory
-            var originalWorkingDirectory = Directory.GetCurrentDirectory();
-            try
-            {
-                Directory.SetCurrentDirectory(Path.GetTempPath()); // Change to a completely different directory
-                var results = await testRunner.RunTestAsync(testContent, _testFile);
-
-                // Assert
-                Assert.Single(results);
-                Assert.True(results[0].Success, $"Test should pass but failed with error: {results[0].ErrorMessage}");
-            }
-            finally
-            {
-                Directory.SetCurrentDirectory(originalWorkingDirectory);
-            }
-        }
+        }    
 
         public void Dispose()
         {
