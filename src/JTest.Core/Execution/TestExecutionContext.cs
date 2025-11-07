@@ -15,12 +15,12 @@ public class TestExecutionContext : IExecutionContext
     /// <summary>
     /// Gets the variables dictionary containing all execution variables
     /// </summary>
-    public Dictionary<string, object> Variables { get; } = new();
+    public Dictionary<string, object?> Variables { get; } = [];
 
     /// <summary>
     /// Gets the log list for warnings and errors during execution
     /// </summary>
-    public IList<string> Log { get; } = new List<string>();
+    public IList<string> Log { get; } = [];
 
     /// <summary>
     /// Gets or sets the current test number
@@ -118,7 +118,7 @@ public class TestExecutionContext : IExecutionContext
     /// </summary>
     /// <param name="value">The complex object to check for tokens</param>
     /// <returns>The object with any string properties containing tokens resolved</returns>
-    private object ResolveComplexObject(object value)
+    private object? ResolveComplexObject(object value)
     {
         if (value == null) return value;
 
@@ -157,7 +157,7 @@ public class TestExecutionContext : IExecutionContext
     /// </summary>
     /// <param name="element">The JsonElement to process</param>
     /// <returns>The resolved value</returns>
-    private object ResolveJsonElement(System.Text.Json.JsonElement element)
+    private object? ResolveJsonElement(System.Text.Json.JsonElement element)
     {
         switch (element.ValueKind)
         {
@@ -166,7 +166,7 @@ public class TestExecutionContext : IExecutionContext
                 return VariableInterpolator.ResolveVariableTokens(stringValue, this);
 
             case System.Text.Json.JsonValueKind.Object:
-                var dict = new Dictionary<string, object>();
+                var dict = new Dictionary<string, object?>();
                 foreach (var property in element.EnumerateObject())
                 {
                     dict[property.Name] = ResolveJsonElement(property.Value);
@@ -174,7 +174,7 @@ public class TestExecutionContext : IExecutionContext
                 return dict;
 
             case System.Text.Json.JsonValueKind.Array:
-                var list = new List<object>();
+                var list = new List<object?>();
                 foreach (var item in element.EnumerateArray())
                 {
                     list.Add(ResolveJsonElement(item));
@@ -191,7 +191,7 @@ public class TestExecutionContext : IExecutionContext
                 return false;
 
             case System.Text.Json.JsonValueKind.Null:
-                return (object?)null;
+                return null;
 
             default:
                 return element;

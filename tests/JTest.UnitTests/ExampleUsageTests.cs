@@ -95,11 +95,11 @@ public class ExampleUsageTests
         // Assert.True(discountedResult.Success);
 
         // 6. Demonstrate case context variable resolution for each dataset
-        await DemonstrateVariableResolution(basicResult.Dataset, baseContext);
-        await DemonstrateVariableResolution(discountedResult.Dataset, baseContext);
+        DemonstrateVariableResolution(basicResult.Dataset, baseContext);
+        DemonstrateVariableResolution(discountedResult.Dataset, baseContext);
     }
 
-    private async Task DemonstrateVariableResolution(JTestDataset dataset, TestExecutionContext baseContext)
+    private void DemonstrateVariableResolution(JTestDataset dataset, TestExecutionContext baseContext)
     {
         // Create execution context for this dataset
         var context = new TestExecutionContext();

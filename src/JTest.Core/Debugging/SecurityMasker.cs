@@ -14,7 +14,7 @@ public class SecurityMasker
     /// <param name="key">The key name to check for security sensitivity</param>
     /// <param name="value">The value to potentially mask</param>
     /// <returns>The masked value if security-sensitive, otherwise the original value</returns>
-    public object RegisterForMasking(string key, object value)
+    public object RegisterForMasking(string key, object? value)
     {
         if (value == null) return "null";
 

@@ -142,6 +142,73 @@ public class HttpStepTests
     }
 
     [Fact]
+    public async Task ExecuteAsync_WithJsonFile_Then_SerializesCorrectly()
+    {
+        // Arrange
+        using var client = new HttpClient();
+        var step = new HttpStep(client);
+        var context = new TestExecutionContext();
+        context.Variables["fileInfo"] = new { inputFilePath = "TestFiles/TestUser.json" };
+
+        var config = JsonSerializer.SerializeToElement(new
+        {
+            method = "POST",
+            url = "https://api.restful-api.dev/objects",
+            file = "{{$.fileInfo.inputFilePath}}"
+        });
+
+        step.ValidateConfiguration(config);
+
+        // Act
+        var result = await step.ExecuteAsync(context);
+
+        // Assert
+        Assert.True(result.Success);
+
+        var responseData = JsonSerializer.SerializeToElement(context.Variables["this"]);
+        var body = responseData.GetProperty("body");
+        var data = body.GetProperty("data");
+        var name = body.GetProperty("name").GetString();
+        var age = data.GetProperty("age").GetInt32();
+        var city = data.GetProperty("city").GetString();
+
+        Assert.Equal("Herman", name);
+        Assert.Equal(12, age);
+        Assert.Equal("Berlin", city);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WithCustomContentType_Then_SetsContentTypeHeader()
+    {
+        // Arrange
+        using var client = new HttpClient();
+        var step = new HttpStep(client);
+        var context = new TestExecutionContext();
+        context.Variables["fileInfo"] = new { inputFilePath = "TestFiles/TestUser.json" };
+
+        var config = JsonSerializer.SerializeToElement(new
+        {
+            method = "POST",
+            url = "https://api.restful-api.dev/objects",
+            file = "{{$.fileInfo.inputFilePath}}",
+            contentType = "application/xml"
+        });
+
+        step.ValidateConfiguration(config);
+
+        // Act
+        var result = await step.ExecuteAsync(context);
+
+        // Assert
+        Assert.True(result.Success);
+
+        var responseData = JsonSerializer.SerializeToElement(context.Variables["this"]);
+        var statusCode = responseData.GetProperty("status").GetInt32();
+
+        Assert.Equal((int)HttpStatusCode.UnsupportedMediaType, statusCode);
+    }
+
+    [Fact]
     public async Task ExecuteAsync_StoresResponseInContext()
     {
         var step = CreateHttpStep();
@@ -355,19 +422,19 @@ public class HttpStepTests
 
         Assert.True(result.Success);
         Assert.True(context.Variables.ContainsKey("this"));
-        
+
         var responseData = context.Variables["this"];
         Assert.NotNull(responseData);
-        
+
         // Verify the response data structure includes request details
         var responseType = responseData.GetType();
         Assert.True(responseType.GetProperty("request") != null);
-        
+
         // Verify request details structure
         var requestProperty = responseType.GetProperty("request");
         var requestData = requestProperty?.GetValue(responseData);
         Assert.NotNull(requestData);
-        
+
         var requestType = requestData.GetType();
         Assert.True(requestType.GetProperty("url") != null);
         Assert.True(requestType.GetProperty("method") != null);
@@ -404,19 +471,19 @@ public class HttpStepTests
         });
 
         step.ValidateConfiguration(config);
-        var result = await step.ExecuteAsync(context);
+        _ = await step.ExecuteAsync(context);
 
         // Verify the captured request details have the correct values
         var responseData = context.Variables["this"];
-        var responseType = responseData.GetType();
-        var requestProperty = responseType.GetProperty("request");
-        var requestData = requestProperty?.GetValue(responseData);
-        
+        var responseType = responseData?.GetType();
+        var requestProperty = responseType?.GetProperty("request");
+        var requestData = requestProperty?.GetValue(responseData)!;
+
         var requestType = requestData.GetType();
         var url = requestType.GetProperty("url")?.GetValue(requestData)?.ToString();
         var method = requestType.GetProperty("method")?.GetValue(requestData)?.ToString();
         var body = requestType.GetProperty("body")?.GetValue(requestData)?.ToString();
-        
+
         Assert.Equal("https://api.example.com/users", url);
         Assert.Equal("POST", method);
         Assert.Contains("John Doe", body);

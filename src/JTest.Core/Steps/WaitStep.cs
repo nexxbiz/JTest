@@ -37,7 +37,7 @@ public class WaitStep : BaseStep
         return await CreateSuccessResult(delayMs, stopwatch, context, contextBefore);
     }
 
-    private StepResult HandleExecutionError(Exception ex, Stopwatch stopwatch, IExecutionContext context, Dictionary<string, object> contextBefore)
+    private StepResult HandleExecutionError(Exception ex, Stopwatch stopwatch, IExecutionContext context, Dictionary<string, object?> contextBefore)
     {
         stopwatch.Stop();
 
@@ -49,7 +49,7 @@ public class WaitStep : BaseStep
         return result;
     }
 
-    private async Task<StepResult> CreateSuccessResult(int delayMs, Stopwatch stopwatch, IExecutionContext context, Dictionary<string, object> contextBefore)
+    private async Task<StepResult> CreateSuccessResult(int delayMs, Stopwatch stopwatch, IExecutionContext context, Dictionary<string, object?> contextBefore)
     {
         var resultData = CreateResultData(delayMs, stopwatch.ElapsedMilliseconds);
 
@@ -124,7 +124,7 @@ public class WaitStep : BaseStep
         };
     }
 
-    private async Task<StepResult> CreateValidationFailure(IExecutionContext context, Dictionary<string, object> contextBefore, Stopwatch stopwatch)
+    private async Task<StepResult> CreateValidationFailure(IExecutionContext context, Dictionary<string, object?> contextBefore, Stopwatch stopwatch)
     {
         stopwatch.Stop();
 

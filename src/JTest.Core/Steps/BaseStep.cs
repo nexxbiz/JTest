@@ -118,7 +118,7 @@ public abstract class BaseStep : IStep
     /// <summary>
     /// Applies a save operation to the execution context
     /// </summary>
-    protected virtual void ApplySaveOperation(IExecutionContext context, string targetPath, object value)
+    protected virtual void ApplySaveOperation(IExecutionContext context, string targetPath, object? value)
     {
         // Handle JSONPath style target paths like $.globals.token, $.case.userId, etc.
         if (targetPath.StartsWith("$."))
@@ -135,7 +135,7 @@ public abstract class BaseStep : IStep
                     context.Variables[scope] = new Dictionary<string, object>();
                 }
 
-                if (context.Variables[scope] is Dictionary<string, object> scopeDict)
+                if (context.Variables[scope] is Dictionary<string, object?> scopeDict)
                 {
                     scopeDict[key] = value;
                 }
@@ -172,7 +172,7 @@ public abstract class BaseStep : IStep
     /// <summary>
     /// Detects context changes between before and after step execution
     /// </summary>
-    protected virtual ContextChanges DetectContextChanges(Dictionary<string, object> before, Dictionary<string, object> after)
+    protected virtual ContextChanges DetectContextChanges(Dictionary<string, object?> before, Dictionary<string, object?> after)
     {
         var changes = new ContextChanges();
 
@@ -184,7 +184,7 @@ public abstract class BaseStep : IStep
     /// <summary>
     /// Detects variables that were added during step execution
     /// </summary>
-    protected virtual void DetectAddedVariables(Dictionary<string, object> before, Dictionary<string, object> after, ContextChanges changes)
+    protected virtual void DetectAddedVariables(Dictionary<string, object?> before, Dictionary<string, object?> after, ContextChanges changes)
     {
         foreach (var kvp in after)
         {
@@ -199,7 +199,7 @@ public abstract class BaseStep : IStep
     /// <summary>
     /// Detects variables that were modified during step execution
     /// </summary>
-    protected virtual void DetectModifiedVariables(Dictionary<string, object> before, Dictionary<string, object> after, ContextChanges changes)
+    protected virtual void DetectModifiedVariables(Dictionary<string, object?> before, Dictionary<string, object?> after, ContextChanges changes)
     {
         foreach (var kvp in after)
         {
@@ -216,9 +216,9 @@ public abstract class BaseStep : IStep
     /// <summary>
     /// Creates a copy of the context variables for change detection
     /// </summary>
-    protected virtual Dictionary<string, object> CloneContext(IExecutionContext context)
+    protected virtual Dictionary<string, object?> CloneContext(IExecutionContext context)
     {
-        return new Dictionary<string, object>(context.Variables);
+        return new Dictionary<string, object?>(context.Variables);
     }
 
     /// <summary>
@@ -227,7 +227,7 @@ public abstract class BaseStep : IStep
     /// </summary>
     protected async Task<StepResult> ProcessStepCompletionAsync(
         IExecutionContext context,
-        Dictionary<string, object> contextBefore,
+        Dictionary<string, object?> contextBefore,
         Stopwatch stopwatch,
         object resultData)
     {
@@ -257,7 +257,7 @@ public abstract class BaseStep : IStep
     /// <summary>
     /// Gets the save value from JSON element, handling different value types
     /// </summary>
-    protected virtual object GetSaveValue(JsonElement element, IExecutionContext context)
+    protected virtual object? GetSaveValue(JsonElement element, IExecutionContext context)
     {
         return element.ValueKind switch
         {
@@ -275,9 +275,9 @@ public abstract class BaseStep : IStep
     /// <summary>
     /// Converts JSON object to dictionary
     /// </summary>
-    protected virtual Dictionary<string, object> JsonElementToDictionary(JsonElement element)
+    protected virtual Dictionary<string, object?> JsonElementToDictionary(JsonElement element)
     {
-        var dictionary = new Dictionary<string, object>();
+        var dictionary = new Dictionary<string, object?>();
         foreach (var property in element.EnumerateObject())
         {
             dictionary[property.Name] = GetValueFromJsonElement(property.Value);
@@ -288,20 +288,20 @@ public abstract class BaseStep : IStep
     /// <summary>
     /// Converts JSON array to object array
     /// </summary>
-    protected virtual object[] JsonElementToArray(JsonElement element)
+    protected virtual object?[] JsonElementToArray(JsonElement element)
     {
-        var list = new List<object>();
+        var list = new List<object?>();
         foreach (var item in element.EnumerateArray())
         {
             list.Add(GetValueFromJsonElement(item));
         }
-        return list.ToArray();
+        return [.. list];
     }
 
     /// <summary>
     /// Gets value from JSON element without variable interpolation
     /// </summary>
-    protected virtual object GetValueFromJsonElement(JsonElement element)
+    protected virtual object? GetValueFromJsonElement(JsonElement element)
     {
         return element.ValueKind switch
         {

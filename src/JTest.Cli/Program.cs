@@ -27,17 +27,33 @@ class Program
 
 public class JTestCli
 {
-    private Dictionary<string, string> _envVars = new();
-    private Dictionary<string, string> _globals = new();
+    private readonly Dictionary<string, string> _envVars = [];
+    private readonly Dictionary<string, string> _globals = [];
     private readonly TestRunner _testRunner;
     private int _parallelCount = 1; // Default to sequential execution
     private readonly string _debugOutputDir = "./bin/debug";
     private const string DebugPathEnvVar = "debugPath"; // Define debug output via config 
+    private const string globalConfigFileEnvVar = "JTEST_CONFIG_FILE"; // Environment variable name for global config file path
+    private static readonly JsonSerializerOptions jsonSerializerOptions = new() { PropertyNameCaseInsensitive = true };
 
     public JTestCli()
     {
-        _testRunner = new TestRunner();
+        var globalConfig = LoadGlobalConfigurationFile();
+        _testRunner = new TestRunner(globalConfig);
         _debugOutputDir = Environment.GetEnvironmentVariable(DebugPathEnvVar) ?? _debugOutputDir;
+    }
+
+    private static GlobalConfiguration? LoadGlobalConfigurationFile()
+    {
+        var globalConfigFilePath = Environment.GetEnvironmentVariable(globalConfigFileEnvVar);
+        if (string.IsNullOrWhiteSpace(globalConfigFilePath))
+        {
+            return null;
+        }
+        return JsonSerializer.Deserialize<GlobalConfiguration>(
+            File.ReadAllText(globalConfigFilePath),
+            options: jsonSerializerOptions
+        );
     }
 
     private static readonly string HelpText = @"JTEST CLI v1.0 - Universal Test Definition Language
@@ -64,8 +80,11 @@ RUNTIME OPTIONS:
     --env key=value                     Set environment variable
     --env-file <path.json>              Load environment from JSON file
     --globals key=value                 Set global variable
-    --globals-file <path.json>          Load globals from JSON file
+    --globals-file <path.json>          Load globals from JSON file    
     --parallel <count>, -p <count>      Run test files in parallel (default: 1)
+
+ENVIRONMENT VARIABLES:    
+    JTEST_CONFIG_FILE                   Path to global JTest config file (JSON)    
 
 EXAMPLES:
     # Run a single test file

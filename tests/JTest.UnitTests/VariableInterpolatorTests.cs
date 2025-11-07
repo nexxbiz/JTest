@@ -360,7 +360,7 @@ public class VariableInterpolatorTests
 
         // Assert - should not crash and should log warning
         Assert.NotNull(result);
-        Assert.True(context.Log.Any(log => log.Contains("Maximum token resolution depth")));
+        Assert.Contains(context.Log, log => log.Contains("Maximum token resolution depth"));
     }
 
     [Fact]

@@ -83,13 +83,13 @@ public class TestCaseExecutorTests
 
         Assert.Equal("Data-driven test", results[0].TestCaseName);
         Assert.NotNull(results[0].Dataset);
-        Assert.Equal("dataset1", results[0].Dataset.Name);
-        Assert.Equal("user1", results[0].Dataset.Case["userId"]);
+        Assert.Equal("dataset1", results[0].Dataset?.Name);
+        Assert.Equal("user1", results[0].Dataset?.Case["userId"]);
 
         Assert.Equal("Data-driven test", results[1].TestCaseName);
         Assert.NotNull(results[1].Dataset);
-        Assert.Equal("dataset2", results[1].Dataset.Name);
-        Assert.Equal("user2", results[1].Dataset.Case["userId"]);
+        Assert.Equal("dataset2", results[1].Dataset?.Name);
+        Assert.Equal("user2", results[1].Dataset?.Case["userId"]);
     }
 
     [Fact]
@@ -128,8 +128,8 @@ public class TestCaseExecutorTests
 
         // Verify that the case context would have been set correctly
         var dataset = results[0].Dataset;
-        Assert.Equal("acct-1001", dataset.Case["accountId"]);
-        Assert.Equal(20.0, dataset.Case["expectedTotal"]);
+        Assert.Equal("acct-1001", dataset?.Case["accountId"]);
+        Assert.Equal(20.0, dataset?.Case["expectedTotal"]);
     }
 
     [Fact]

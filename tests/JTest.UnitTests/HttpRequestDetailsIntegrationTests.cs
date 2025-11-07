@@ -107,7 +107,7 @@ public class HttpRequestDetailsIntegrationTests
     }
 
     [Fact]
-    public async Task EndToEnd_NonHttpStep_DoesNotDisplayRequestDetails()
+    public void EndToEnd_NonHttpStep_DoesNotDisplayRequestDetails()
     {
         // Arrange: Create a non-HTTP step
         var mockStep = new MockTestStep { Type = "wait" };

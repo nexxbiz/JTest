@@ -672,7 +672,7 @@ public class ResultsToMarkdownConverter
         return $"{passed} passed";
     }
 
-    private string FormatVariableValue(object value, string variableKey = "")
+    private string FormatVariableValue(object? value, string variableKey = "")
     {
         if (value == null) return "null";
         if (value is string str) return $"\"{str}\"";
@@ -734,7 +734,7 @@ public class ResultsToMarkdownConverter
         }
     }
 
-    private string FormatVariableValueForHtmlTable(object value, string variableKey = "")
+    private string FormatVariableValueForHtmlTable(object? value, string variableKey = "")
     {
         if (value == null) return "null";
         if (value is string str) return $"\"{str}\"";

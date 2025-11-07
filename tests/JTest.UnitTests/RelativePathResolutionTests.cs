@@ -1,10 +1,8 @@
 using JTest.Core;
-using System.IO;
-using Xunit;
 
 namespace JTest.UnitTests;
 
-public class RelativePathResolutionTests : IDisposable
+public sealed class RelativePathResolutionTests : IDisposable
 {
     private readonly string _testDirectory;
     private readonly string _templateFile;

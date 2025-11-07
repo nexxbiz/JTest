@@ -252,7 +252,7 @@ public class TestCaseExecutor
     /// <summary>
     /// Creates a deep clone of a variable value to prevent reference sharing
     /// </summary>
-    private object DeepCloneVariable(object value)
+    private static object DeepCloneVariable(object? value)
     {
         if (value == null) return null!;
 

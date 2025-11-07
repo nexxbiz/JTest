@@ -95,7 +95,7 @@ public class SaveIntegrationTests
     }
 
     [Fact]
-    public async Task HttpStep_SaveFunctionality_WorksCorrectly()
+    public void HttpStep_SaveFunctionality_WorksCorrectly()
     {
         // Arrange
         var httpStep = new HttpStep(new HttpClient());

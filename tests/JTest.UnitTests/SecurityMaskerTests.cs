@@ -96,7 +96,7 @@ public class SecurityMaskerTests
         var masker = new SecurityMasker();
 
         // Act & Assert
-        Assert.Equal("null", masker.RegisterForMasking("password", (string?)null));
+        Assert.Equal("null", masker.RegisterForMasking("password", null!));
         Assert.Equal("masked", masker.RegisterForMasking("password", ""));
         Assert.Equal("masked", masker.RegisterForMasking("password", "   "));
     }

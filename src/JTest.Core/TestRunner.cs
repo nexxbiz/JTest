@@ -15,13 +15,19 @@ public class TestRunner
     private readonly StepFactory _stepFactory;
     private readonly TemplateProvider _templateProvider;
     private readonly HttpClient _httpClient;
+    private readonly GlobalConfiguration globalConfiguration;
+    private readonly JsonSerializerOptions jsonSerializerOptions = new()
+    {
+        PropertyNameCaseInsensitive = true
+    };
 
-    public TestRunner()
+    public TestRunner(GlobalConfiguration? globalConfiguration = null)
     {
         _templateProvider = new TemplateProvider();
         _stepFactory = new StepFactory(_templateProvider);
         _executor = new TestCaseExecutor(_stepFactory);
         _httpClient = new HttpClient();
+        this.globalConfiguration = globalConfiguration ?? new();
     }
 
     /// <summary>
@@ -186,19 +192,13 @@ public class TestRunner
 
     private JTestCase ParseTestCase(string jsonDefinition)
     {
-        var options = new JsonSerializerOptions
-        {
-            PropertyNameCaseInsensitive = true
-        };
-
-        var testCase = JsonSerializer.Deserialize<JTestCase>(jsonDefinition, options);
-        if (testCase == null)
-            throw new ArgumentException("Invalid test case JSON");
+        var testCase = JsonSerializer.Deserialize<JTestCase>(jsonDefinition, jsonSerializerOptions)
+            ?? throw new ArgumentException("Invalid test case JSON");
 
         return testCase;
     }
 
-    private bool IsTestSuite(string jsonDefinition)
+    private static bool IsTestSuite(string jsonDefinition)
     {
         try
         {
@@ -244,6 +244,9 @@ public class TestRunner
         // Load templates from using statement before any test execution
         await LoadTemplatesFromUsingAsync(testSuite.Using, tempContext, testFilePath);
 
+        // Load templates from GlobalConfiguration
+        await LoadTemplatesFromGlobalUsingPathsAsync(tempContext);
+
         var allResults = new List<JTestCaseResult>();
 
         // Execute each test case in the suite
@@ -261,19 +264,13 @@ public class TestRunner
 
     private JTestSuite ParseTestSuite(string jsonDefinition)
     {
-        var options = new JsonSerializerOptions
-        {
-            PropertyNameCaseInsensitive = true
-        };
-
-        var testSuite = JsonSerializer.Deserialize<JTestSuite>(jsonDefinition, options);
-        if (testSuite == null)
-            throw new ArgumentException("Invalid test suite JSON");
+        var testSuite = JsonSerializer.Deserialize<JTestSuite>(jsonDefinition, jsonSerializerOptions)
+            ?? throw new ArgumentException("Invalid test suite JSON");
 
         return testSuite;
     }
 
-    private Dictionary<string, object> MergeDictionaries(
+    private static Dictionary<string, object> MergeDictionaries(
         Dictionary<string, object>? source,
         Dictionary<string, object>? target)
     {
@@ -300,7 +297,7 @@ public class TestRunner
         return result;
     }
 
-    private TestExecutionContext CreateExecutionContext(
+    private static TestExecutionContext CreateExecutionContext(
         Dictionary<string, object>? environment = null,
         Dictionary<string, object>? globals = null)
     {
@@ -333,7 +330,7 @@ public class TestRunner
     /// <param name="testFilePath">Optional path to test file for resolving relative template paths</param>
     private async Task LoadTemplatesFromUsingAsync(List<string>? usingPaths, IExecutionContext context, string? testFilePath = null)
     {
-        if (usingPaths == null || !usingPaths.Any())
+        if (usingPaths == null || usingPaths.Count == 0)
             return;
 
         var loadedTemplateNames = new HashSet<string>();
@@ -370,6 +367,52 @@ public class TestRunner
                 throw new InvalidOperationException($"Failed to load templates from '{path}': {ex.Message}", ex);
             }
         }
+    }
+
+    private Task LoadTemplatesFromGlobalUsingPathsAsync(IExecutionContext context)
+    {
+        if (globalConfiguration.Templates is null)
+            return Task.CompletedTask;
+
+        var usingPaths = new List<string>();
+
+        usingPaths.AddRange(
+            FindTemplateJsonFilesInSearchPaths(globalConfiguration.Templates.SearchPaths)
+        );
+
+        var resolvedTemplatePaths = globalConfiguration.Templates.Paths?.Select(path =>
+        {
+            return ResolveTemplatePath(path, testFilePath: null);
+        });
+        usingPaths.AddRange(
+            resolvedTemplatePaths ?? []
+        );
+
+        return LoadTemplatesFromUsingAsync(usingPaths, context);
+    }
+
+    private static IEnumerable<string> FindTemplateJsonFilesInSearchPaths(IEnumerable<string>? searchPaths)
+    {
+        if (searchPaths is null)
+        {
+            return [];
+        }
+
+        return searchPaths.SelectMany(searchPath =>
+        {
+            if (string.IsNullOrWhiteSpace(searchPath) || !Directory.Exists(searchPath))
+            {
+                return [];
+            }
+
+            var jsonFiles = Directory.GetFiles(
+                searchPath,
+                "*.json",
+                SearchOption.AllDirectories
+            );
+
+            return jsonFiles;
+        });
     }
 
     /// <summary>
