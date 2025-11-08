@@ -2,7 +2,7 @@
   "name": "jtest-helper",
   "displayName": "jtest helper",
   "description": "Helps developers more quickly write test and template files with snippets and intellisense",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "publisher": "{{ placeholder Nexxbiz publisher ID }}",
   "engines": {
     "vscode": "^1.105.0"
