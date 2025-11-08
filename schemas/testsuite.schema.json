@@ -1,6 +1,6 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "https://raw.githubusercontent.com/nexxbiz/JTest/main/schemas/testsuite.schema.json",
+    "$id": "https://raw.githubusercontent.com/nexxbiz/JTest/feature/intellisense/schemas/testsuite.schema.json",
     "title": "Schema for a TestSuite file",
     "type": "object",
     "required": [
@@ -71,7 +71,7 @@
                 "steps": {
                     "type": "array",
                     "items": {
-                        "$ref": "https://raw.githubusercontent.com/nexxbiz/JTest/main/schemas/shared.schema.json#/$defs/step"
+                        "$ref": "https://raw.githubusercontent.com/nexxbiz/JTest/feature/intellisense/schemas/shared.schema.json#/$defs/step"
                     },
                     "minItems": 1
                 },

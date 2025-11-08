@@ -1,6 +1,6 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "https://raw.githubusercontent.com/nexxbiz/JTest/main/schemas/template-collection.schema.json",
+    "$id": "https://raw.githubusercontent.com/nexxbiz/JTest/feature/intellisense/schemas/template-collection.schema.json",
     "title": "Template collection schema",
     "type": "object",
     "properties": {
@@ -58,7 +58,7 @@
                     "type": "array",
                     "description": "List of steps to execute in this template",
                     "items": {
-                        "$ref": "https://raw.githubusercontent.com/nexxbiz/JTest/main/schemas/shared.schema.json#/$defs/step"
+                        "$ref": "https://raw.githubusercontent.com/nexxbiz/JTest/feature/intellisense/schemas/shared.schema.json#/$defs/step"
                     },
                     "minItems": 1
                 },
