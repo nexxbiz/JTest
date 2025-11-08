@@ -1,0 +1,107 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://raw.githubusercontent.com/nexxbiz/JTest/main/schemas/template-collection.schema.json",
+    "title": "Template collection schema",
+    "type": "object",
+    "properties": {
+        "version": {
+            "type": "string",
+            "description": "Version of the test suite"
+        },
+        "info": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "name"
+            ]
+        },
+        "components": {
+            "type": "object",
+            "properties": {
+                "templates": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/template"
+                    },
+                    "minItems": 1
+                }
+            },
+            "required": [
+                "templates"
+            ]
+        }
+    },
+    "required": [
+        "info",
+        "components"
+    ],
+    "$defs": {
+        "template": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "Template name; this is a unique identifier of the template which must match the 'template' configuration property in 'use' steps"
+                },
+                "description": {
+                    "type": "string",
+                    "description": "Template description"
+                },
+                "steps": {
+                    "type": "array",
+                    "description": "List of steps to execute in this template",
+                    "items": {
+                        "$ref": "https://raw.githubusercontent.com/nexxbiz/JTest/main/schemas/shared.schema.json#/$defs/step"
+                    },
+                    "minItems": 1
+                },
+                "params": {
+                    "type": "object",
+                    "patternProperties": {
+                        "^[A-Za-z0-9_]+$": {
+                            "type": "object",
+                            "required": [
+                                "type",
+                                "required"
+                            ],
+                            "properties": {
+                                "type": {
+                                    "type": "string",
+                                    "enum": [
+                                        "string",
+                                        "number",
+                                        "boolean",
+                                        "object",
+                                        "array"
+                                    ]
+                                },
+                                "required": {
+                                    "type": "boolean"
+                                },
+                                "description": {
+                                    "type": "string"
+                                }
+                            },
+                            "additionalProperties": false
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "output": {
+                    "type": "object",
+                    "description": "Defines what data should be exposed as the template's output",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                }
+            }
+        }
+    }
+}

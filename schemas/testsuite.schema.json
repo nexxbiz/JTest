@@ -1,0 +1,118 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://raw.githubusercontent.com/nexxbiz/JTest/main/schemas/testsuite.schema.json",
+    "title": "Schema for a TestSuite file",
+    "type": "object",
+    "required": [
+        "info",
+        "tests"
+    ],
+    "properties": {
+        "version": {
+            "type": "string",
+            "description": "Version of the test suite"
+        },
+        "info": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "name"
+            ]
+        },
+        "using": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            },
+            "description": "Explicit listing of template files; so that tests can reference the templates within a 'use' step. This using takes precedence over templates listed in the global configuration file."
+        },
+        "tests": {
+            "type": "array",
+            "description": "List of test cases",
+            "items": {
+                "$ref": "#/$defs/testCase"
+            },
+            "minItems": 1
+        },
+        "globals": {
+            "type": "object",
+            "description": "Global variables for all test cases",
+            "additionalProperties": {
+                "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "object",
+                    "integer",
+                    "null"
+                ]
+            }
+        }
+    },
+    "$defs": {
+        "testCase": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "Test case name"
+                },
+                "description": {
+                    "type": "string",
+                    "description": "Test case description"
+                },
+                "steps": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "https://raw.githubusercontent.com/nexxbiz/JTest/main/schemas/shared.schema.json#/$defs/step"
+                    },
+                    "minItems": 1
+                },
+                "datasets": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/dataset"
+                    }
+                }
+            },
+            "required": [
+                "name",
+                "steps"
+            ]
+        },
+        "dataset": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "Dataset name"
+                },
+                "case": {
+                    "type": "object",
+                    "description": "Test cases: objects representing individual test cases. For example: { 'expectedCondition': true, 'testScenario': 'false condition path' }",
+                    "additionalProperties": {
+                        "type": [
+                            "string",
+                            "number",
+                            "boolean",
+                            "object",
+                            "array",
+                            "null"
+                        ]
+                    }
+                }
+            },
+            "required": [
+                "name",
+                "case"
+            ]
+        }
+    }
+}

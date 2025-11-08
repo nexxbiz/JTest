@@ -1,0 +1,245 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://raw.githubusercontent.com/nexxbiz/JTest/main/schemas/shared.schema.json",
+    "title": "Schema with shared definitions for the JTest framework",    
+    "$defs": {
+        "step": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "type": "string",
+                    "description": "Step type",
+                    "enum": [
+                        "http",
+                        "wait",
+                        "assert",
+                        "use"
+                    ]
+                },
+                "name": {
+                    "type": "string",
+                    "description": "Step name"
+                },
+                "id": {
+                    "type": "string",
+                    "description": "Unique step identifier; when specified, the step result is automatically saved in the context and accessible using $.<step_id>.<output_property>"
+                },
+                "assert": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/assertion"
+                    },
+                    "minItems": 1
+                },
+                "save": {
+                    "type": "object",
+                    "description": "Arguments for the template parameters",
+                    "additionalProperties": {
+                        "type": [
+                            "string",
+                            "number",
+                            "boolean",
+                            "object",
+                            "integer"
+                        ]
+                    }
+                }
+            },
+            "required": [
+                "type",
+                "name",
+                "assert"
+            ],
+            "allOf": [
+                {
+                    "$ref": "#/$defs/httpStep"
+                },
+                {
+                    "$ref": "#/$defs/waitStep"
+                },
+                {
+                    "$ref": "#/$defs/assertStep"
+                },
+                {
+                    "$ref": "#/$defs/useStep"
+                }
+            ]
+        },
+        "httpStep": {
+            "if": {
+                "properties": {
+                    "type": {
+                        "const": "http"
+                    }
+                }
+            },
+            "then": {
+                "properties": {
+                    "url": {
+                        "type": "string",
+                        "format": "uri",
+                        "description": "HTTP URL"
+                    },
+                    "method": {
+                        "type": "string",
+                        "enum": [
+                            "GET",
+                            "POST",
+                            "PUT",
+                            "DELETE",
+                            "PATCH"
+                        ],
+                        "description": "HTTP method"
+                    },
+                    "headers": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "string"
+                        },
+                        "description": "HTTP headers"
+                    },
+                    "body": {
+                        "type": [
+                            "string",
+                            "object"
+                        ],
+                        "description": "HTTP request body"
+                    },
+                    "file": {
+                        "type": "string",
+                        "description": "File to send as request body; provide the path to the file"
+                    },
+                    "contentType": {
+                        "type": "string",
+                        "description": "Content type of the request"
+                    }
+                },
+                "required": [
+                    "url",
+                    "method"
+                ]
+            }
+        },
+        "waitStep": {
+            "if": {
+                "properties": {
+                    "type": {
+                        "const": "wait"
+                    }
+                }
+            },
+            "then": {
+                "properties": {
+                    "ms": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "description": "Wait time in milliseconds"
+                    }
+                },
+                "required": [
+                    "ms"
+                ]
+            }
+        },
+        "useStep": {
+            "if": {
+                "properties": {
+                    "type": {
+                        "const": "use"
+                    }
+                }
+            },
+            "then": {
+                "properties": {
+                    "template": {
+                        "type": "string",
+                        "description": "The name of the template you want to use"
+                    },
+                    "with": {
+                        "type": "object",
+                        "description": "Arguments for the template parameters",
+                        "additionalProperties": {
+                            "type": [
+                                "string",
+                                "number",
+                                "boolean",
+                                "object",
+                                "array",
+                                "null"
+                            ]
+                        }
+                    },
+                    "required": [
+                        "template"
+                    ]
+                }
+            }
+        },
+        "assertStep": {
+            "if": {
+                "properties": {
+                    "type": {
+                        "const": "assert"
+                    }
+                }
+            },
+            "then": {}
+        },
+        "assertion": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string",
+                    "description": "Description of the assertion"
+                },
+                "op": {
+                    "type": "string",
+                    "enum": [
+                        "equals",
+                        "notequals",
+                        "exists",
+                        "notexists",
+                        "greaterthan",
+                        "lessthan",
+                        "contains",
+                        "notcontains",
+                        "startswith",
+                        "endswith",
+                        "matches",
+                        "greaterorequal",
+                        "lessorequal",
+                        "between",
+                        "length",
+                        "empty",
+                        "notempty",
+                        "in",
+                        "type"
+                    ],
+                    "description": "Operation of the assertion"
+                },
+                "actualValue": {
+                    "type": [
+                        "object",
+                        "string",
+                        "integer",
+                        "number",
+                        "boolean"
+                    ]
+                },
+                "expectedValue": {
+                    "type": [
+                        "object",
+                        "string",
+                        "integer",
+                        "number",
+                        "boolean"
+                    ]
+                }
+            },
+            "required": [
+                "op",
+                "actualValue"
+            ]
+        }
+    }
+}
