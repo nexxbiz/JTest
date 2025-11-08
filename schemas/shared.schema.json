@@ -1,7 +1,7 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "https://raw.githubusercontent.com/nexxbiz/JTest/feature/intellisense/schemas/shared.schema.json",
-    "title": "Schema with shared definitions for the JTest framework",    
+    "title": "Schema with shared definitions for the JTest framework",
     "$defs": {
         "step": {
             "type": "object",
@@ -77,7 +77,6 @@
                 "properties": {
                     "url": {
                         "type": "string",
-                        "format": "uri",
                         "description": "HTTP URL"
                     },
                     "method": {
@@ -111,7 +110,23 @@
                     },
                     "contentType": {
                         "type": "string",
-                        "description": "Content type of the request"
+                        "description": "Content type of the request",
+                        "enum": [
+                            "application/json",
+                            "application/xml",
+                            "application/x-www-form-urlencoded",
+                            "application/octet-stream",
+                            "application/pdf",
+                            "application/zip",
+                            "application/graphql",
+                            "multipart/form-data",                            
+                            "text/plain",
+                            "text/html",
+                            "text/xml",
+                            "text/csv",
+                            "image/png",
+                            "image/jpeg"                            
+                        ]
                     }
                 },
                 "required": [
