@@ -1,0 +1,188 @@
+{
+    "Test Suite File": {
+        "scope": "json",
+        "prefix": "testSuite",
+        "body": [
+            "{",
+            "  \"version\": \"1.0\",",
+            "  \"info\": {",
+            "    \"name\": \"$1\",",
+            "    \"description\": \"\"",
+            "  },",
+            "  \"using\": [",
+            "  ],",
+            "  \"globals\": {",
+            "  },",
+            "  \"tests\": [",
+            "    {",
+            "      \"name\": \"$2\",",
+            "      \"description\": \"\",",
+            "      \"steps\": [",
+            "      ]",
+            "    }",
+            "  ]",
+            "}"
+        ],
+        "description": "Creates a test suite file with the default properties"
+    },
+    "Test Case": {
+        "scope": "json",
+        "prefix": "testCase",
+        "body": [
+            "{",
+            "   \"name\": \"$1\",",
+            "   \"description\": \"\",",
+            "   \"steps\": [",
+            "       {",
+            "          \"type\": \"$2\"",
+            "       }",
+            "   ]",
+            "}"
+        ],
+        "description": "Creates a test case object with the default properties"
+    },
+    "DataSet": {
+        "scope": "json",
+        "prefix": "dataset",
+        "body": [
+            "{",
+            "   \"name\": \"$1\",",
+            "   \"case\": {",
+            "      \"$2\": \"$3\"",
+            "    }",
+            "}"
+        ],
+        "description": "Creates a data set object"
+    },
+    "Templates Collection File": {
+        "scope": "json",
+        "prefix": "templatesCollection",
+        "body": [
+            "{",
+            "  \"version\": \"1.0\",",
+            "  \"info\": {",
+            "    \"name\": \"$1\",",
+            "    \"description\": \"\"",
+            "  },",
+            "  \"components\": {",
+            "      \"templates\": [",
+            "         {",
+            "           \"name\": \"$2\",",
+            "           \"description\": \"\",",
+            "           \"params\": {",
+            "           },",
+            "           \"steps\": [",
+            "           ]",
+            "        }",
+            "      ]",
+            "  }",
+            "}"
+        ],
+        "description": "Creates a templates collection file with the default properties"
+    },
+    "Template Object": {
+        "scope": "json",
+        "prefix": "template",
+        "body": [
+            "{",
+            "  \"name\": \"$1\",",
+            "  \"description\": \"\",",
+            "  \"params\": {",
+            "      \"$2\": {",
+            "          \"type\": \"$3\"",
+            "          \"required\": true",
+            "          \"description\": \"\"",
+            "      }",
+            "   },",
+            "   \"steps\": [",
+            "   ]",
+            "}",
+        ],
+        "description": "Creates a tempalte object with the default properties"
+    },
+    "HTTP step": {
+        "scope": "json",
+        "prefix": "httpStep",
+        "body": [
+            "{",
+            "  \"type\": \"http\",",
+            "  \"name\": \"$1\",",
+            "  \"url\": \"$2\",",
+            "  \"method\": \"$3\",",
+            "  \"assert\": [",
+            "     {",
+            "         \"op\": \"$4\",",
+            "         \"actualValue\": \"$5\",",
+            "         \"expectedValue\": \"$6\"",
+            "     }",
+            "   ]",
+            "}"
+        ],
+        "description": "Create an HTTP test step with required properties"
+    },
+    "Wait step": {
+        "scope": "json",
+        "prefix": "waitStep",
+        "body": [
+            "{",
+            "  \"type\": \"wait\",",
+            "  \"name\": \"$1\",",
+            "  \"ms\": $2,",
+            "  \"assert\": [",
+            "     {",
+            "         \"op\": \"$3\",",
+            "         \"actualValue\": \"$4\",",
+            "         \"expectedValue\": \"$5\"",
+            "     }",
+            "   ]",
+            "}"
+        ],
+        "description": "Create a wait test step"
+    },
+    "Use step": {
+        "scope": "json",
+        "prefix": "useStep",
+        "body": [
+            "{",
+            "  \"type\": \"use\",",
+            "  \"name\": \"$1\",",
+            "  \"template\": \"$2\",",
+            "  \"with\": {",            
+            "   },",
+            "  \"assert\": [",
+            "   ]",
+            "}"
+        ],
+        "description": "Create a use test step"
+    },
+     "Assert step": {
+        "scope": "json",
+        "prefix": "assertStep",
+        "body": [
+            "{",
+            "  \"type\": \"assert\",",
+            "  \"name\": \"$1\",",
+            "  \"assert\": [",
+            "     {",
+            "         \"op\": \"$2\",",
+            "         \"actualValue\": \"$3\",",
+            "         \"expectedValue\": \"$4\"",
+            "     }",
+            "   ]",
+            "}"
+        ],
+        "description": "Create a wait test step"
+    },
+      "Assertion": {
+        "scope": "json",
+        "prefix": "assert",
+        "body": [            
+            "{",
+            "  \"op\": \"$1\",",
+            "  \"actualValue\": \"$2\",",
+            "  \"expectedValue\": \"$3\"",
+            "}"
+        ],
+        "description": "Create an assert object"
+    }
+}

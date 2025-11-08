@@ -1,0 +1,35 @@
+{
+  "name": "jtest-helper",
+  "displayName": "jtest helper",
+  "description": "Helps developers more quickly write test and template files with snippets and intellisense",
+  "version": "1.0.0",
+  "publisher": "{{ placeholder Nexxbiz publisher ID }}",
+  "engines": {
+    "vscode": "^1.105.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nexxbiz/JTest"
+  },
+  "categories": [
+    "Snippets"
+  ],
+  "contributes": {
+    "snippets": [
+      {
+        "language": "json",
+        "path": "./snippets/snippets.code-snippets"
+      }
+    ],
+    "jsonValidation": [
+      {
+        "fileMatch": ["*test.json", "*tests.json"],
+        "url": "https://raw.githubusercontent.com/nexxbiz/JTest/feature/intellisense/schemas/testsuite.schema.json"
+      },
+      {
+        "fileMatch": ["*template.json", "*templates.json"],
+        "url": "https://raw.githubusercontent.com/nexxbiz/JTest/feature/intellisense/schemas/template-collection.schema.json"
+      }
+    ]
+  }
+}
