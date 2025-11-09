@@ -91,11 +91,14 @@
                         "description": "HTTP method"
                     },
                     "headers": {
-                        "type": "object",
-                        "additionalProperties": {
-                            "type": "string"
-                        },
-                        "description": "HTTP headers"
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            },
+                            "description": "HTTP headers"
+                        }
                     },
                     "body": {
                         "type": [
@@ -119,13 +122,13 @@
                             "application/pdf",
                             "application/zip",
                             "application/graphql",
-                            "multipart/form-data",                            
+                            "multipart/form-data",
                             "text/plain",
                             "text/html",
                             "text/xml",
                             "text/csv",
                             "image/png",
-                            "image/jpeg"                            
+                            "image/jpeg"
                         ]
                     }
                 },
