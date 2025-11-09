@@ -27,4 +27,10 @@
     <ProjectReference Include="..\..\src\JTest.Core\JTest.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="TestFiles\MockPostApiRequestBody.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>
