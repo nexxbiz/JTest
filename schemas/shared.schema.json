@@ -46,9 +46,7 @@
                 }
             },
             "required": [
-                "type",
-                "name",
-                "assert"
+                "type"
             ],
             "allOf": [
                 {
@@ -74,6 +72,10 @@
                 }
             },
             "then": {
+                "required": [                    
+                    "url",
+                    "method"
+                ],
                 "properties": {
                     "url": {
                         "type": "string",
@@ -138,11 +140,7 @@
                             "image/jpeg"
                         ]
                     }
-                },
-                "required": [
-                    "url",
-                    "method"
-                ]
+                }
             }
         },
         "waitStep": {
@@ -156,8 +154,16 @@
             "then": {
                 "properties": {
                     "ms": {
-                        "type": "integer",
-                        "minimum": 0,
+                        "type": [
+                            "integer",
+                            "string"
+                        ],
+                        "if": {
+                            "type": "integer"                            
+                        },
+                        "then": {
+                            "minimum": 0
+                        },
                         "description": "Wait time in milliseconds"
                     }
                 },
@@ -208,7 +214,11 @@
                     }
                 }
             },
-            "then": {}
+            "then": {
+                "required":[
+                    "assert"
+                ]
+            }
         },
         "assertion": {
             "type": "object",

@@ -72,21 +72,87 @@
                                 "required"
                             ],
                             "properties": {
-                                "type": {
-                                    "type": "string",
-                                    "enum": [
-                                        "string",
-                                        "number",
-                                        "boolean",
-                                        "object",
-                                        "array"
-                                    ]
-                                },
-                                "required": {
-                                    "type": "boolean"
-                                },
-                                "description": {
-                                    "type": "string"
+                                "properties": {
+                                    "type": {
+                                        "type": "string",
+                                        "enum": [
+                                            "string",
+                                            "number",
+                                            "boolean",
+                                            "object",
+                                            "array"
+                                        ]
+                                    },
+                                    "required": {
+                                        "type": "boolean"
+                                    },
+                                    "description": {
+                                        "type": "string"
+                                    },
+                                    "default": {                                        
+                                        "anyOf": [
+                                            {                                                
+                                                "if": {
+                                                    "properties": {
+                                                        "type": {
+                                                            "const": "string"
+                                                        }
+                                                    }
+                                                },
+                                                "then": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            {                                                
+                                                "if": {
+                                                    "properties": {
+                                                        "type": {
+                                                            "const": "number"
+                                                        }
+                                                    }
+                                                },
+                                                "then": {
+                                                    "type": "number"
+                                                }
+                                            },
+                                            {
+                                                "if": {
+                                                    "properties": {
+                                                        "type": {
+                                                            "const": "boolean"
+                                                        }
+                                                    }
+                                                },
+                                                "then": {
+                                                    "type": "boolean"
+                                                }
+                                            },
+                                            {
+                                                "if": {
+                                                    "properties": {
+                                                        "type": {
+                                                            "const": "object"
+                                                        }
+                                                    }
+                                                },
+                                                "then": {
+                                                    "type": "object"
+                                                }
+                                            },
+                                            {
+                                                "if": {
+                                                    "properties": {
+                                                        "type": {
+                                                            "const": "array"
+                                                        }
+                                                    }
+                                                },
+                                                "then": {
+                                                    "type": "array"
+                                                }
+                                            }
+                                        ]
+                                    }
                                 }
                             },
                             "additionalProperties": false
