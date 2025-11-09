@@ -94,8 +94,15 @@
                         "type": "array",
                         "items": {
                             "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
+                            "properties": {
+                                "name": {
+                                    "type": "string",
+                                    "description": "Header name"
+                                },
+                                "value": {
+                                    "type": "string",
+                                    "description": "Header value"
+                                }
                             },
                             "description": "HTTP headers"
                         }
