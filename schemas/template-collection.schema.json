@@ -68,8 +68,7 @@
                         "^[A-Za-z0-9_]+$": {
                             "type": "object",
                             "required": [
-                                "type",
-                                "required"
+                                "type"
                             ],
                             "properties": {
                                 "type": {
@@ -90,7 +89,7 @@
                                     "type": "string"
                                 }
                             },
-                            "anyOf": [
+                            "allOf": [
                                 {
                                     "if": {
                                         "properties": {
