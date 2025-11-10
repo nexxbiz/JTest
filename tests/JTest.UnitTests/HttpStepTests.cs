@@ -2,6 +2,7 @@ using JTest.Core.Execution;
 using JTest.Core.Steps;
 using Moq;
 using Moq.Protected;
+using System.Linq.Expressions;
 using System.Net;
 using System.Text;
 using System.Text.Json;
@@ -11,7 +12,7 @@ namespace JTest.UnitTests;
 public class HttpStepTests
 {
 
-    private HttpStep CreateHttpStep(HttpResponseMessage? responseMessage = null)
+    private static HttpStep CreateHttpStep(HttpResponseMessage? responseMessage = null, Expression<Func<HttpRequestMessage, bool>>? requestMessageRequirement = null)
     {
         var mockHandler = new Mock<HttpMessageHandler>();
         var response = responseMessage ?? new HttpResponseMessage(HttpStatusCode.OK)
@@ -19,11 +20,22 @@ public class HttpStepTests
             Content = new StringContent("{\"result\":\"success\"}", Encoding.UTF8, "application/json")
         };
 
-        mockHandler.Protected()
-            .Setup<Task<HttpResponseMessage>>("SendAsync",
-                ItExpr.IsAny<HttpRequestMessage>(),
-                ItExpr.IsAny<CancellationToken>())
-            .ReturnsAsync(response);
+        if (requestMessageRequirement is null)
+        {
+            mockHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>("SendAsync",
+                    ItExpr.IsAny<HttpRequestMessage>(),
+                    ItExpr.IsAny<CancellationToken>())
+                .ReturnsAsync(response);
+        }
+        else
+        {
+            mockHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>("SendAsync",
+                    ItExpr.Is(requestMessageRequirement),
+                    ItExpr.IsAny<CancellationToken>())
+                .ReturnsAsync(response);
+        }
 
         var httpClient = new HttpClient(mockHandler.Object);
         return new HttpStep(httpClient);
@@ -145,15 +157,22 @@ public class HttpStepTests
     public async Task ExecuteAsync_WithJsonFile_Then_SerializesCorrectly()
     {
         // Arrange
-        using var client = new HttpClient();
-        var step = new HttpStep(client);
+        const string contentType = "application/json";
+        var expectedResponse = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent("{\"result\":\"success\"}", Encoding.UTF8, contentType)
+        };
+        Expression<Func<HttpRequestMessage, bool>> requestMessageRequirementForSuccessResponse = (requestMessage)
+            => requestMessage.Content!.Headers.ContentType!.MediaType == contentType;
+        var step = CreateHttpStep(expectedResponse, requestMessageRequirementForSuccessResponse);
+
         var context = new TestExecutionContext();
-        context.Variables["fileInfo"] = new { inputFilePath = "TestFiles/MockPostApiRequestBody.json" };
+        context.Variables["fileInfo"] = new { inputFilePath = "TestFiles/MockApiRequest.json" };
 
         var config = JsonSerializer.SerializeToElement(new
         {
             method = "POST",
-            url = "https://api.restful-api.dev/objects",
+            url = "https://example.api.com/objects",
             file = "{{$.fileInfo.inputFilePath}}"
         });
 
@@ -166,32 +185,36 @@ public class HttpStepTests
         Assert.True(result.Success);
 
         var responseData = JsonSerializer.SerializeToElement(context.Variables["this"]);
+        var statusCode = responseData.GetProperty("status").GetInt32();
         var body = responseData.GetProperty("body");
-        var data = body.GetProperty("data");
-        var name = body.GetProperty("name").GetString();
-        var age = data.GetProperty("age").GetInt32();
-        var city = data.GetProperty("city").GetString();
+        var data = body.GetProperty("result");
 
-        Assert.Equal("Herman", name);
-        Assert.Equal(12, age);
-        Assert.Equal("Berlin", city);
+        Assert.Equal((int)HttpStatusCode.OK, statusCode);
+        Assert.Equal("success", data.GetString());
     }
 
     [Fact]
     public async Task ExecuteAsync_WithCustomContentType_Then_SetsContentTypeHeader()
     {
         // Arrange
-        using var client = new HttpClient();
-        var step = new HttpStep(client);
+        const string contentType = "application/xml";
+        var expectedResponse = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent("<response>success</response>", Encoding.UTF8, "application/xml")
+        };
+        Expression<Func<HttpRequestMessage, bool>> requestMessageRequirementForSuccessResponse = (requestMessage) 
+            => requestMessage.Content!.Headers.ContentType!.MediaType == contentType;
+
+        var step = CreateHttpStep(expectedResponse, requestMessageRequirementForSuccessResponse);
         var context = new TestExecutionContext();
-        context.Variables["fileInfo"] = new { inputFilePath = "TestFiles/MockPostApiRequestBody.json" };
+        context.Variables["fileInfo"] = new { inputFilePath = "TestFiles/MockApiRequest.xml" };
 
         var config = JsonSerializer.SerializeToElement(new
         {
             method = "POST",
-            url = "https://api.restful-api.dev/objects",
+            url = "https://example.api.com/objects",
             file = "{{$.fileInfo.inputFilePath}}",
-            contentType = "application/xml"
+            contentType
         });
 
         step.ValidateConfiguration(config);
@@ -203,9 +226,11 @@ public class HttpStepTests
         Assert.True(result.Success);
 
         var responseData = JsonSerializer.SerializeToElement(context.Variables["this"]);
+        var body = responseData.GetProperty("body").GetString();
         var statusCode = responseData.GetProperty("status").GetInt32();
 
-        Assert.Equal((int)HttpStatusCode.UnsupportedMediaType, statusCode);
+        Assert.Equal((int)HttpStatusCode.OK, statusCode);
+        Assert.Equal("<response>success</response>", body);
     }
 
     [Fact]
