@@ -4,6 +4,7 @@ using System.Text.Json;
 
 namespace JTest.UnitTests;
 
+[Collection("WaitStepsExecutionContext")]
 public class WaitStepTests
 {
 
@@ -41,7 +42,7 @@ public class WaitStepTests
         var result = await step.ExecuteAsync(context);
 
         Assert.True(result.Success);
-        Assert.True(result.DurationMs >= 10);
+        Assert.True(result.DurationMs >= 10, $"Expected duration to be at least 10ms, but got {result.DurationMs}ms.");
         Assert.Contains("this", context.Variables.Keys);
     }
 
@@ -55,8 +56,8 @@ public class WaitStepTests
         step.ValidateConfiguration(config);
         var result = await step.ExecuteAsync(context);
 
-        Assert.True(result.Success);
-        Assert.True(result.DurationMs >= 0);
+        Assert.True(result.Success);        
+        Assert.True(result.DurationMs >= 0, $"Expected duration to be at least 0ms, but got {result.DurationMs}ms.");
     }
 
     [Fact]
@@ -83,8 +84,8 @@ public class WaitStepTests
         step.ValidateConfiguration(config);
         var result = await step.ExecuteAsync(context);
 
-        Assert.True(result.Success);
-        Assert.True(result.DurationMs >= 50);
+        Assert.True(result.Success);        
+        Assert.True(result.DurationMs >= 50, $"Expected duration to be at least 50ms, but got {result.DurationMs}ms.");
     }
 
     [Fact]
@@ -113,7 +114,7 @@ public class WaitStepTests
         var result = await step.ExecuteAsync(context);
 
         Assert.True(result.Success);
-        Assert.True(result.DurationMs >= 25);
+        Assert.True(result.DurationMs >= 25, $"Expected duration to be at least 25ms, but got {result.DurationMs}ms.");
     }
 
     [Fact]
