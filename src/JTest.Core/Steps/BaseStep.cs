@@ -39,7 +39,7 @@ public abstract class BaseStep : IStep
     /// <summary>
     /// Executes the step with the provided context
     /// </summary>
-    public abstract Task<StepResult> ExecuteAsync(IExecutionContext context);
+    public abstract Task<StepResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken);
 
     /// <summary>
     /// Validates the step configuration from JSON

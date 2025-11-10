@@ -19,21 +19,31 @@ public class WaitStep : BaseStep
         return ValidateRequiredProperties();
     }
 
-    public override async Task<StepResult> ExecuteAsync(IExecutionContext context)
+    public override async Task<StepResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {
         var stopwatch = Stopwatch.StartNew();
         var contextBefore = CloneContext(context);
-        try { return await ExecuteWaitLogic(context, stopwatch); }
+        try { return await ExecuteWaitLogic(context, stopwatch, cancellationToken); }
         catch (Exception ex) { return HandleExecutionError(ex, stopwatch, context, contextBefore); }
     }
 
-    private async Task<StepResult> ExecuteWaitLogic(IExecutionContext context, Stopwatch stopwatch)
+    private async Task<StepResult> ExecuteWaitLogic(IExecutionContext context, Stopwatch stopwatch, CancellationToken cancellationToken)
     {
         var contextBefore = CloneContext(context);
         var delayMs = ParseDelayMilliseconds(context);
-        if (delayMs < 0) return await CreateValidationFailure(context, contextBefore, stopwatch);
-        await Task.Delay(delayMs);
-        stopwatch.Stop();
+        if (delayMs < 0) 
+            return await CreateValidationFailure(context, contextBefore, stopwatch);
+
+        try
+        {
+            await Task.Delay(delayMs, cancellationToken);
+            stopwatch.Stop();
+        }
+        catch(TaskCanceledException)
+        {
+            stopwatch.Stop();
+        }
+
         return await CreateSuccessResult(delayMs, stopwatch, context, contextBefore);
     }
 

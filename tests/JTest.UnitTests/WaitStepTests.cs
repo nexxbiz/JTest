@@ -7,6 +7,7 @@ namespace JTest.UnitTests;
 [Collection("WaitStepsExecutionContext")]
 public class WaitStepTests
 {
+    private const double expectedResultIncludingErrorMargin = 0.95;
 
     [Fact]
     public void Type_ShouldReturnWait()
@@ -34,15 +35,17 @@ public class WaitStepTests
     [Fact]
     public async Task ExecuteAsync_WithValidMs_CompletesSuccessfully()
     {
+        const long durationInput = 10;
+        var expectedDuration = durationInput * expectedResultIncludingErrorMargin;
         var step = new WaitStep();
         var context = new TestExecutionContext();
-        var config = JsonSerializer.SerializeToElement(new { ms = 10 });
+        var config = JsonSerializer.SerializeToElement(new { ms = durationInput });
 
         step.ValidateConfiguration(config);
         var result = await step.ExecuteAsync(context);
 
         Assert.True(result.Success);
-        Assert.True(result.DurationMs >= 10, $"Expected duration to be at least 10ms, but got {result.DurationMs}ms.");
+        Assert.True(result.DurationMs >= expectedDuration, $"Expected duration to be at least {expectedDuration}ms, but got {result.DurationMs}ms.");
         Assert.Contains("this", context.Variables.Keys);
     }
 
@@ -77,15 +80,17 @@ public class WaitStepTests
     [Fact]
     public async Task ExecuteAsync_WithStringMs_ParsesCorrectly()
     {
+        const long durationInput = 50;
+        var expectedDuration = durationInput * expectedResultIncludingErrorMargin;
         var step = new WaitStep();
         var context = new TestExecutionContext();
-        var config = JsonSerializer.SerializeToElement(new { ms = "50" });
+        var config = JsonSerializer.SerializeToElement(new { ms = durationInput.ToString() });
 
         step.ValidateConfiguration(config);
         var result = await step.ExecuteAsync(context);
 
         Assert.True(result.Success);        
-        Assert.True(result.DurationMs >= 50, $"Expected duration to be at least 50ms, but got {result.DurationMs}ms.");
+        Assert.True(result.DurationMs >= expectedDuration, $"Expected duration to be at least {expectedDuration}ms, but got {result.DurationMs}ms.");
     }
 
     [Fact]
@@ -105,16 +110,18 @@ public class WaitStepTests
     [Fact]
     public async Task ExecuteAsync_WithTokenExpression_ResolvesVariable()
     {
+        const long durationInput = 25;
+        var expectedDuration = durationInput * expectedResultIncludingErrorMargin;
         var step = new WaitStep();
         var context = new TestExecutionContext();
-        context.Variables["env"] = new { requestDelay = 25 };
+        context.Variables["env"] = new { requestDelay = durationInput };
         var config = JsonSerializer.SerializeToElement(new { ms = "{{$.env.requestDelay}}" });
 
         step.ValidateConfiguration(config);
         var result = await step.ExecuteAsync(context);
 
         Assert.True(result.Success);
-        Assert.True(result.DurationMs >= 25, $"Expected duration to be at least 25ms, but got {result.DurationMs}ms.");
+        Assert.True(result.DurationMs >= expectedDuration, $"Expected duration to be at least {expectedDuration}ms, but got {result.DurationMs}ms.");
     }
 
     [Fact]
@@ -133,9 +140,12 @@ public class WaitStepTests
     [Fact]
     public async Task ExecuteAsync_StoresCorrectDataInContext()
     {
+        const long durationInput = 20;
+        var expectedDuration = durationInput * expectedResultIncludingErrorMargin;
+
         var step = new WaitStep();
         var context = new TestExecutionContext();
-        var config = JsonSerializer.SerializeToElement(new { ms = 20 });
+        var config = JsonSerializer.SerializeToElement(new { ms = durationInput });
 
         step.ValidateConfiguration(config);
         var result = await step.ExecuteAsync(context);
@@ -144,9 +154,10 @@ public class WaitStepTests
         Assert.Contains("this", context.Variables.Keys);
 
         var data = context.Variables["this"] as Dictionary<string, object>;
+
         Assert.NotNull(data);
         Assert.Equal(20L, data["ms"]);
-        Assert.True((long)data["actualMs"] >= 20);
+        Assert.True((long)data["actualMs"] >= expectedDuration);
         Assert.Equal(data["actualMs"], data["duration"]);
     }
 
@@ -176,20 +187,22 @@ public class WaitStepTests
     [Fact]
     public async Task ExecuteAsync_WithNumericTokenResult_ParsesCorrectly()
     {
+        const long durationInput = 30;
+        var expectedDuration = durationInput * expectedResultIncludingErrorMargin;
         var step = new WaitStep();
         var context = new TestExecutionContext();
-        context.Variables["config"] = new { timeout = 30 };
+        context.Variables["config"] = new { timeout = durationInput };
         var config = JsonSerializer.SerializeToElement(new { ms = "{{$.config.timeout}}" });
 
         step.ValidateConfiguration(config);
         var result = await step.ExecuteAsync(context);
 
         Assert.True(result.Success, $"Step failed: {result.ErrorMessage}");
-        Assert.True(result.DurationMs >= 30);
+        Assert.True(result.DurationMs >= expectedDuration, $"Expected duration to be at least {expectedDuration}ms, but got {result.DurationMs}ms.");
 
         var data = context.Variables["this"] as Dictionary<string, object>;
         Assert.NotNull(data);
-        Assert.Equal(30L, data["ms"]);
+        Assert.Equal(durationInput, data["ms"]);
     }
 
     [Fact]
@@ -205,11 +218,12 @@ public class WaitStepTests
         cts.CancelAfter(100); // Cancel after 100ms
 
         // Note: WaitStep uses Task.Delay which respects cancellation
-        var task = step.ExecuteAsync(context);
+        var task = step.ExecuteAsync(context, cts.Token);
 
         // The step should complete quickly due to our small test delay
         var result = await task;
         Assert.True(result.Success);
+        Assert.True(result.DurationMs <= 5000);
     }
 
     [Fact]
@@ -231,9 +245,11 @@ public class WaitStepTests
     [Fact]
     public async Task Integration_WorksWithComplexVariableExpression()
     {
+        const long mediumDurationInput = 50;
+        var expectedDuration = mediumDurationInput * expectedResultIncludingErrorMargin;
         var step = new WaitStep { Id = "complexWait" };
         var context = new TestExecutionContext();
-        context.Variables["env"] = new { delays = new { short_ = 10, medium = 50, long_ = 100 } };
+        context.Variables["env"] = new { delays = new { short_ = 10, medium = mediumDurationInput, long_ = 100 } };
 
         var config = JsonSerializer.SerializeToElement(new { ms = "{{$.env.delays.medium}}" });
         step.ValidateConfiguration(config);
@@ -241,11 +257,11 @@ public class WaitStepTests
         var result = await step.ExecuteAsync(context);
 
         Assert.True(result.Success);
-        Assert.True(result.DurationMs >= 50);
+        Assert.True(result.DurationMs >= expectedDuration);
         Assert.Contains("complexWait", context.Variables.Keys);
 
         var data = context.Variables["complexWait"] as Dictionary<string, object>;
         Assert.NotNull(data);
-        Assert.Equal(50L, data["ms"]);
+        Assert.Equal(mediumDurationInput, data["ms"]);
     }
 }

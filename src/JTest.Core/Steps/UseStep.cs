@@ -36,11 +36,10 @@ public class UseStep : BaseStep
         return true;
     }
 
-    public override async Task<StepResult> ExecuteAsync(IExecutionContext context)
+    public override async Task<StepResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {
         var contextBefore = CloneContext(context);
         var stopwatch = Stopwatch.StartNew();
-
 
         try
         {

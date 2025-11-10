@@ -33,7 +33,7 @@ public class HttpStep(HttpClient httpClient) : BaseStep
         return ValidateRequiredProperties();
     }
 
-    public override async Task<StepResult> ExecuteAsync(IExecutionContext context)
+    public override async Task<StepResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {
         var contextBefore = CloneContext(context);
         var stopwatch = Stopwatch.StartNew();

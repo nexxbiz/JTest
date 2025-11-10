@@ -237,7 +237,7 @@ public class MockHttpStep : IStep
 
     public bool ValidateConfiguration(JsonElement configuration) => true;
 
-    public Task<StepResult> ExecuteAsync(IExecutionContext context)
+    public Task<StepResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {
         // Simulate successful HTTP response
         var responseData = new
@@ -282,7 +282,7 @@ public class MockWaitStep : IStep
 
     public bool ValidateConfiguration(JsonElement configuration) => true;
 
-    public Task<StepResult> ExecuteAsync(IExecutionContext context)
+    public Task<StepResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {
         var resultData = new { delayMs = 1, executedAt = DateTime.UtcNow };
         return Task.FromResult(StepResult.CreateSuccess(this, resultData, 1));
