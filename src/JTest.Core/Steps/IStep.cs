@@ -21,7 +21,7 @@ public interface IStep
     /// <summary>
     /// Executes the step with the provided context
     /// </summary>
-    Task<StepResult> ExecuteAsync(IExecutionContext context);
+    Task<StepResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Validates the step configuration from JSON

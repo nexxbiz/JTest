@@ -145,7 +145,7 @@ public class HttpRequestDetailsIntegrationTests
         
         public bool ValidateConfiguration(JsonElement configuration) => true;
         
-        public Task<StepResult> ExecuteAsync(IExecutionContext context)
+        public Task<StepResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
         {
             return Task.FromResult(StepResult.CreateSuccess(this));
         }

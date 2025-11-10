@@ -30,7 +30,7 @@ public class AssertStep : BaseStep
         return assertElement.ValueKind == JsonValueKind.Array;
     }
 
-    public override async Task<StepResult> ExecuteAsync(IExecutionContext context)
+    public override async Task<StepResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {
         var stopwatch = Stopwatch.StartNew();
         try

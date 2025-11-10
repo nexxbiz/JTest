@@ -28,7 +28,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="TestFiles\MockPostApiRequestBody.json">
+    <None Update="TestFiles\MockApiRequest.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="TestFiles\MockApiRequest.xml">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>
