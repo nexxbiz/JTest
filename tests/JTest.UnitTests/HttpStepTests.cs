@@ -6,6 +6,7 @@ using System.Linq.Expressions;
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using System.Xml.Linq;
 
 namespace JTest.UnitTests;
 
@@ -151,6 +152,46 @@ public class HttpStepTests
         var result = await step.ExecuteAsync(context);
 
         Assert.True(result.Success);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WithJsonArrayBody_SerializesCorrectly()
+    {
+        var step = CreateHttpStep();
+        var context = new TestExecutionContext();        
+        var expectedBody = new[]
+        {
+            new
+            {
+                name = "johndoe@work.co",
+                email = "test@example.com",
+                addresses = new[]
+                {
+                    new
+                    {
+                        street = "Test Street"
+                    }
+                }
+            }
+        };
+        var expectedBodyJson = JsonSerializer.SerializeToElement(expectedBody).GetRawText();
+
+        var config = JsonSerializer.SerializeToElement(new
+        {
+            method = "POST",
+            url = "https://api.example.com",
+            body = expectedBody
+        });
+
+        step.ValidateConfiguration(config);
+        var result = await step.ExecuteAsync(context);
+
+        Assert.True(result.Success);
+
+        var responseData = JsonSerializer.SerializeToElement(context.Variables["this"]);
+        var actualBodyJson = responseData.GetProperty("request").GetProperty("body").GetString();        
+
+        Assert.Equal(expectedBodyJson, actualBodyJson);
     }
 
     [Fact]

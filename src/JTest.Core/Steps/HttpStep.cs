@@ -81,9 +81,11 @@ public class HttpStep(HttpClient httpClient) : BaseStep
         var method = GetResolvedMethod(context);
         var url = GetResolvedUrl(context);
         var finalUrl = AddQueryParameters(url, context);
-        var request = new HttpRequestMessage(new HttpMethod(method), finalUrl);
+        var request = new HttpRequestMessage(new HttpMethod(method), finalUrl)
+        {
+            Content = GetRequestBodyContent(context)
+        };
         AddResolvedHeaders(request, context);
-        AddResolvedBody(request, context);
         return request;
     }
 
@@ -170,17 +172,19 @@ public class HttpStep(HttpClient httpClient) : BaseStep
         return VariableInterpolator.ResolveVariableTokens(value, context).ToString() ?? string.Empty;
     }
 
-    private void AddResolvedBody(HttpRequestMessage request, IExecutionContext context)
+    private HttpContent? GetRequestBodyContent(IExecutionContext context)
     {
         if (Configuration.TryGetProperty(bodyConfigurationProperty, out var bodyElement))
         {
-            request.Content = CreateJsonStringContent(bodyElement, context);
+            return CreateJsonStringContent(bodyElement, context);
         }
 
         else if (Configuration.TryGetProperty(fileConfigurationProperty, out var filePath))
         {
-            request.Content = CreateFileStreamContent(filePath, context);
+            return CreateFileStreamContent(filePath, context);
         }
+
+        return null;
     }
 
     private StringContent? CreateJsonStringContent(JsonElement bodyElement, IExecutionContext context)
@@ -221,6 +225,7 @@ public class HttpStep(HttpClient httpClient) : BaseStep
         {
             JsonValueKind.String => VariableInterpolator.ResolveVariableTokens(bodyElement.GetString() ?? string.Empty, context),
             JsonValueKind.Object => ResolveObjectTokens(bodyElement, context),
+            JsonValueKind.Array => ResolveArrayToken(bodyElement, context),
             _ => bodyElement
         };
     }
@@ -235,12 +240,24 @@ public class HttpStep(HttpClient httpClient) : BaseStep
         return resolved;
     }
 
+    private object ResolveArrayToken(JsonElement arrayElement, IExecutionContext context)
+    {
+        var resolved = new List<object>();
+        foreach (var item in arrayElement.EnumerateArray())
+        {
+            var resolvedItem = ResolvePropertyValue(item, context);
+            resolved.Add(resolvedItem);
+        }
+        return resolved;
+    }
+
     private object ResolvePropertyValue(JsonElement value, IExecutionContext context)
     {
         return value.ValueKind switch
         {
             JsonValueKind.String => VariableInterpolator.ResolveVariableTokens(value.GetString() ?? string.Empty, context),
             JsonValueKind.Object => ResolveObjectTokens(value, context),
+            JsonValueKind.Array => ResolveArrayToken(value, context),
             _ => GetJsonElementValue(value)
         };
     }
@@ -266,15 +283,16 @@ public class HttpStep(HttpClient httpClient) : BaseStep
         return new StringContent(content, Encoding.UTF8, jsonContentType);
     }
 
-    private static async Task<object> CaptureRequestDetails(HttpRequestMessage request, IExecutionContext context)
+    private async Task<object> CaptureRequestDetails(HttpRequestMessage request, IExecutionContext context)
     {
         var headers = request.Headers
             .Concat(request.Content?.Headers ?? Enumerable.Empty<KeyValuePair<string, IEnumerable<string>>>())
             .Select(h => new { name = h.Key, value = string.Join(", ", h.Value) })
             .ToArray();
 
-        var body = request.Content != null
-            ? await request.Content.ReadAsStringAsync()
+        var bodyContent = GetRequestBodyContent(context);
+        var body = bodyContent is not null
+            ? await bodyContent.ReadAsStringAsync()
             : null;
 
         return new
