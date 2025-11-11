@@ -134,7 +134,7 @@ public static class VariableInterpolator
                         }
                     }
 
-                    i = tokenEnd + 2; // Move past this token
+                    i += 2; // Move past this token
                 }
                 else
                 {

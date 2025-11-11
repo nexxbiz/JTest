@@ -88,6 +88,39 @@ public class VariableInterpolatorTests
     }
 
     [Fact]
+    public void ResolveVariableTokens_WithComplexNestedToken_ReturnsRawValue()
+    {
+        // Arrange
+        var expectedPropertyValue = Guid.NewGuid().ToString();  
+        var context = new TestExecutionContext();
+        context.Variables["propertyKey"] = "somePropertyKey2";
+        context.Variables["complexObject"] = new 
+        { 
+            contexts = new[]
+            {
+                new
+                {
+                    properties = new
+                    {
+                        Variables = new
+                        {
+                            somePropertyKey = "Property value 1",
+                            somePropertyKey2 = expectedPropertyValue
+                        }
+                    }
+                }
+            }
+        };
+        var input = "{{$.complexObject.contexts[0].properties.Variables['{{ $.propertyKey }}'] }}";
+        
+        // Act
+        var result = VariableInterpolator.ResolveVariableTokens(input, context);
+
+        // Assert
+        Assert.Equal(expectedPropertyValue, result);
+    }
+
+    [Fact]
     public void ResolveVariableTokens_WithSingleTokenComplexObject_ReturnsRawObject()
     {
         // Arrange
