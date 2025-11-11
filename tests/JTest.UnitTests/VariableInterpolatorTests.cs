@@ -36,6 +36,43 @@ public class VariableInterpolatorTests
     }
 
     [Fact]
+    public void ResolveVariableTokens_WithEnvironmentVariableToken_ReturnsEnvironmentVariableValue()
+    {
+        // Arrange
+        var environmentVariableName = $"TEST_PASSWORD_{Guid.NewGuid():N}";
+        var expectedEnvironmentVariableValue = Guid.NewGuid().ToString();
+    
+        var context = new TestExecutionContext();
+        var input = "{{$.env.password}}";
+        context.Variables["env"] = new { password = $"${{{environmentVariableName}}}"};
+        Environment.SetEnvironmentVariable(environmentVariableName, expectedEnvironmentVariableValue, EnvironmentVariableTarget.Process);
+    
+        // Act
+        var result = VariableInterpolator.ResolveVariableTokens(input, context);
+    
+        // Assert
+        Assert.Equal(expectedEnvironmentVariableValue, result);
+    }
+
+     [Fact]
+     public void ResolveVariableTokens_WithEnvironmentVariableToken_And_EnvironmentVariableDoesNotExist_ReturnsOriginalString()
+     {
+         // Arrange
+         var environmentVariableName = $"TEST_PASSWORD_{Guid.NewGuid():N}";
+         var passwordEnvValue = $"${{{environmentVariableName}}}";
+    
+         var context = new TestExecutionContext();
+         var input = "{{$.env.password}}";
+         context.Variables["env"] = new { password = passwordEnvValue };        
+    
+         // Act
+         var result = VariableInterpolator.ResolveVariableTokens(input, context);
+    
+         // Assert
+         Assert.Equal(passwordEnvValue, result);
+     }
+
+    [Fact]
     public void ResolveVariableTokens_WithSingleToken_ReturnsRawValue()
     {
         // Arrange
