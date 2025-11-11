@@ -35,7 +35,7 @@ public class WaitStepTests
     [Fact]
     public async Task ExecuteAsync_WithValidMs_CompletesSuccessfully()
     {
-        const long durationInput = 10;
+        const long durationInput = 20;
         var expectedDuration = durationInput * expectedResultIncludingErrorMargin;
         var step = new WaitStep();
         var context = new TestExecutionContext();
