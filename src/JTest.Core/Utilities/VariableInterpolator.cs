@@ -14,6 +14,7 @@ public static class VariableInterpolator
 {
     // Updated regex to properly handle nested braces by counting brace pairs
     private static readonly Regex TokenRegex = new(@"\{\{\s*\$\.(?:[^{}]|\{[^{}]*\})*\s*\}\}", RegexOptions.Compiled);
+    private static readonly Regex EnvironmentVariableRegex = new(@"^\$\{([A-Za-z0-9_]+)\}$", RegexOptions.Compiled);
     private const int MaxNestingDepth = 10; // Prevent infinite recursion
 
     /// <summary>
@@ -370,16 +371,40 @@ public static class VariableInterpolator
     {
         try
         {
-            if (value.TryGetValue<string>(out var stringVal)) return stringVal;
-            if (value.TryGetValue<int>(out var intVal)) return intVal;
-            if (value.TryGetValue<double>(out var doubleVal)) return doubleVal;
-            if (value.TryGetValue<bool>(out var boolVal)) return boolVal;
+            if (value.TryGetValue<string>(out var stringVal))
+            {                
+                return ExtractStringValue(stringVal);
+            }
+            if (value.TryGetValue<int>(out var intVal)) 
+                return intVal;
+            if (value.TryGetValue<double>(out var doubleVal)) 
+                return doubleVal;
+            if (value.TryGetValue<bool>(out var boolVal)) 
+                return boolVal;
             return value.GetValue<object>();
         }
         catch
         {
             return value.ToString();
         }
+    }
+
+    private static string ExtractStringValue(string value)
+    {
+        var environmentVariableTokenMatch = EnvironmentVariableRegex.Match(value);
+        if (!environmentVariableTokenMatch.Success)
+        {
+            return value;
+        }
+
+        var environmentVariableName = environmentVariableTokenMatch.Groups[1].Value;
+        var result = Environment.GetEnvironmentVariable(environmentVariableName);
+        if(!string.IsNullOrWhiteSpace(result))
+        {
+            return result;
+        }
+
+        return value;
     }
 
     /// <summary>
