@@ -51,6 +51,7 @@
                     "boolean",
                     "object",
                     "integer",
+                    "array",
                     "null"
                 ]
             }
