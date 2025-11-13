@@ -142,6 +142,34 @@ public class AssertionTests
     }
 
     [Fact]
+    public void GreaterThanAssertion_WithDateOnlyValues_WorksCorrectly()
+    {
+        var assertion = new GreaterThanAssertion();
+        var actual = new DateOnly(2020, 1, 2).ToString(CultureInfo.InvariantCulture);
+        var expected = new DateOnly(2020, 1, 1).ToString(CultureInfo.InvariantCulture);
+
+        // Act
+        var result = assertion.Execute(actualValue: actual, expectedValue: expected);
+
+        // Assert
+        Assert.True(result.Success);
+    }
+
+    [Fact]
+    public void GreaterThanAssertion_WithTimeOnlyValues_WorksCorrectly()
+    {
+        var assertion = new GreaterThanAssertion();
+        var actual = new TimeOnly(1, 2, 1).ToString();
+        var expected = new TimeOnly(1, 1, 1).ToString();
+
+        // Act
+        var result = assertion.Execute(actualValue: actual, expectedValue: expected);
+
+        // Assert
+        Assert.True(result.Success);
+    }
+
+    [Fact]
     public void LessThanAssertion_WithDateTimeValues_WorksCorrectly()
     {
         var assertion = new LessThanAssertion();
@@ -156,11 +184,81 @@ public class AssertionTests
     }
 
     [Fact]
-    public void DateTimeAssertion_WithDateOnlyValues_WorksCorrectly()
+    public void LessThanAssertion_WithDateOnlyValues_WorksCorrectly()
     {
         var assertion = new LessThanAssertion();
         var actual = new DateOnly(2020, 1, 1).ToString(CultureInfo.InvariantCulture);
         var expected = new DateOnly(2020, 1, 2).ToString(CultureInfo.InvariantCulture);
+
+        // Act
+        var result = assertion.Execute(actualValue: actual, expectedValue: expected);
+
+        // Assert
+        Assert.True(result.Success);
+    }
+
+    [Fact]
+    public void LessThanAssertion_WithTimeOnlyValues_WorksCorrectly()
+    {
+        var assertion = new LessThanAssertion();
+        var actual = new TimeOnly(1, 1, 1).ToString(CultureInfo.InvariantCulture);
+        var expected = new TimeOnly(1, 2, 1).ToString(CultureInfo.InvariantCulture);
+
+        // Act
+        var result = assertion.Execute(actualValue: actual, expectedValue: expected);
+
+        // Assert
+        Assert.True(result.Success);
+    }
+
+    [Fact]
+    public void StronglyTypedDateTimeAssertion_WithDateOnlyValues_WorksCorrectly()
+    {
+        var assertion = new LessThanAssertion();
+        var actual = new DateOnly(2020, 1, 1);
+        var expected = new DateOnly(2020, 1, 2);
+
+        // Act
+        var result = assertion.Execute(actualValue: actual, expectedValue: expected);
+
+        // Assert
+        Assert.True(result.Success);
+    }
+
+    [Fact]
+    public void StronglyTypedDateTimeAssertion_WithDateTimeValues_WorksCorrectly()
+    {
+        var assertion = new LessThanAssertion();
+        var actual = new DateTime(2020, 1, 1, 1, 1, 1);
+        var expected = new DateTime(2020, 1, 1, 1, 1, 2);
+
+        // Act
+        var result = assertion.Execute(actualValue: actual, expectedValue: expected);
+
+        // Assert
+        Assert.True(result.Success);
+    }
+
+    [Fact]
+    public void StronglyTypedDateTimeAssertion_WithDateTimeOffsetValues_WorksCorrectly()
+    {
+        var assertion = new LessThanAssertion();
+        var actual = new DateTimeOffset(2020, 1, 1, 1, 1, 1, TimeSpan.FromHours(1));
+        var expected = new DateTimeOffset(2020, 1, 1, 1, 1, 2, TimeSpan.Zero);
+
+        // Act
+        var result = assertion.Execute(actualValue: actual, expectedValue: expected);
+
+        // Assert
+        Assert.True(result.Success);
+    }
+
+    [Fact]
+    public void StronglyTypedDateTimeAssertion_WithTimeOnlyValues_WorksCorrectly()
+    {
+        var assertion = new LessThanAssertion();
+        var actual = new TimeOnly(1, 1, 1, 1);
+        var expected = new TimeOnly(1, 1, 1, 2);
 
         // Act
         var result = assertion.Execute(actualValue: actual, expectedValue: expected);
@@ -661,6 +759,35 @@ public class AssertionTests
         Assert.False(result.Success);
         Assert.Contains("Expected 5 to be greater than or equal to 10", result.ErrorMessage);
     }
+
+    [Fact]
+    public void GreaterOrEqualAssertion_WithDateOnlyValues_WorksCorrectly()
+    {
+        var assertion = new GreaterOrEqualAssertion();
+        var actual = new DateOnly(2020, 1, 2).ToString(CultureInfo.InvariantCulture);
+        var expected = new DateOnly(2020, 1, 1).ToString(CultureInfo.InvariantCulture);
+
+        // Act
+        var result = assertion.Execute(actualValue: actual, expectedValue: expected);
+
+        // Assert
+        Assert.True(result.Success);
+    }
+
+    [Fact]
+    public void GreaterOrEqualAssertion_WithTimeOnlyValues_WorksCorrectly()
+    {
+        var assertion = new GreaterOrEqualAssertion();
+        var actual = new TimeOnly(1, 1, 2).ToString(CultureInfo.InvariantCulture);
+        var expected = new TimeOnly(1, 1, 1).ToString(CultureInfo.InvariantCulture);
+
+        // Act
+        var result = assertion.Execute(actualValue: actual, expectedValue: expected);
+
+        // Assert
+        Assert.True(result.Success);
+    }
+
 
     [Fact]
     public void LessOrEqualAssertion_WithLessValue_ReturnsTrue()
