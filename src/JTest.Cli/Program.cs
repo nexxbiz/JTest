@@ -27,8 +27,8 @@ class Program
 
 public class JTestCli
 {
-    private readonly Dictionary<string, string> _envVars = [];
-    private readonly Dictionary<string, string> _globals = [];
+    private readonly Dictionary<string, object> _envVars = [];
+    private readonly Dictionary<string, object> _globals = [];
     private readonly TestRunner _testRunner;
     private int _parallelCount = 1; // Default to sequential execution
     private readonly string _debugOutputDir = "./bin/debug";
@@ -288,7 +288,7 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
             {
                 foreach (var kvp in globalsData)
                 {
-                    _globals[kvp.Key] = kvp.Value?.ToString() ?? "";
+                    _globals[kvp.Key] = kvp.Value;
                     Console.WriteLine($"Loaded global variable from file: {kvp.Key}");
                 }
             }
@@ -440,11 +440,7 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
                     // Read and execute the test file
                     var jsonContent = File.ReadAllText(testFile);
 
-                    // Convert string dictionaries to object dictionaries
-                    var environment = _envVars.ToDictionary(kvp => kvp.Key, kvp => (object)kvp.Value);
-                    var globals = _globals.ToDictionary(kvp => kvp.Key, kvp => (object)kvp.Value);
-
-                    var results = _testRunner.RunTestAsync(jsonContent, testFile, environment, globals).Result;
+                    var results = _testRunner.RunTestAsync(jsonContent, testFile, _envVars, _globals).Result;
 
                     foreach (var result in results)
                     {
@@ -503,11 +499,7 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
                     // Read and execute the test file
                     var jsonContent = await File.ReadAllTextAsync(testFile);
 
-                    // Convert string dictionaries to object dictionaries
-                    var environment = _envVars.ToDictionary(kvp => kvp.Key, kvp => (object)kvp.Value);
-                    var globals = _globals.ToDictionary(kvp => kvp.Key, kvp => (object)kvp.Value);
-
-                    var results = await _testRunner.RunTestAsync(jsonContent, testFile, environment, globals);
+                    var results = await _testRunner.RunTestAsync(jsonContent, testFile, _envVars, _globals);
                     allResults.AddRange(results);
 
                     // Display results for this file
@@ -706,13 +698,7 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
                 // Read and execute the test file with debug logging
                 var jsonContent = await File.ReadAllTextAsync(testFile);
 
-                // Convert string dictionaries to object dictionaries
-                var environment = _envVars.ToDictionary(kvp => kvp.Key, kvp => (object)kvp.Value);
-                var globals = _globals.ToDictionary(kvp => kvp.Key, kvp => (object)kvp.Value);
-
-
-
-                var results = await _testRunner.RunTestAsync(jsonContent, testFile, environment, globals);
+                var results = await _testRunner.RunTestAsync(jsonContent, testFile, _envVars, _globals);
 
                 Console.WriteLine("\nTest execution completed");
 
