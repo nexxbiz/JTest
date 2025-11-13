@@ -201,8 +201,8 @@ public class AssertionTests
     public void LessThanAssertion_WithTimeOnlyValues_WorksCorrectly()
     {
         var assertion = new LessThanAssertion();
-        var actual = new TimeOnly(1, 1, 1).ToString(CultureInfo.InvariantCulture);
-        var expected = new TimeOnly(1, 2, 1).ToString(CultureInfo.InvariantCulture);
+        var actual = new TimeOnly(1, 1, 1).ToString("hh:mm:ss");
+        var expected = new TimeOnly(1, 1, 2).ToString("hh:mm:ss");
 
         // Act
         var result = assertion.Execute(actualValue: actual, expectedValue: expected);
