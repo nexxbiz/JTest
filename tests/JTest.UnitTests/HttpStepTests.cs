@@ -234,6 +234,104 @@ public class HttpStepTests
     }
 
     [Fact]
+    public async Task ExecuteAsync_WithFormFiles_Then_SendsMultiPartFormDataContent()
+    {
+        // Arrange        
+        const int expectedMultiPartFormDataCount = 2;
+        var expectedResponse = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent("{\"result\":\"success\"}", Encoding.UTF8, "application/json")
+        };
+        Expression<Func<HttpRequestMessage, bool>> requestMessageRequirementForSuccessResponse = (requestMessage)
+            => requestMessage.Content!.GetType() == typeof(MultipartFormDataContent) 
+                && ((MultipartFormDataContent)requestMessage.Content!).Count() == expectedMultiPartFormDataCount;
+
+        var step = CreateHttpStep(expectedResponse, requestMessageRequirementForSuccessResponse);
+
+        var context = new TestExecutionContext();
+        context.Variables["formFilesConfig"] = new[]
+        {
+            new
+            {
+                name = "testFileText",
+                fileName="mock-request.txt",
+                contentType="plain/text",
+                path = "TestFiles/MockApiRequest.txt"
+            },
+            new
+            {
+                name = "testFileZip",
+                fileName="mock-request.zip",
+                contentType="application/octet-stream",
+                path = "TestFiles/MockApiRequest.zip"
+            }
+        };
+
+        var config = JsonSerializer.SerializeToElement(new
+        {
+            method = "POST",
+            url = "https://api.example.com/files",
+            formFiles = "{{$.formFilesConfig}}"
+        });
+
+        step.ValidateConfiguration(config);
+
+        // Act
+        var result = await step.ExecuteAsync(context);
+
+        // Assert
+        Assert.True(result.Success);
+
+        var responseData = JsonSerializer.SerializeToElement(context.Variables["this"]);
+        var statusCode = responseData.GetProperty("status").GetInt32();
+        var body = responseData.GetProperty("body");
+        var data = body.GetProperty("result");
+
+        Assert.Equal((int)HttpStatusCode.OK, statusCode);
+        Assert.Equal("success", data.GetString());
+    }
+
+    [Theory]
+    [InlineData("name","fileName.txt", "path/to/file.txt", "")]
+    [InlineData("name", "fileName.txt", "", "plain/text")]
+    [InlineData("name", "", "path/to/file.txt", "plain/text")]
+    [InlineData("", "fileName.txt", "path/to/file.txt", "plain/text")]
+    public async Task ExecuteAsync_WithFormFiles_And_ConfigurationMissesProperty_Then_ThrowsException(string name, string fileName, string path, string contentType)
+    {
+        // Arrange                
+        var step = CreateHttpStep();
+
+        var context = new TestExecutionContext();
+        context.Variables["formFilesConfig"] = new[]
+        {
+            new
+            {
+                name,
+                fileName,
+                contentType,
+                path
+            }
+        };
+
+        var config = JsonSerializer.SerializeToElement(new
+        {
+            method = "POST",
+            url = "https://api.example.com/files",
+            formFiles = "{{$.formFilesConfig}}"
+        });
+
+        step.ValidateConfiguration(config);
+
+        // Act
+        var result = await step.ExecuteAsync(context);
+
+        // Assert
+        Assert.False(result.Success);
+        Assert.StartsWith("Form file configuration property", result.ErrorMessage);
+        Assert.EndsWith("does not exist, or is null/empty", result.ErrorMessage);
+    }
+
+    [Fact]
     public async Task ExecuteAsync_WithCustomContentType_Then_SetsContentTypeHeader()
     {
         // Arrange
