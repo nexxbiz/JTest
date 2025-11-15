@@ -155,9 +155,18 @@ public class GreaterThanAssertion : IAssertionOperation
     {
         try
         {
-            var actual = Convert.ToDouble(actualValue, CultureInfo.InvariantCulture);
-            var expected = Convert.ToDouble(expectedValue, CultureInfo.InvariantCulture);
-            var result = actual > expected;
+            bool result;
+            if(AssertionHelper.IsDateTimeAssertion(actualValue, expectedValue, out var actualTicks, out var expectedTicks))
+            {
+                result = actualTicks > expectedTicks;
+            }
+            else
+            {
+                var actual = Convert.ToDouble(actualValue, CultureInfo.InvariantCulture);
+                var expected = Convert.ToDouble(expectedValue, CultureInfo.InvariantCulture);
+                result = actual > expected;
+            }
+
             var errorMessage = result ? "" : $"Expected {actualValue} to be greater than {expectedValue}";
             return new AssertionResult(result, errorMessage)
             {
@@ -175,7 +184,7 @@ public class GreaterThanAssertion : IAssertionOperation
                 ExpectedValue = expectedValue
             };
         }
-    }
+    }    
 }
 
 /// <summary>
@@ -189,9 +198,17 @@ public class LessThanAssertion : IAssertionOperation
     {
         try
         {
-            var actual = Convert.ToDouble(actualValue, CultureInfo.InvariantCulture);
-            var expected = Convert.ToDouble(expectedValue, CultureInfo.InvariantCulture);
-            var result = actual < expected;
+            bool result;
+            if (AssertionHelper.IsDateTimeAssertion(actualValue, expectedValue, out var actualTicks, out var expectedTicks))
+            {
+                result = actualTicks < expectedTicks;
+            }
+            else
+            {
+                var actual = Convert.ToDouble(actualValue, CultureInfo.InvariantCulture);
+                var expected = Convert.ToDouble(expectedValue, CultureInfo.InvariantCulture);
+                result = actual < expected;
+            }
             var errorMessage = result ? "" : $"Expected {actualValue} to be less than {expectedValue}";
             return new AssertionResult(result, errorMessage)
             {
@@ -390,9 +407,17 @@ public class GreaterOrEqualAssertion : IAssertionOperation
     {
         try
         {
-            var actual = Convert.ToDouble(actualValue, CultureInfo.InvariantCulture);
-            var expected = Convert.ToDouble(expectedValue, CultureInfo.InvariantCulture);
-            var result = actual >= expected;
+            bool result;
+            if (AssertionHelper.IsDateTimeAssertion(actualValue, expectedValue, out var actualTicks, out var expectedTicks))
+            {
+                result = actualTicks >= expectedTicks;
+            }
+            else
+            {
+                var actual = Convert.ToDouble(actualValue, CultureInfo.InvariantCulture);
+                var expected = Convert.ToDouble(expectedValue, CultureInfo.InvariantCulture);
+                result = actual >= expected;
+            }
             var message = result ? "" : $"Expected {actualValue} to be greater than or equal to {expectedValue}";
             return new AssertionResult(result, message);
         }
@@ -414,9 +439,17 @@ public class LessOrEqualAssertion : IAssertionOperation
     {
         try
         {
-            var actual = Convert.ToDouble(actualValue, CultureInfo.InvariantCulture);
-            var expected = Convert.ToDouble(expectedValue, CultureInfo.InvariantCulture);
-            var result = actual <= expected;
+            bool result;
+            if (AssertionHelper.IsDateTimeAssertion(actualValue, expectedValue, out var actualTicks, out var expectedTicks))
+            {
+                result = actualTicks <= expectedTicks;
+            }
+            else
+            {
+                var actual = Convert.ToDouble(actualValue, CultureInfo.InvariantCulture);
+                var expected = Convert.ToDouble(expectedValue, CultureInfo.InvariantCulture);
+                result = actual <= expected;
+            }
             var message = result ? "" : $"Expected {actualValue} to be less than or equal to {expectedValue}";
             return new AssertionResult(result, message);
         }
