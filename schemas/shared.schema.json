@@ -72,7 +72,7 @@
                 }
             },
             "then": {
-                "required": [                    
+                "required": [
                     "url",
                     "method"
                 ],
@@ -120,6 +120,53 @@
                         "type": "string",
                         "description": "File to send as request body; provide the path to the file"
                     },
+                    "formFiles": {
+                        "oneOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "fileName": {
+                                            "type": "string"
+                                        },
+                                        "name": {
+                                            "type": "string"
+                                        },
+                                        "path": {
+                                            "type": "string"
+                                        },
+                                        "contentType": {
+                                            "type": "string",
+                                            "enum": [
+                                                "application/json",
+                                                "application/xml",
+                                                "application/octet-stream",
+                                                "application/pdf",
+                                                "application/zip",
+                                                "application/graphql",
+                                                "text/plain",
+                                                "text/html",
+                                                "text/xml",
+                                                "text/csv",
+                                                "image/png",
+                                                "image/jpeg"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "fileName",
+                                        "name",
+                                        "path",
+                                        "contentType"
+                                    ]
+                                }
+                            }
+                        ]
+                    },
                     "contentType": {
                         "type": "string",
                         "description": "Content type of the request",
@@ -159,7 +206,7 @@
                             "string"
                         ],
                         "if": {
-                            "type": "integer"                            
+                            "type": "integer"
                         },
                         "then": {
                             "minimum": 0
@@ -215,7 +262,7 @@
                 }
             },
             "then": {
-                "required":[
+                "required": [
                     "assert"
                 ]
             }
