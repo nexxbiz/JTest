@@ -2,6 +2,7 @@ using JTest.Core.Execution;
 using JTest.Core.Utilities;
 using System.Diagnostics;
 using System.Net.Http.Headers;
+using System.Net.Mime;
 using System.Text;
 using System.Text.Json;
 
@@ -20,6 +21,10 @@ public class HttpStep(HttpClient httpClient) : BaseStep
     private const string headersConfigurationProperty = "headers";
     private const string queryConfigurationProperty = "query";
     private const string fileConfigurationProperty = "file";
+    private const string formFilesConfigurationProperty = "formFiles";
+    private const string formFileContentPathConfigurationProperty = "path";
+    private const string formFileContentNameConfigurationProperty = "name";
+    private const string formFileContentFileNameConfigurationProperty = "fileName";
     private const string contentTypeConfigurationProperty = "contentType";
     private const string jsonContentType = "application/json";
 
@@ -179,6 +184,11 @@ public class HttpStep(HttpClient httpClient) : BaseStep
             return CreateJsonStringContent(bodyElement, context);
         }
 
+        else if(Configuration.TryGetProperty(formFilesConfigurationProperty, out var formFiles))
+        {
+            return CreateMultipartFormDataContent(formFiles, context);
+        }
+
         else if (Configuration.TryGetProperty(fileConfigurationProperty, out var filePath))
         {
             return CreateFileStreamContent(filePath, context);
@@ -218,6 +228,48 @@ public class HttpStep(HttpClient httpClient) : BaseStep
 
         return result;
     }
+
+    private MultipartFormDataContent CreateMultipartFormDataContent(JsonElement formFilesElement, IExecutionContext context)
+    {
+        var resolvedFormFilesElement = JsonSerializer.SerializeToElement(
+            ResolveJsonElement(formFilesElement, context)
+        );
+
+        if (resolvedFormFilesElement.ValueKind != JsonValueKind.Array)
+        {
+            throw new ArgumentException($"Form files configuration property is not valid. Expecte value kind {JsonValueKind.Array}, but got '{formFilesElement.ValueKind}'");
+        }
+
+        var result = new MultipartFormDataContent();
+        foreach (var formFileElement in resolvedFormFilesElement.EnumerateArray())
+        {                        
+            if (!formFileElement.TryGetProperty(formFileContentNameConfigurationProperty, out var name) || string.IsNullOrWhiteSpace(name.GetString()))
+            {
+                throw new ArgumentException($"Form file configuration property '{formFileContentNameConfigurationProperty}' does not exist, or is null/empty");
+            }
+            if (!formFileElement.TryGetProperty(formFileContentPathConfigurationProperty, out var path) || string.IsNullOrWhiteSpace(path.GetString()))
+            {
+                throw new ArgumentException($"Form file configuration property '{formFileContentPathConfigurationProperty}' does not exist, or is null/empty");
+            }
+            if (!formFileElement.TryGetProperty(formFileContentFileNameConfigurationProperty, out var fileName) || string.IsNullOrWhiteSpace(fileName.GetString()))
+            {
+                throw new ArgumentException($"Form file configuration property '{formFileContentFileNameConfigurationProperty}' does not exist, or is null/empty");
+            }
+            if (!formFileElement.TryGetProperty(contentTypeConfigurationProperty, out var contentType) || string.IsNullOrWhiteSpace(contentType.GetString()))
+            {
+                throw new ArgumentException($"Form file configuration property '{contentTypeConfigurationProperty}' does not exist, or is null/empty");
+            }
+
+            var streamContent = new StreamContent(
+                File.OpenRead(path.GetString()!)
+            );
+            streamContent.Headers.ContentType = new MediaTypeHeaderValue(contentType.GetString()!);
+            result.Add(streamContent, name.GetString()!, fileName.GetString()!);            
+        }
+
+        return result;
+    }
+    
 
     private object ResolveJsonElement(JsonElement bodyElement, IExecutionContext context)
     {
