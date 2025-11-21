@@ -398,7 +398,7 @@ public static class VariableInterpolator
         }
 
         var environmentVariableName = environmentVariableTokenMatch.Groups[1].Value;
-        var result = Environment.GetEnvironmentVariable(environmentVariableName);
+        var result = Environment.GetEnvironmentVariable(environmentVariableName, EnvironmentVariableTarget.Process);
         if(!string.IsNullOrWhiteSpace(result))
         {
             return result;

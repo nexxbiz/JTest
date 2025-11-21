@@ -15,8 +15,7 @@
     <Nullable>enable</Nullable>
     
     <!-- NuGet Package Information -->
-    <PackageId>JTest.Cli</PackageId>
-    <PackageVersion>1.0.0</PackageVersion>
+    <PackageId>JTest.Cli</PackageId>    
     <Title>JTest CLI Tool</Title>
     <Authors>NexxBiz</Authors>
     <Description>Command-line interface for JTest - A universal JSON-based API testing framework. Provides tools for running, debugging, validating and exporting API tests defined in JSON format.</Description>
