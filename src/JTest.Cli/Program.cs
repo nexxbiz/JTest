@@ -40,12 +40,12 @@ public class JTestCli
     {
         var globalConfig = LoadGlobalConfigurationFile();
         _testRunner = new TestRunner(globalConfig);
-        _debugOutputDir = Environment.GetEnvironmentVariable(DebugPathEnvVar) ?? _debugOutputDir;
+        _debugOutputDir = Environment.GetEnvironmentVariable(DebugPathEnvVar, EnvironmentVariableTarget.Process) ?? _debugOutputDir;
     }
 
     private static GlobalConfiguration? LoadGlobalConfigurationFile()
     {
-        var globalConfigFilePath = Environment.GetEnvironmentVariable(globalConfigFileEnvVar);
+        var globalConfigFilePath = Environment.GetEnvironmentVariable(globalConfigFileEnvVar, EnvironmentVariableTarget.Process);
         if (string.IsNullOrWhiteSpace(globalConfigFilePath))
         {
             return null;
