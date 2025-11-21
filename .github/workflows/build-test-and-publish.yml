@@ -74,7 +74,7 @@ jobs:
       - name: Pack NuGet packages
         run: |
           VERSION=${{ steps.set-version.outputs.version }}
-          dotnet pack src/${{ github.event.repository.name }}/${{ github.event.repository.name }}.csproj \
+          dotnet pack src/JTest.Cli/JTest.Cli.csproj \
             --configuration Release \
             --no-build \
             -p:PackageVersion=$VERSION \
@@ -86,7 +86,7 @@ jobs:
 
       - name: Push NuGet packages
         run: |
-          for pkg in $(find src/${{ github.event.repository.name }}/bin/Release -name "*.nupkg" ! -name "*.symbols.nupkg" ! -name "*.snupkg"); do
+          for pkg in $(find src/JTest.Cli/bin/Release -name "*.nupkg" ! -name "*.symbols.nupkg" ! -name "*.snupkg"); do
             echo "Pushing main package: $pkg"
             dotnet nuget push "$pkg" \
               --api-key "${{ secrets.NUGET_API_KEY }}" \
@@ -94,7 +94,7 @@ jobs:
               --skip-duplicate
           done
 
-          for symbols in $(find src/${{ github.event.repository.name }}/bin/Release -name "*.snupkg"); do
+          for symbols in $(find src/JTest.Cli/bin/Release -name "*.snupkg"); do
             echo "Pushing symbol package: $symbols"
             dotnet nuget push "$symbols" \
               --api-key "${{ secrets.NUGET_API_KEY }}" \
