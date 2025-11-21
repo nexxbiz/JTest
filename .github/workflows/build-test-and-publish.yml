@@ -82,7 +82,7 @@ jobs:
             -p:SymbolPackageFormat=snupkg
 
       - name: Show packed files
-        run: ls -lh src/bin/Release
+        run: ls -lh src/JTest.Cli/bin/Release
 
       - name: Push NuGet packages
         run: |
