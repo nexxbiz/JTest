@@ -86,7 +86,7 @@ jobs:
 
       - name: Push NuGet packages
         run: |
-          for pkg in $(find src/JTest.Cli/bin/Release -name "*.nupkg" ! -name "*.symbols.nupkg" ! -name "*.snupkg"); do
+          for pkg in $(find src/JTest.Cli/bin/Release -name "*${{ steps.set-version.outputs.version }}.nupkg" ! -name "*.symbols.nupkg" ! -name "*.snupkg"); do
             echo "Pushing main package: $pkg"
             dotnet nuget push "$pkg" \
               --api-key "${{ secrets.NUGET_API_KEY }}" \
@@ -94,7 +94,7 @@ jobs:
               --skip-duplicate
           done
 
-          for symbols in $(find src/JTest.Cli/bin/Release -name "*.snupkg"); do
+          for symbols in $(find src/JTest.Cli/bin/Release -name "*${{ steps.set-version.outputs.version }}.snupkg"); do
             echo "Pushing symbol package: $symbols"
             dotnet nuget push "$symbols" \
               --api-key "${{ secrets.NUGET_API_KEY }}" \
