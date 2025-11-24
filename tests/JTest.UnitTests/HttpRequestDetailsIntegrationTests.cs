@@ -33,7 +33,7 @@ public class HttpRequestDetailsIntegrationTests
             .ReturnsAsync(response);
 
         var httpClient = new HttpClient(mockHandler.Object);
-        var httpStep = new HttpStep(httpClient);
+        
         
         // Configure HTTP step with headers and body
         var context = new TestExecutionContext();
@@ -58,8 +58,9 @@ public class HttpRequestDetailsIntegrationTests
             }
         });
 
+        var httpStep = new HttpStep(httpClient, config);
+
         // Act: Execute HTTP step
-        httpStep.ValidateConfiguration(config);
         var stepResult = await httpStep.ExecuteAsync(context);
 
         // Create test case result for markdown conversion
@@ -107,12 +108,12 @@ public class HttpRequestDetailsIntegrationTests
     }
 
     [Fact]
-    public async Task EndToEnd_NonHttpStep_DoesNotDisplayRequestDetails()
+    public void EndToEnd_NonHttpStep_DoesNotDisplayRequestDetails()
     {
         // Arrange: Create a non-HTTP step
         var mockStep = new MockTestStep { Type = "wait" };
         
-        var stepResult = new StepResult
+        var stepResult = new StepResult(1)
         {
             Step = mockStep,
             Success = true,
@@ -142,12 +143,17 @@ public class HttpRequestDetailsIntegrationTests
     {
         public string Type { get; set; } = "test";
         public string? Id { get; set; }
-        
-        public bool ValidateConfiguration(JsonElement configuration) => true;
+
+
+        public string? Name { get; set; }
+
+        public string? Description { get; set; }
+
+        public bool ValidateConfiguration(List<string> validationErrors) => true;
         
         public Task<StepResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
         {
-            return Task.FromResult(StepResult.CreateSuccess(this));
+            return Task.FromResult(StepResult.CreateSuccess(0, this));
         }
         
         public string GetStepDescription() => "Mock test step";

@@ -23,7 +23,7 @@ public class ResultsToMarkdownConverterTests
         contextChanges.Added.Add("$.globals.token", "abc123");
         contextChanges.Modified.Add("existingVar", "updated-value");
 
-        var stepResult = new StepResult
+        var stepResult = new StepResult(1)
         {
             Step = mockStep,
             Success = true,
@@ -61,7 +61,7 @@ public class ResultsToMarkdownConverterTests
         var converter = new ResultsToMarkdownConverter();
         var mockStep = new MockTestStep();
         
-        var stepResult = new StepResult
+        var stepResult = new StepResult(1)
         {
             Step = mockStep,
             Success = true,
@@ -96,7 +96,7 @@ public class ResultsToMarkdownConverterTests
         var mockInnerStep2 = new MockTestStep { Type = "http" };
         
         // Create inner step results
-        var innerStep1Result = new StepResult
+        var innerStep1Result = new StepResult(0)
         {
             Step = mockInnerStep1,
             Success = true,
@@ -104,7 +104,7 @@ public class ResultsToMarkdownConverterTests
             DetailedDescription = "Wait 100ms"
         };
         
-        var innerStep2Result = new StepResult
+        var innerStep2Result = new StepResult(1)
         {
             Step = mockInnerStep2,
             Success = false,
@@ -114,7 +114,7 @@ public class ResultsToMarkdownConverterTests
         };
         
         // Create main template step result and add inner results using reflection
-        var templateStepResult = new StepResult
+        var templateStepResult = new StepResult(2)
         {
             Step = mockTemplateStep,
             Success = true,
@@ -160,7 +160,7 @@ public class ResultsToMarkdownConverterTests
         var assertion2 = new JTest.Core.Assertions.AssertionResult(true) { Description = "Workflow expected end value: 10", ActualValue = "10", ExpectedValue = "10" };
         var assertion3 = new JTest.Core.Assertions.AssertionResult(false) { Description = "Activity execution numbers expected : 11", ActualValue = "9", ExpectedValue = "11" };
         
-        var stepResult = new StepResult
+        var stepResult = new StepResult(0)
         {
             Step = mockStep,
             Success = true,
@@ -221,7 +221,7 @@ public class ResultsToMarkdownConverterTests
             request = requestData
         };
 
-        var stepResult = new StepResult
+        var stepResult = new StepResult(0)
         {
             Step = mockHttpStep,
             Success = true,
@@ -265,17 +265,16 @@ public class ResultsToMarkdownConverterTests
 public class MockTestStep : IStep
 {
     public string Type { get; set; } = "test";
-    public string? Id { get; set; }
+    public string? Id { get; }
 
-    public bool ValidateConfiguration(JsonElement configuration) => true;
+    public string? Name { get; }
+
+    public string? Description { get; }
+
+    public bool ValidateConfiguration(List<string> validationErrors) => true;
 
     public Task<StepResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {
-        return Task.FromResult(StepResult.CreateSuccess(this));
-    }
-
-    public string GetStepDescription()
-    {
-        return "Mock test step";
+        return Task.FromResult(StepResult.CreateSuccess(0, this));
     }
 }

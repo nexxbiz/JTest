@@ -10,30 +10,20 @@ namespace JTest.Core.Steps;
 /// <summary>
 /// Step that executes a template with provided parameters in an isolated context
 /// </summary>
-public class UseStep : BaseStep
+public class UseStep(ITemplateProvider templateProvider, StepFactory stepFactory, JsonElement configuration) 
+    : BaseStep(configuration)
 {
-    private readonly ITemplateProvider _templateProvider;
-    private readonly StepFactory _stepFactory;
-
-    public UseStep(ITemplateProvider templateProvider, StepFactory stepFactory)
-    {
-        _templateProvider = templateProvider;
-        _stepFactory = stepFactory;
-    }
-
     public override string Type => "use";
 
-    public override bool ValidateConfiguration(JsonElement configuration)
+    public string? Template { get; private set; }
+
+    public override void ValidateConfiguration(List<string> validationErrors)
     {
-        SetConfiguration(configuration);
-
         // Must have template property
-        if (!configuration.TryGetProperty("template", out _))
+        if (!Configuration.TryGetProperty("template", out _))
         {
-            return false;
-        }
-
-        return true;
+            validationErrors.Add("Use step configuration must have a 'template' property");
+        }        
     }
 
     public override async Task<StepResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
@@ -65,7 +55,7 @@ public class UseStep : BaseStep
             // Still process assertions even when template execution fails  
             var assertionResults = await ProcessAssertionsAsync(context);
 
-            var result = StepResult.CreateFailure(this, ex.Message, stopwatch.ElapsedMilliseconds);
+            var result = StepResult.CreateFailure(context.StepNumber, this, ex.Message, stopwatch.ElapsedMilliseconds);
             result.AssertionResults = assertionResults;
             return result;
         }
@@ -76,9 +66,14 @@ public class UseStep : BaseStep
         // Get template name
         var templateName = Configuration.GetProperty("template").GetString()
             ?? throw new InvalidOperationException("Template name is required");
+        if(templateName == "elsa-get-workflow-instance")
+        {
+            var t = "";
+        }
+        Template = templateName;
 
         // Get template definition
-        var template = _templateProvider.GetTemplate(templateName)
+        var template = templateProvider.GetTemplate(templateName)
             ?? throw new InvalidOperationException($"Template '{templateName}' not found");
 
         // Create isolated execution context for template
@@ -100,7 +95,7 @@ public class UseStep : BaseStep
         var innerStepResults = new List<StepResult>();
         foreach (var stepConfig in template.Steps)
         {
-            var step = _stepFactory.CreateStep(stepConfig);
+            var step = stepFactory.CreateStep(stepConfig);
             var stepResult = await step.ExecuteAsync(templateContext);
             innerStepResults.Add(stepResult);   
             if (!stepResult.Success)
@@ -307,13 +302,5 @@ public class UseStep : BaseStep
             Duration = stopwatch.Elapsed,
             Description = $"Execute template '{templateName}'"
         };
-    }
-
-    public override string GetStepDescription()
-    {
-        var templateName = Configuration.TryGetProperty("template", out var templateElement)
-            ? templateElement.GetString() ?? "unknown"
-            : "unknown";
-        return $"Execute template '{templateName}'";
     }
 }

@@ -7,6 +7,8 @@ namespace JTest.Core.Models;
 /// </summary>
 public class JTestCaseResult
 {
+    private readonly List<string> errors = [];
+
     /// <summary>
     /// Gets or sets the test case name
     /// </summary>
@@ -35,5 +37,15 @@ public class JTestCaseResult
     /// <summary>
     /// Gets or sets any error message if execution failed
     /// </summary>
-    public string? ErrorMessage { get; set; }
+    public string? ErrorMessage => errors.Count > 0 ? string.Join("; ", errors) : null;
+
+    public bool HasErrors => errors.Count > 0;
+
+    public void AddError(string? error)
+    {
+        if(!string.IsNullOrWhiteSpace(error))
+        {
+            errors.Add(error);
+        }
+    }
 }

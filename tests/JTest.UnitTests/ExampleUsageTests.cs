@@ -217,12 +217,6 @@ public class MockStepFactory : StepFactory
             _ => throw new ArgumentException($"Unknown step type: {stepType}")
         };
 
-        // Set step ID if provided
-        if (jsonElement.TryGetProperty("id", out var idElement))
-        {
-            step.Id = idElement.GetString();
-        }
-
         return step;
     }
 }
@@ -235,7 +229,11 @@ public class MockHttpStep : IStep
     public string Type => "http";
     public string? Id { get; set; }
 
-    public bool ValidateConfiguration(JsonElement configuration) => true;
+    public string? Name { get; set; }
+
+    public string? Description { get; set; }
+
+    public bool ValidateConfiguration(List<string> validationErrors) => true;
 
     public Task<StepResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {
@@ -263,7 +261,7 @@ public class MockHttpStep : IStep
             context.Variables["orderId"] = "ORDER123";
         }
 
-        return Task.FromResult(StepResult.CreateSuccess(this,responseData, 100));
+        return Task.FromResult(StepResult.CreateSuccess(context.StepNumber, this,responseData, 100));
     }
 
     public string GetStepDescription()
@@ -278,14 +276,20 @@ public class MockHttpStep : IStep
 public class MockWaitStep : IStep
 {
     public string Type => "wait";
-    public string? Id { get; set; }
 
-    public bool ValidateConfiguration(JsonElement configuration) => true;
+    public string? Id { get; }
+
+
+    public string? Name { get; set; }
+
+    public string? Description { get; set; }
+
+    public bool ValidateConfiguration(List<string> validationErrors) => true;
 
     public Task<StepResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {
         var resultData = new { delayMs = 1, executedAt = DateTime.UtcNow };
-        return Task.FromResult(StepResult.CreateSuccess(this, resultData, 1));
+        return Task.FromResult(StepResult.CreateSuccess(context.StepNumber, this, resultData, 1));
     }
 
     public string GetStepDescription()

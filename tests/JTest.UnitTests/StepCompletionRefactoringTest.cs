@@ -44,14 +44,13 @@ public class StepCompletionRefactoringTest
 
         // Test HttpStep basic execution (no assertions)
         var httpClient = new HttpClient(new TestHttpMessageHandler());
-        var httpStep = new HttpStep(httpClient);
         var httpConfig = JsonDocument.Parse("""
         {
             "method": "GET",
             "url": "https://test.com"
         }
         """).RootElement;
-        httpStep.ValidateConfiguration(httpConfig);
+        var httpStep = new HttpStep(httpClient, httpConfig);
         var httpResult = await httpStep.ExecuteAsync(context);
 
         // Verify consistent step result structure
@@ -61,13 +60,12 @@ public class StepCompletionRefactoringTest
         Assert.Empty(httpResult.AssertionResults); // No assertions configured
 
         // Test WaitStep basic execution (no assertions) 
-        var waitStep = new WaitStep();
         var waitConfig = JsonDocument.Parse("""
         {
             "ms": 1
         }
         """).RootElement;
-        waitStep.ValidateConfiguration(waitConfig);
+        var waitStep = new WaitStep(waitConfig);
         var waitResult = await waitStep.ExecuteAsync(context);
 
         // Verify consistent step result structure
@@ -80,7 +78,6 @@ public class StepCompletionRefactoringTest
     private async Task TestStepWithFailingAssertions_HttpStep(TestExecutionContext context, JsonElement assertionConfig)
     {
         var httpClient = new HttpClient(new TestHttpMessageHandler());
-        var httpStep = new HttpStep(httpClient);
 
         var config = JsonDocument.Parse($$"""
         {
@@ -90,7 +87,7 @@ public class StepCompletionRefactoringTest
         }
         """).RootElement;
 
-        httpStep.ValidateConfiguration(config);
+        var httpStep = new HttpStep(httpClient, config);
 
         var result = await httpStep.ExecuteAsync(context);
 
@@ -105,7 +102,6 @@ public class StepCompletionRefactoringTest
 
     private async Task TestStepWithFailingAssertions_WaitStep(TestExecutionContext context, JsonElement assertionConfig)
     {
-        var waitStep = new WaitStep();
 
         var config = JsonDocument.Parse($$"""
         {
@@ -113,8 +109,7 @@ public class StepCompletionRefactoringTest
             "assert": {{assertionConfig.GetRawText()}}
         }
         """).RootElement;
-
-        waitStep.ValidateConfiguration(config);
+        var waitStep = new WaitStep(config);
 
         var result = await waitStep.ExecuteAsync(context);
 

@@ -19,6 +19,8 @@ public class AssertionResult
     public object? ExpectedValue { get; set; }
     public string ErrorMessage { get; set; } = "";
 
+    public bool MaskValue { get; set; }
+
     public AssertionResult(bool success, string errorMessage = "")
     {
         Success = success;
@@ -156,7 +158,7 @@ public class GreaterThanAssertion : IAssertionOperation
         try
         {
             bool result;
-            if(AssertionHelper.IsDateTimeAssertion(actualValue, expectedValue, out var actualTicks, out var expectedTicks))
+            if (AssertionHelper.IsDateTimeAssertion(actualValue, expectedValue, out var actualTicks, out var expectedTicks))
             {
                 result = actualTicks > expectedTicks;
             }
@@ -184,7 +186,7 @@ public class GreaterThanAssertion : IAssertionOperation
                 ExpectedValue = expectedValue
             };
         }
-    }    
+    }
 }
 
 /// <summary>
@@ -263,7 +265,12 @@ public class NotExistsAssertion : IAssertionOperation
         var exists = actualValue != null && !string.IsNullOrEmpty(actualValue.ToString());
         var result = !exists;
         var message = result ? "" : "Expected value to not exist, but it does";
-        return new AssertionResult(result, message);
+        return new AssertionResult(result, message)
+        { 
+            Operation = OperationType,
+            ActualValue = actualValue,
+            ExpectedValue = expectedValue
+        };
     }
 }
 
@@ -310,14 +317,22 @@ public class NotContainsAssertion : IAssertionOperation
     {
         if (actualValue == null || expectedValue == null)
         {
-            return new AssertionResult(true, "Null values don't contain anything");
+            return new AssertionResult(true, "Null values don't contain anything")
+            {
+                Operation = OperationType
+            };
         }
 
         var actualStr = actualValue.ToString() ?? "";
         var expectedStr = expectedValue.ToString() ?? "";
         var result = !actualStr.Contains(expectedStr, StringComparison.OrdinalIgnoreCase);
         var message = result ? "" : $"Expected '{actualStr}' to not contain '{expectedStr}'";
-        return new AssertionResult(result, message);
+        return new AssertionResult(result, message)
+        {
+            Operation = OperationType,
+            ActualValue = actualStr,
+            ExpectedValue = expectedStr
+        };
     }
 }
 
@@ -332,14 +347,22 @@ public class StartsWithAssertion : IAssertionOperation
     {
         if (actualValue == null || expectedValue == null)
         {
-            return new AssertionResult(false, "Cannot perform startswith check on null values");
+            return new AssertionResult(false, "Cannot perform startswith check on null values")
+            {
+                Operation = OperationType
+            };
         }
 
         var actualStr = actualValue.ToString() ?? "";
         var expectedStr = expectedValue.ToString() ?? "";
         var result = actualStr.StartsWith(expectedStr, StringComparison.OrdinalIgnoreCase);
         var message = result ? "" : $"Expected '{actualStr}' to start with '{expectedStr}'";
-        return new AssertionResult(result, message);
+        return new AssertionResult(result, message)
+        {
+            Operation = OperationType,
+            ActualValue = actualStr,
+            ExpectedValue = expectedStr
+        };
     }
 }
 
@@ -354,14 +377,22 @@ public class EndsWithAssertion : IAssertionOperation
     {
         if (actualValue == null || expectedValue == null)
         {
-            return new AssertionResult(false, "Cannot perform endswith check on null values");
+            return new AssertionResult(false, "Cannot perform endswith check on null values")
+            {
+                Operation = OperationType
+            };
         }
 
         var actualStr = actualValue.ToString() ?? "";
         var expectedStr = expectedValue.ToString() ?? "";
         var result = actualStr.EndsWith(expectedStr, StringComparison.OrdinalIgnoreCase);
         var message = result ? "" : $"Expected '{actualStr}' to end with '{expectedStr}'";
-        return new AssertionResult(result, message);
+        return new AssertionResult(result, message)
+        {
+            Operation = OperationType,
+            ActualValue = actualStr,
+            ExpectedValue = expectedStr
+        };
     }
 }
 
@@ -387,11 +418,19 @@ public class MatchesAssertion : IAssertionOperation
             var regex = new Regex(pattern, RegexOptions.IgnoreCase);
             var result = regex.IsMatch(actualStr);
             var message = result ? "" : $"Expected '{actualStr}' to match pattern '{pattern}'";
-            return new AssertionResult(result, message);
+            return new AssertionResult(result, message)
+            {
+                Operation = OperationType,
+                ActualValue = actualStr,
+                ExpectedValue = pattern
+            };
         }
         catch (Exception ex)
         {
-            return new AssertionResult(false, $"Invalid regex pattern '{pattern}': {ex.Message}");
+            return new AssertionResult(false, $"Invalid regex pattern '{pattern}': {ex.Message}")
+            {
+                Operation = OperationType
+            };
         }
     }
 }
@@ -419,11 +458,19 @@ public class GreaterOrEqualAssertion : IAssertionOperation
                 result = actual >= expected;
             }
             var message = result ? "" : $"Expected {actualValue} to be greater than or equal to {expectedValue}";
-            return new AssertionResult(result, message);
+            return new AssertionResult(result, message)
+            {
+                ExpectedValue = expectedValue,
+                ActualValue = actualValue,
+                Operation = OperationType
+            };
         }
         catch (Exception ex)
         {
-            return new AssertionResult(false, $"Cannot compare values: {ex.Message}");
+            return new AssertionResult(false, $"Cannot compare values: {ex.Message}")
+            {
+                Operation = OperationType
+            };
         }
     }
 }
@@ -451,11 +498,19 @@ public class LessOrEqualAssertion : IAssertionOperation
                 result = actual <= expected;
             }
             var message = result ? "" : $"Expected {actualValue} to be less than or equal to {expectedValue}";
-            return new AssertionResult(result, message);
+            return new AssertionResult(result, message)
+            {
+                ExpectedValue = expectedValue,
+                ActualValue = actualValue,
+                Operation = OperationType
+            };
         }
         catch (Exception ex)
         {
-            return new AssertionResult(false, $"Cannot compare values: {ex.Message}");
+            return new AssertionResult(false, $"Cannot compare values: {ex.Message}")
+            {
+                Operation = OperationType
+            };
         }
     }
 }
@@ -486,14 +541,27 @@ public class BetweenAssertion : IAssertionOperation
                 var max = Convert.ToDouble(array[1].GetRawText(), CultureInfo.InvariantCulture);
                 var result = actual >= min && actual <= max;
                 var message = result ? "" : $"Expected {actualValue} to be between {min} and {max}";
-                return new AssertionResult(result, message);
+                return new AssertionResult(result, message)
+                {
+                    ExpectedValue = expectedValue,
+                    ActualValue = actualValue,
+                    Operation = OperationType
+                };
             }
 
-            return new AssertionResult(false, "Between assertion requires an array of [min, max] values");
+            return new AssertionResult(false, "Between assertion requires an array of [min, max] values")
+            {
+                ExpectedValue = expectedValue,
+                ActualValue = actualValue,
+                Operation = OperationType
+            };
         }
         catch (Exception ex)
         {
-            return new AssertionResult(false, $"Cannot compare values: {ex.Message}");
+            return new AssertionResult(false, $"Cannot compare values: {ex.Message}")
+            {
+                Operation = OperationType
+            };
         }
     }
 }
@@ -519,11 +587,19 @@ public class LengthAssertion : IAssertionOperation
 
             var result = actualLength == expectedLength;
             var message = result ? "" : $"Expected length {expectedLength} but got {actualLength}";
-            return new AssertionResult(result, message);
+            return new AssertionResult(result, message)
+            {
+                ExpectedValue = expectedLength,
+                ActualValue = actualLength,
+                Operation = OperationType
+            };
         }
         catch (Exception ex)
         {
-            return new AssertionResult(false, $"Cannot compare lengths: {ex.Message}");
+            return new AssertionResult(false, $"Cannot compare lengths: {ex.Message}")
+            {
+                Operation = OperationType
+            };
         }
     }
 
@@ -555,12 +631,22 @@ public class EmptyAssertion : IAssertionOperation
 
         if (length == -1)
         {
-            return new AssertionResult(false, "Cannot determine if the provided value is empty");
+            return new AssertionResult(false, "Cannot determine if the provided value is empty")
+            {
+                ExpectedValue = expectedValue,
+                ActualValue = actualValue,
+                Operation = OperationType
+            };
         }
 
         var result = length == 0;
         var message = result ? "" : $"Expected value to be empty but it has {length} items/characters";
-        return new AssertionResult(result, message);
+        return new AssertionResult(result, message)
+        {
+            ExpectedValue = expectedValue,
+            ActualValue = actualValue,
+            Operation = OperationType
+        };
     }
 
     private int GetLength(object? value)
@@ -591,12 +677,22 @@ public class NotEmptyAssertion : IAssertionOperation
 
         if (length == -1)
         {
-            return new AssertionResult(false, "Cannot determine if the provided value is empty");
+            return new AssertionResult(false, "Cannot determine if the provided value is empty")
+            {
+                ExpectedValue = expectedValue,
+                ActualValue = actualValue,
+                Operation = OperationType
+            };
         }
 
         var result = length > 0;
         var message = result ? "" : "Expected value to not be empty but it is";
-        return new AssertionResult(result, message);
+        return new AssertionResult(result, message)
+        {
+            ExpectedValue = expectedValue,
+            ActualValue = actualValue,
+            Operation = OperationType
+        };
     }
 
     private int GetLength(object? value)
@@ -625,13 +721,19 @@ public class InAssertion : IAssertionOperation
     {
         if (expectedValue == null)
         {
-            return new AssertionResult(false, "Expected value cannot be null for 'in' assertion");
+            return new AssertionResult(false, "Expected value cannot be null for 'in' assertion")
+            {
+                Operation = OperationType
+            };
         }
 
         var collection = GetCollection(expectedValue);
         if (collection == null)
         {
-            return new AssertionResult(false, "Expected value must be a collection for 'in' assertion");
+            return new AssertionResult(false, "Expected value must be a collection for 'in' assertion")
+            {
+                Operation = OperationType
+            };
         }
 
         var actualStr = actualValue?.ToString() ?? "";
@@ -643,7 +745,12 @@ public class InAssertion : IAssertionOperation
 
         var collectionStr = string.Join(", ", collection.Select(x => x?.ToString() ?? "null"));
         var message = result ? "" : $"Expected '{actualValue}' to be in [{collectionStr}]";
-        return new AssertionResult(result, message);
+        return new AssertionResult(result, message)
+        {
+            ExpectedValue = expectedValue,
+            ActualValue = actualStr,
+            Operation = OperationType
+        };
     }
 
     private IEnumerable<object?>? GetCollection(object value)
@@ -683,7 +790,10 @@ public class TypeAssertion : IAssertionOperation
     {
         if (expectedValue == null)
         {
-            return new AssertionResult(false, "Expected type cannot be null");
+            return new AssertionResult(false, "Expected type cannot be null")
+            {
+                Operation = OperationType
+            };
         }
 
         var expectedType = expectedValue.ToString()?.ToLowerInvariant() ?? "";
@@ -691,7 +801,12 @@ public class TypeAssertion : IAssertionOperation
 
         var result = string.Equals(actualType, expectedType, StringComparison.OrdinalIgnoreCase);
         var message = result ? "" : $"Expected type '{expectedType}' but got '{actualType}'";
-        return new AssertionResult(result, message);
+        return new AssertionResult(result, message)
+        {
+            Operation = OperationType,
+            ExpectedValue = expectedType,
+            ActualValue = actualType
+        };
     }
 
     private string GetValueType(object? value)
@@ -847,6 +962,18 @@ public static class AssertionProcessor
         foreach (var assertionElement in assertionsElement.EnumerateArray())
         {
             var result = ProcessSingleAssertion(assertionElement, context);
+            if (assertionElement.TryGetProperty("mask", out var maskElement))
+            {
+                if (maskElement.ValueKind == JsonValueKind.True || maskElement.ValueKind == JsonValueKind.False)
+                {
+                    result.MaskValue = maskElement.GetBoolean();
+                }
+                else if (maskElement.ValueKind == JsonValueKind.String)
+                {
+                    result.MaskValue = bool.TryParse(maskElement.GetString(), out var mask) && mask;
+                }
+            }
+
             results.Add(result);
         }
 

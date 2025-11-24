@@ -1,3 +1,4 @@
+using JTest.Core.Models;
 using JTest.Core.Templates;
 using System.Text.Json;
 
@@ -37,23 +38,19 @@ public class StepFactory
 
         IStep step = stepType?.ToLowerInvariant() switch
         {
-            "http" => new HttpStep(_httpClient),
-            "wait" => new WaitStep(),
-            "use" => new UseStep(_templateProvider, this),
-            "assert" => new AssertStep(),
+            "http" => new HttpStep(_httpClient, jsonElement),
+            "wait" => new WaitStep(jsonElement),
+            "use" => new UseStep(_templateProvider, this, jsonElement),
+            "assert" => new AssertStep(jsonElement),
             _ => throw new ArgumentException($"Unknown step type: {stepType}")
         };
 
-        // Set step ID if provided
-        if (jsonElement.TryGetProperty("id", out var idElement))
-        {
-            step.Id = idElement.GetString();
-        }
+        var validationErrors = new List<string>();
 
         // Validate configuration
-        if (!step.ValidateConfiguration(jsonElement))
+        if (!step.ValidateConfiguration(validationErrors))
         {
-            throw new ArgumentException($"Invalid configuration for step type '{stepType}'");
+            throw new StepConfigurationValidationException(stepType, validationErrors);
         }
 
         return step;

@@ -1,9 +1,9 @@
-﻿using JTest.Core;
+﻿using JTest.Cli;
+using JTest.Core;
 using JTest.Core.Models;
-using JTest.Core.Converters;
-using JTest.Core.Debugging;
+using JTest.Core.Output;
+using JTest.Core.Output.Markdown;
 using System.Collections.Concurrent;
-using System.Text;
 using System.Text.Json;
 
 namespace JTest;
@@ -30,17 +30,21 @@ public class JTestCli
     private readonly Dictionary<string, object> _envVars = [];
     private readonly Dictionary<string, object> _globals = [];
     private readonly TestRunner _testRunner;
-    private int _parallelCount = 1; // Default to sequential execution
-    private readonly string _debugOutputDir = "./bin/debug";
-    private const string DebugPathEnvVar = "debugPath"; // Define debug output via config 
+    private int _parallelCount = 1; // Default to sequential execution        
     private const string globalConfigFileEnvVar = "JTEST_CONFIG_FILE"; // Environment variable name for global config file path
     private static readonly JsonSerializerOptions jsonSerializerOptions = new() { PropertyNameCaseInsensitive = true };
+    private string OutputDirectory = Directory.GetCurrentDirectory();
+    private bool skipOutput = false;
 
     public JTestCli()
     {
         var globalConfig = LoadGlobalConfigurationFile();
         _testRunner = new TestRunner(globalConfig);
-        _debugOutputDir = Environment.GetEnvironmentVariable(DebugPathEnvVar, EnvironmentVariableTarget.Process) ?? _debugOutputDir;
+
+        if (!string.IsNullOrWhiteSpace(globalConfig?.OutputDirectory))
+        {
+            OutputDirectory = globalConfig.OutputDirectory;
+        }
     }
 
     private static GlobalConfiguration? LoadGlobalConfigurationFile()
@@ -87,14 +91,16 @@ EXPORT FORMATS:
     karate          Karate DSL Feature file
 
 RUNTIME OPTIONS:
-    --env key=value                     Set environment variable
-    --env-file <path.json>              Load environment from JSON file
-    --globals key=value                 Set global variable
-    --globals-file <path.json>          Load globals from JSON file    
-    --parallel <count>, -p <count>      Run test files in parallel (default: 1)
+    --env key=value                             Set environment variable
+    --env-file <path.json>                      Load environment from JSON file
+    --globals key=value                         Set global variable
+    --globals-file <path.json>                  Load globals from JSON file    
+    --parallel <count>, -p <count>              Run test files in parallel (default: 1)
+    --output <folder-path>, -o <folder-path>    Output folder path where reports are saved (default: working directory)
+    --skip-output                               When specified, then does not output a report file (default: false)
 
 ENVIRONMENT VARIABLES:    
-    JTEST_CONFIG_FILE                   Path to global JTest config file (JSON)    
+    JTEST_CONFIG_FILE                           Path to global JTest config file (JSON)
 
 EXAMPLES:
     # Run a single test file
@@ -132,6 +138,11 @@ EXAMPLES:
 
 For more information, visit: https://github.com/ELSA-X/JTEST";
 
+    private static IOutputGenerator GetTestCaseOutputGenerator(List<string> args)
+    {
+        return new MarkdownOutputGenerator();
+    }
+
     public async Task<int> RunAsync(string[] args)
     {
         if (args.Length == 0)
@@ -161,19 +172,119 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
         // Handle direct test execution (shorthand)
         if (command.EndsWith(".json") && !IsKnownCommand(command))
         {
-            return await RunCommand("run", parsedArgs);
+            return await ExecuteRunOrDebugCommand([.. parsedArgs], command);
+        }
+        else if (command == "run" || command == "debug")
+        {
+            return await ExecuteRunOrDebugCommand([.. parsedArgs.Skip(1)], command);
+        }
+        else
+        {
+            // Handle NON-execution known commands
+            return command switch
+            {
+                "export" => await ExportCommand([.. parsedArgs.Skip(1)]),
+                "validate" => await ValidateCommand([.. parsedArgs.Skip(1)]),
+                "create" => await CreateCommand([.. parsedArgs.Skip(1)]),
+
+                _ => HandleUnknownCommand(command)
+            };
+        }
+    }
+
+    async Task<int> ExecuteRunOrDebugCommand(List<string> args, string command)
+    {
+        var outputGenerator = GetTestCaseOutputGenerator(args);
+        var results = await RunCommand(args);
+        if (results is null)
+        {
+            return 1;
         }
 
-        // Handle known commands
-        return command switch
+        ProcessResults(outputGenerator, results, command == "debug");
+        if (results.All(x => x.CasesFailed == 0))
         {
-            "run" => await RunCommand("run", parsedArgs.Skip(1).ToList()),
-            "export" => await ExportCommand(parsedArgs.Skip(1).ToList()),
-            "debug" => await DebugCommand(parsedArgs.Skip(1).ToList()),
-            "validate" => await ValidateCommand(parsedArgs.Skip(1).ToList()),
-            "create" => await CreateCommand(parsedArgs.Skip(1).ToList()),
-            _ => HandleUnknownCommand(command)
-        };
+            return 0;
+        }
+
+        return 1;
+    }
+
+    void ProcessResults(IOutputGenerator outputGenerator, IEnumerable<TestFileExecutionResult> results, bool isDebug)
+    {
+        if (!Directory.Exists(OutputDirectory))
+        {
+            Directory.CreateDirectory(OutputDirectory);
+        }
+
+        Console.WriteLine();
+        Console.WriteLine($"OVERALL TEST SUMMARY");
+
+        Console.WriteLine($"Files processed: {results.Count()}");
+        Console.WriteLine();
+        Console.WriteLine($"Files passed:");
+        var filesPassed = results.Where(x => x.CasesFailed == 0).Select(x => x.TestSuiteName ?? x.FilePath);
+        foreach(var file in filesPassed)
+        {
+            Console.WriteLine("  - " + file);
+        }
+        Console.WriteLine();
+
+        var filesFailed = results.Where(x => x.CasesFailed > 0).Select(x => x.TestSuiteName ?? x.FilePath);
+        if (filesFailed.Any())
+        {
+            Console.WriteLine($"Files failed:");
+            foreach (var file in filesFailed)
+            {
+                Console.WriteLine("  - " + file);
+            }
+            Console.WriteLine();
+        }
+        
+        Console.WriteLine($"Total test cases executed: {results.Sum(x => x.TestCaseResults.Count())}");
+        Console.WriteLine($"Total test cases passed: {results.Sum(x => x.CasesPassed)}");
+        Console.WriteLine($"Total test cases failed: {results.Sum(x => x.CasesFailed)}");
+
+        foreach (var result in results)
+        {
+            var output = outputGenerator.GenerateOutput(
+                result.FilePath,
+                result.TestSuiteName,
+                result.TestSuiteDescription,
+                result.TestCaseResults,
+                isDebug: isDebug,
+                environment: _envVars,
+                globals: _globals
+            );
+
+            if(!skipOutput)
+            {
+                var outputFileName = GenerateTestCaseOutputFileName(result.FilePath, result.TestCaseResults.All(x => x.Success));
+                var outputFilePath = Path.Combine(OutputDirectory, $"{outputFileName}{outputGenerator.FileExtension}");
+
+                Console.WriteLine($"Writing output report to: {outputFilePath}");
+                File.WriteAllText(outputFilePath, output);
+            }
+        }        
+    }
+
+    private static string GenerateTestCaseOutputFileName(string filePath, bool success)
+    {
+        var name = Path.GetFileNameWithoutExtension(filePath);
+
+        var dateTimeString = DateTime.UtcNow.ToString("yyyyMMdd_HHmmssfff");
+
+        var safeName = string.Concat(
+            name.Split(Path.GetInvalidFileNameChars(), StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        );
+
+        var result = $"{safeName}_{dateTimeString}";
+        if (success)
+        {
+            return $"{result}_PASSED";
+        }
+
+        return $"{result}_FAILED";
     }
 
     private List<string> ParseRuntimeOptions(string[] args)
@@ -233,6 +344,15 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
                 {
                     Console.Error.WriteLine($"Invalid parallel count: {args[i]}. Must be a positive integer.");
                 }
+            }
+            else if ((arg == "--output" || arg == "-o") && i + 1 < args.Length)
+            {
+                OutputDirectory = args[++i];
+                Console.WriteLine($"Set output directory: {OutputDirectory}");
+            }
+            else if (arg == "--skip-output"  && i < args.Length)
+            {
+                skipOutput = true;
             }
             else
             {
@@ -299,7 +419,7 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
         }
     }
 
-    private bool IsKnownCommand(string command)
+    private static bool IsKnownCommand(string command)
     {
         return command.ToLower() is "run" or "export" or "debug" or "validate" or "create" or "--help" or "-h";
     }
@@ -356,13 +476,13 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
         return files;
     }
 
-    private async Task<int> RunCommand(string command, List<string> args)
+    private async Task<IEnumerable<TestFileExecutionResult>?> RunCommand(List<string> args)
     {
         if (args.Count == 0)
         {
-            Console.Error.WriteLine($"Error: {command} command requires a test file argument");
-            Console.Error.WriteLine($"Usage: jtest {command} <testfile>");
-            return 1;
+            Console.Error.WriteLine($"Error: Run command requires a test file argument");
+            Console.Error.WriteLine($"Usage: jtest run <testfile>");
+            return null;
         }
 
         var testFiles = new List<string>();
@@ -377,31 +497,10 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
         if (testFiles.Count == 0)
         {
             Console.Error.WriteLine($"Error: No test files found matching patterns: {string.Join(", ", args)}");
-            return 1;
+            return null;
         }
 
-        // Display environment and global variables once
-        if (_envVars.Count > 0)
-        {
-            Console.WriteLine("Environment variables:");
-            foreach (var kvp in _envVars)
-            {
-                Console.WriteLine($"  {kvp.Key} = {kvp.Value}");
-            }
-        }
-
-        if (_globals.Count > 0)
-        {
-            Console.WriteLine("Global variables:");
-            foreach (var kvp in _globals)
-            {
-                Console.WriteLine($"  {kvp.Key} = {kvp.Value}");
-            }
-        }
-
-        var allResults = new List<JTestCaseResult>();
-        var processedFiles = 0;
-        var failedFiles = 0;
+        var allResults = new List<TestFileExecutionResult>();
 
         if (_parallelCount > 1 && testFiles.Count > 1)
         {
@@ -417,6 +516,7 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
             {
                 MaxDegreeOfParallelism = _parallelCount
             };
+
 
             Parallel.ForEach(testFiles, parallelOptions, testFile =>
             {
@@ -439,30 +539,17 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
                 {
                     // Read and execute the test file
                     var jsonContent = File.ReadAllText(testFile);
-
-                    var results = _testRunner.RunTestAsync(jsonContent, testFile, _envVars, _globals).Result;
+                    var jsonDocument = JsonDocument.Parse(jsonContent);
+                    var jsonDefinition = jsonDocument.RootElement;
+                    var (testSuiteName, testSuiteDescription) = GetTestFileMetaData(jsonDefinition);
+                    var results = _testRunner.RunTestAsync(jsonDefinition, testFile, _envVars, _globals).Result;
 
                     foreach (var result in results)
                     {
                         allResultsThreadSafe.Add(result);
                     }
 
-                    // Display results for this file
-                    var fileSuccess = 0;
-                    var fileFailed = 0;
-
-                    foreach (var result in results)
-                    {
-                        if (result.Success)
-                            fileSuccess++;
-                        else
-                            fileFailed++;
-                    }
-
-                    lock (Console.Out)
-                    {
-                        Console.WriteLine($"\nFile Summary - {Path.GetFileName(testFile)}: {fileSuccess} passed, {fileFailed} failed");
-                    }
+                    allResults.Add(new(testFile, testSuiteName, testSuiteDescription, results));
 
                     Interlocked.Increment(ref processedFilesThreadSafe);
                 }
@@ -475,10 +562,6 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
                     Interlocked.Increment(ref failedFilesThreadSafe);
                 }
             });
-
-            allResults.AddRange(allResultsThreadSafe);
-            processedFiles = processedFilesThreadSafe;
-            failedFiles = failedFilesThreadSafe;
         }
         else
         {
@@ -488,7 +571,6 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
                 if (!File.Exists(testFile))
                 {
                     Console.Error.WriteLine($"Error: Test file not found: {testFile}");
-                    failedFiles++;
                     continue;
                 }
 
@@ -498,71 +580,45 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
                 {
                     // Read and execute the test file
                     var jsonContent = await File.ReadAllTextAsync(testFile);
+                    var jsonDocument = JsonDocument.Parse(jsonContent);
+                    var jsonDefinition = jsonDocument.RootElement;
+                    var (testSuiteName, testSuiteDescription) = GetTestFileMetaData(jsonDefinition);
 
-                    var results = await _testRunner.RunTestAsync(jsonContent, testFile, _envVars, _globals);
-                    allResults.AddRange(results);
-
-                    // Display results for this file
-                    var fileSuccess = 0;
-                    var fileFailed = 0;
-
-                    foreach (var result in results)
-                    {
-                        Console.WriteLine($"\nTest: {result.TestCaseName}");
-                        if (result.Dataset != null)
-                        {
-                            Console.WriteLine($"Dataset: {result.Dataset.Name ?? "unnamed"}");
-                        }
-                        Console.WriteLine($"Status: {(result.Success ? "PASSED" : "FAILED")}");
-                        Console.WriteLine($"Duration: {result.DurationMs}ms");
-                        Console.WriteLine($"Steps executed: {result.StepResults.Count}");
-
-                        if (!result.Success && !string.IsNullOrEmpty(result.ErrorMessage))
-                        {
-                            Console.WriteLine($"Error: {result.ErrorMessage}");
-                        }
-
-                        if (result.Success)
-                            fileSuccess++;
-                        else
-                            fileFailed++;
-                    }
-
-                    Console.WriteLine($"\nFile Summary - {Path.GetFileName(testFile)}: {fileSuccess} passed, {fileFailed} failed");
-                    processedFiles++;
+                    var results = await _testRunner.RunTestAsync(jsonDefinition, testFile, _envVars, _globals);
+                    allResults.Add(new(testFile, testSuiteName, testSuiteDescription, results));
                 }
                 catch (Exception ex)
                 {
                     Console.Error.WriteLine($"Error executing test file {testFile}: {ex.Message}");
-                    failedFiles++;
                 }
             }
         }
 
-        // Display overall summary
-
-        Console.WriteLine($"OVERALL TEST SUMMARY");
-
-        Console.WriteLine($"Files processed: {processedFiles}");
-        Console.WriteLine($"Files failed: {failedFiles}");
-        Console.WriteLine($"Total tests: {allResults.Count}");
-        Console.WriteLine($"Passed: {allResults.Count(r => r.Success)}");
-        Console.WriteLine($"Failed: {allResults.Count(r => !r.Success)}");
-
-        var totalFailed = allResults.Count(r => !r.Success) + failedFiles;
-        if (totalFailed > 0)
-        {
-            Console.WriteLine("Test execution completed with failures.");
-            return 1;
-        }
-        else
-        {
-            Console.WriteLine("Test execution completed successfully.");
-            return 0;
-        }
+        return allResults;
     }
 
-    private Task<int> ExportCommand(List<string> args)
+    private static (string? name, string? description) GetTestFileMetaData(JsonElement jsonDefinition)
+    {
+        if (!jsonDefinition.TryGetProperty("info", out var infoElement))
+        {
+            return (null, null);
+        }
+
+        var name = string.Empty;
+        var description = string.Empty;
+        if (infoElement.TryGetProperty("name", out var nameElement))
+        {
+            name = nameElement.GetString();
+        }
+        if (infoElement.TryGetProperty("description", out var descriptionElement))
+        {
+            description = descriptionElement.GetString();
+        }
+
+        return (name, description);
+    }
+
+    private static Task<int> ExportCommand(List<string> args)
     {
         if (args.Count < 2)
         {
@@ -606,221 +662,6 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
         Console.WriteLine("Export completed successfully.");
 
         return Task.FromResult(0);
-    }
-
-    private async Task<int> DebugCommand(List<string> args)
-    {
-        if (args.Count == 0)
-        {
-            Console.Error.WriteLine("Error: debug command requires a test file argument");
-            Console.Error.WriteLine("Usage: jtest debug <testfile>");
-            return 1;
-        }
-
-        var testFiles = new List<string>();
-
-        // Process all arguments as patterns/files
-        foreach (var arg in args)
-        {
-            var expandedFiles = ExpandWildcardPattern(arg);
-            testFiles.AddRange(expandedFiles);
-        }
-
-        if (testFiles.Count == 0)
-        {
-            Console.Error.WriteLine($"Error: No test files found matching patterns: {string.Join(", ", args)}");
-            return 1;
-        }
-
-        var processedFiles = 0;
-        var failedFiles = 0;
-        var allOutputFiles = new List<string>();
-
-        foreach (var testFile in testFiles)
-        {
-            if (!File.Exists(testFile))
-            {
-                Console.Error.WriteLine($"Error: Test file not found: {testFile}");
-                failedFiles++;
-                continue;
-            }
-
-            // Generate output markdown file name for each test file
-            var testFilePath = Path.ChangeExtension(testFile, ".md");
-            var outputFileName = Path.GetRelativePath("./", testFilePath);
-            var outputFile = Path.Combine(_debugOutputDir, outputFileName);
-            outputFile = Path.GetFileNameWithoutExtension(outputFile) + $"- {DateTime.Now.ToString("yyyyMMdd-HHmmss")}" + "_debug.md";
-            allOutputFiles.Add(outputFile);
-
-            Console.WriteLine($"---------------------------------------------------");
-            Console.WriteLine($"Running test file in debug mode: {testFile}");
-            Console.WriteLine("Debug mode: ON");
-            Console.WriteLine("Verbose output: ON");
-            Console.WriteLine("Markdown logging: ON");
-            Console.WriteLine($"Debug output will be saved to: {outputFile}");
-
-            var markdownContent = new StringBuilder();
-            var securityMasker = new SecurityMasker();
-
-            // Add header to markdown file
-            markdownContent.AppendLine($"# Debug Report for {Path.GetFileName(testFile)}");
-            markdownContent.AppendLine();
-            markdownContent.AppendLine($"**Generated:** {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
-            markdownContent.AppendLine($"**Test File:** {testFile}");
-            markdownContent.AppendLine();
-
-            if (_envVars.Count > 0)
-            {
-                Console.WriteLine("\nEnvironment variables loaded");
-                markdownContent.AppendLine("## Environment Variables");
-                foreach (var kvp in _envVars)
-                {
-                    var maskedValue = securityMasker.RegisterForMasking(kvp.Key, kvp.Value);
-                    markdownContent.AppendLine($"- **{kvp.Key}**: {maskedValue}");
-                }
-                markdownContent.AppendLine();
-            }
-
-            if (_globals.Count > 0)
-            {
-                Console.WriteLine("Global variables loaded");
-                markdownContent.AppendLine("## Global Variables");
-                foreach (var kvp in _globals)
-                {
-                    var maskedValue = securityMasker.RegisterForMasking(kvp.Key, kvp.Value);
-                    markdownContent.AppendLine($"- **{kvp.Key}**: {maskedValue}");
-                }
-                markdownContent.AppendLine();
-            }
-
-            try
-            {
-                // Read and execute the test file with debug logging
-                var jsonContent = await File.ReadAllTextAsync(testFile);
-
-                var results = await _testRunner.RunTestAsync(jsonContent, testFile, _envVars, _globals);
-
-                Console.WriteLine("\nTest execution completed");
-
-                // Add debug output to markdown content
-                markdownContent.AppendLine("## Test Execution");
-                var converter = new ResultsToMarkdownConverter();
-                markdownContent.Append(converter.ConvertToMarkdown(results));
-
-                // Calculate results summary
-                var totalSuccess = 0;
-                var totalFailed = 0;
-                var errorMessages = new List<string>();
-
-                foreach (var result in results)
-                {
-                    if (result.Success)
-                        totalSuccess++;
-                    else
-                        totalFailed++;
-
-                    if (!result.Success && !string.IsNullOrEmpty(result.ErrorMessage))
-                    {
-                        errorMessages.Add($"ERROR in {result.TestCaseName}: {result.ErrorMessage}");
-                    }
-                }
-
-                // Add summary to markdown
-
-                markdownContent.AppendLine("## Summary");
-                markdownContent.AppendLine($"- **Total tests:** {results.Count}");
-                markdownContent.AppendLine($"- **Passed:** {totalSuccess}");
-                markdownContent.AppendLine($"- **Failed:** {totalFailed}");
-                markdownContent.AppendLine();
-
-                if (errorMessages.Any())
-                {
-                    markdownContent.AppendLine("## Errors");
-                    foreach (var error in errorMessages)
-                    {
-                        markdownContent.AppendLine($"- {error}");
-                    }
-                    markdownContent.AppendLine();
-                }
-
-                // Write markdown content to file
-                await File.WriteAllTextAsync(outputFile, securityMasker.ApplyMasking(markdownContent.ToString()));
-
-                // Display console summary
-                Console.WriteLine($"---------------------------------------------------");
-                Console.WriteLine($"Total tests: {results.Count}");
-                Console.WriteLine($"Passed: {totalSuccess}");
-                Console.WriteLine($"Failed: {totalFailed}");
-
-                if (errorMessages.Any())
-                {
-                    Console.WriteLine("\nErrors occurred during execution:");
-                    foreach (var error in errorMessages)
-                    {
-                        Console.WriteLine($"  {error}");
-                    }
-                }
-
-                Console.WriteLine($"Detailed debug report saved to: {outputFile}");
-
-                if (totalFailed > 0)
-                {
-                    failedFiles++;
-                }
-                else
-                {
-                    processedFiles++;
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.Error.WriteLine($"\nERROR: {ex.Message}");
-
-                // Still try to save what we have to the markdown file
-                markdownContent.AppendLine("## Error");
-                markdownContent.AppendLine($"Execution failed with error: {ex.Message}");
-
-                try
-                {
-                    await File.WriteAllTextAsync(outputFile, securityMasker.ApplyMasking(markdownContent.ToString()));
-                    Console.WriteLine($"Partial debug report saved to: {outputFile}");
-                }
-                catch
-                {
-                    // Ignore file write errors in error handling
-                }
-
-                failedFiles++;
-            }
-        }
-
-        // Display overall summary
-
-        Console.WriteLine($"DEBUG SUMMARY");
-
-        Console.WriteLine($"Files processed successfully: {processedFiles}");
-        Console.WriteLine($"Files failed: {failedFiles}");
-        Console.WriteLine($"Debug reports generated: {allOutputFiles.Count}");
-
-        if (allOutputFiles.Any())
-        {
-            Console.WriteLine("\nGenerated debug reports:");
-            foreach (var outputFile in allOutputFiles)
-            {
-                Console.WriteLine($"  - {outputFile}");
-            }
-        }
-
-        if (failedFiles > 0)
-        {
-            Console.WriteLine("Debug execution completed with failures.");
-            return 1;
-        }
-        else
-        {
-            Console.WriteLine("Debug execution completed successfully.");
-            return 0;
-        }
     }
 
     private async Task<int> CreateCommand(List<string> args)

@@ -15,8 +15,6 @@ namespace JTest.UnitTests;
 /// </summary>
 public class TestStepFactory : StepFactory
 {
-
-
     public TestStepFactory(ITemplateProvider templateProvider)
         : base(templateProvider)
     {
@@ -37,28 +35,23 @@ public class TestStepFactory : StepFactory
 
         IStep step = stepType?.ToLowerInvariant() switch
         {
-            "http" => CreateMockedHttpStep(),
-            "wait" => new WaitStep(),
-            "use" => new TestUseStep(TemplateProvider, this),
+            "http" => CreateMockedHttpStep(jsonElement),
+            "wait" => new WaitStep(jsonElement),
+            "use" => new TestUseStep(TemplateProvider, this, jsonElement),
             _ => throw new ArgumentException($"Unknown step type: {stepType}")
         };
 
-        // Set step ID if provided
-        if (jsonElement.TryGetProperty("id", out var idElement))
-        {
-            step.Id = idElement.GetString();
-        }
-
         // Validate configuration
-        if (!step.ValidateConfiguration(jsonElement))
+        var validationErrors = new List<string>();
+        if (!step.ValidateConfiguration(validationErrors))
         {
-            throw new ArgumentException($"Invalid configuration for step type '{stepType}'");
+            throw new StepConfigurationValidationException(stepType, validationErrors);
         }
 
         return step;
     }
 
-    private HttpStep CreateMockedHttpStep()
+    private HttpStep CreateMockedHttpStep(JsonElement configuration)
     {
         var mockHandler = new Mock<HttpMessageHandler>();
         var response = new HttpResponseMessage(HttpStatusCode.OK)
@@ -73,7 +66,7 @@ public class TestStepFactory : StepFactory
             .ReturnsAsync(response);
 
         var httpClient = new HttpClient(mockHandler.Object);
-        return new HttpStep(httpClient);
+        return new HttpStep(httpClient, configuration);
     }
 }
 
@@ -84,8 +77,8 @@ public class TestUseStep : UseStep
 {
     private readonly StepFactory _testStepFactory;
 
-    public TestUseStep(ITemplateProvider templateProvider, StepFactory stepFactory)
-        : base(templateProvider, stepFactory)
+    public TestUseStep(ITemplateProvider templateProvider, StepFactory stepFactory, JsonElement configuration)
+        : base(templateProvider, stepFactory, configuration)
     {
         _testStepFactory = stepFactory;
     }
@@ -101,14 +94,15 @@ public class UseStepTests
         // Arrange
         var templateProvider = new TemplateProvider();
         var stepFactory = new StepFactory(templateProvider);
-        var useStep = new UseStep(templateProvider, stepFactory);
 
         var configWithoutTemplate = JsonSerializer.Deserialize<JsonElement>("{}");
         var configWithTemplate = JsonSerializer.Deserialize<JsonElement>("{\"template\": \"test\"}");
+        IStep useStepWithTemplate = new UseStep(templateProvider, stepFactory, configWithTemplate);
+        IStep useStepWithoutTemplate = new UseStep(templateProvider, stepFactory, configWithoutTemplate);
 
         // Act & Assert
-        Assert.False(useStep.ValidateConfiguration(configWithoutTemplate));
-        Assert.True(useStep.ValidateConfiguration(configWithTemplate));
+        Assert.False(useStepWithoutTemplate.ValidateConfiguration([]));
+        Assert.True(useStepWithTemplate.ValidateConfiguration([]));
     }
 
     [Fact]
@@ -117,10 +111,9 @@ public class UseStepTests
         // Arrange
         var templateProvider = new TemplateProvider();
         var stepFactory = new StepFactory(templateProvider);
-        var useStep = new UseStep(templateProvider, stepFactory);
 
         var config = JsonSerializer.Deserialize<JsonElement>("{\"template\": \"nonexistent\"}");
-        useStep.ValidateConfiguration(config);
+        var useStep = new UseStep(templateProvider, stepFactory, config);
 
         var context = new TestExecutionContext();
 
@@ -159,7 +152,6 @@ public class UseStepTests
         """;
         templateProvider.LoadTemplatesFromJson(templateJson);
 
-        var useStep = new UseStep(templateProvider, stepFactory);
 
         var config = JsonSerializer.Deserialize<JsonElement>("""
         {
@@ -169,7 +161,7 @@ public class UseStepTests
             }
         }
         """);
-        useStep.ValidateConfiguration(config);
+        var useStep = new UseStep(templateProvider, stepFactory, config);
 
         var context = new TestExecutionContext();
 
@@ -219,7 +211,6 @@ public class UseStepTests
         """;
         templateProvider.LoadTemplatesFromJson(templateJson);
 
-        var useStep = new UseStep(templateProvider, stepFactory);
 
         var config = JsonSerializer.Deserialize<JsonElement>("""
         {
@@ -227,7 +218,7 @@ public class UseStepTests
             "with": {}
         }
         """);
-        useStep.ValidateConfiguration(config);
+        var useStep = new UseStep(templateProvider, stepFactory, config);
 
         var context = new TestExecutionContext();
 
@@ -268,15 +259,14 @@ public class UseStepTests
         """;
         templateProvider.LoadTemplatesFromJson(templateJson);
 
-        var useStep = new UseStep(templateProvider, stepFactory);
-
+        
         var config = JsonSerializer.Deserialize<JsonElement>("""
         {
             "template": "test-template",
             "with": {}
         }
         """);
-        useStep.ValidateConfiguration(config);
+        var useStep = new UseStep(templateProvider, stepFactory, config);
 
         var context = new TestExecutionContext();
 
@@ -320,8 +310,6 @@ public class UseStepTests
         """;
         templateProvider.LoadTemplatesFromJson(templateJson);
 
-        var useStep = new UseStep(templateProvider, stepFactory);
-
         var config = JsonSerializer.Deserialize<JsonElement>("""
         {
             "template": "test-template",
@@ -330,7 +318,7 @@ public class UseStepTests
             }
         }
         """);
-        useStep.ValidateConfiguration(config);
+        var useStep = new UseStep(templateProvider, stepFactory, config);
 
         var context = new TestExecutionContext();
         context.Variables["env"] = new Dictionary<string, object>
@@ -380,8 +368,6 @@ public class UseStepTests
         """;
         templateProvider.LoadTemplatesFromJson(templateJson);
 
-        var useStep = new UseStep(templateProvider, stepFactory);
-
         var config = JsonSerializer.Deserialize<JsonElement>("""
         {
             "template": "auth-template",
@@ -395,7 +381,7 @@ public class UseStepTests
             }
         }
         """);
-        useStep.ValidateConfiguration(config);
+        var useStep = new UseStep(templateProvider, stepFactory, config);
 
         var context = new TestExecutionContext();
         context.Variables["globals"] = new Dictionary<string, object>();
@@ -549,9 +535,6 @@ public class TemplateProviderTests
         """;
             templateProvider.LoadTemplatesFromJson(templateJson);
 
-            // Create UseStep
-            var useStep = new TestUseStep(templateProvider, new TestStepFactory(templateProvider));
-
             // Configure UseStep to use the template
             var configuration = JsonSerializer.Deserialize<JsonElement>(JsonSerializer.Serialize(new
             {
@@ -559,7 +542,8 @@ public class TemplateProviderTests
                 template = "case-data-template"
             }));
 
-            useStep.ValidateConfiguration(configuration);
+            // Create UseStep
+            var useStep = new TestUseStep(templateProvider, new TestStepFactory(templateProvider), configuration);
 
             // Create execution context with case data
             var context = new TestExecutionContext();
@@ -617,7 +601,6 @@ public class TemplateProviderTests
         """;
             templateProvider.LoadTemplatesFromJson(templateJson);
 
-            var useStep = new TestUseStep(templateProvider, new TestStepFactory(templateProvider));
 
             var configuration = JsonSerializer.Deserialize<JsonElement>(JsonSerializer.Serialize(new
             {
@@ -625,7 +608,7 @@ public class TemplateProviderTests
                 template = "simple-template"
             }));
 
-            useStep.ValidateConfiguration(configuration);
+            var useStep = new TestUseStep(templateProvider, new TestStepFactory(templateProvider), configuration);
 
             // Create execution context WITHOUT case data
             var context = new TestExecutionContext();
@@ -675,8 +658,6 @@ public class TemplateProviderTests
         """;
             templateProvider.LoadTemplatesFromJson(templateJson);
 
-            var useStep = new TestUseStep(templateProvider, new TestStepFactory(templateProvider));
-
             var configuration = JsonSerializer.Deserialize<JsonElement>(JsonSerializer.Serialize(new
             {
                 type = "use",
@@ -687,7 +668,7 @@ public class TemplateProviderTests
                 }
             }));
 
-            useStep.ValidateConfiguration(configuration);
+            var useStep = new TestUseStep(templateProvider, new TestStepFactory(templateProvider), configuration);
 
             // Create execution context with case data
             var context = new TestExecutionContext();

@@ -1,4 +1,5 @@
 using JTest.Core;
+using System.Text.Json;
 
 namespace JTest.UnitTests;
 
@@ -63,7 +64,7 @@ public class TemplateIntegrationTests
         };
 
         // Act
-        var results = await testRunner.RunTestAsync(testJson, environment);
+        var results = await testRunner.RunTestAsync(JsonDocument.Parse(testJson).RootElement, environment);
 
         // Assert
         Assert.Single(results);
@@ -117,7 +118,7 @@ public class TemplateIntegrationTests
         """;
 
         // Act
-        var results = await testRunner.RunTestAsync(testJson);
+        var results = await testRunner.RunTestAsync(JsonDocument.Parse(testJson).RootElement);
 
         // Assert
         Assert.Single(results);
@@ -189,7 +190,7 @@ public class TemplateIntegrationTests
         """;
 
         // Act
-        var results = await testRunner.RunTestAsync(testJson);
+        var results = await testRunner.RunTestAsync(JsonDocument.Parse(testJson).RootElement);
         var converter = new JTest.Core.Converters.ResultsToMarkdownConverter();
         var markdown = converter.ConvertToMarkdown(results);
 

@@ -7,28 +7,24 @@ namespace JTest.Core.Steps;
 /// <summary>
 /// Assert step implementation that only processes assertions without performing any other action
 /// </summary>
-public class AssertStep : BaseStep
+public sealed class AssertStep(JsonElement configuration) : BaseStep(configuration)
 {
-    public AssertStep()
-    {
-
-    }
-
     public override string Type => "assert";
 
-    public override bool ValidateConfiguration(JsonElement configuration)
-    {
-        SetConfiguration(configuration);
-
+    public override void ValidateConfiguration(List<string> validationErrors)
+    {        
         // Assert step requires an 'assert' property with assertion definitions
-        if (!configuration.TryGetProperty("assert", out var assertElement))
+        if (!Configuration.TryGetProperty("assert", out var assertElement))
         {
-            return false;
+            validationErrors.Add("Assert step configuration must have an 'assert' property");
         }
 
         // The assert property should be an array
-        return assertElement.ValueKind == JsonValueKind.Array;
-    }
+        if(assertElement.ValueKind != JsonValueKind.Array)
+        {
+            validationErrors.Add("'Assert' property must be an array");
+        }        
+    }    
 
     public override async Task<StepResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {
@@ -39,7 +35,7 @@ public class AssertStep : BaseStep
         }
         catch (Exception ex)
         {
-            return HandleExecutionError(ex, stopwatch);
+            return HandleExecutionError(context, ex, stopwatch);
         }
     }
 
@@ -65,10 +61,10 @@ public class AssertStep : BaseStep
         // Determine if step should be marked as failed based on assertion results
         var hasFailedAssertions = HasFailedAssertions(assertionResults);
 
-        // Create result - fail if any assertions failed
+        // Create result - fail if any assertions failed        
         var result = hasFailedAssertions
-            ? StepResult.CreateFailure(this,"One or more assertions failed", stopwatch.ElapsedMilliseconds)
-            : StepResult.CreateSuccess(this,resultData, stopwatch.ElapsedMilliseconds);
+            ? StepResult.CreateFailure(context.StepNumber, this,"One or more assertions failed", stopwatch.ElapsedMilliseconds)
+            : StepResult.CreateSuccess(context.StepNumber, this,resultData, stopwatch.ElapsedMilliseconds);
 
         result.Data = resultData;
         result.AssertionResults = assertionResults;
@@ -76,14 +72,9 @@ public class AssertStep : BaseStep
         return result;
     }
 
-    private StepResult HandleExecutionError(Exception ex, Stopwatch stopwatch)
+    private StepResult HandleExecutionError(IExecutionContext context, Exception ex, Stopwatch stopwatch)
     {
         stopwatch.Stop();
-        return StepResult.CreateFailure(this,$"Assert step failed: {ex.Message}", stopwatch.ElapsedMilliseconds);
-    }
-
-    public override string GetStepDescription()
-    {
-        return $"Execute assertions";
+        return StepResult.CreateFailure(context.StepNumber, this,$"Assert step failed: {ex.Message}", stopwatch.ElapsedMilliseconds);
     }
 }

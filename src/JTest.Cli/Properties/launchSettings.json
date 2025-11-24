@@ -25,8 +25,15 @@
     },
     "debug activity-tests": {
       "commandName": "Project",
-      "commandLineArgs": "debug activity-tests/*.json --env-file ./environments/dev.json",
-      "workingDirectory": "C:\\Repos\\Nexxbiz\\JTest-elsa-tests2\\tests\\"
+      "commandLineArgs": "debug tests/storage-drivers/variables-tests.json --env-file ./environments/dev.json --output C:\\Users\\JoeyBarten\\Code --skip-output",
+      "workingDirectory": "C:\\Users\\JoeyBarten\\Code\\JTEST-nexxbiz",
+      "environmentVariables": {
+        "JTEST_CONFIG_FILE": "C:\\Users\\JoeyBarten\\Code\\JTEST-nexxbiz\\global-configuration.json",
+        "ADMIN_PASSWORD": "password",
+        "ADMIN_USERNAME": "admin",
+        "CORRELATION_ID": "2348732489732",
+        "DATE_NOW_ISO_STRING": "2025-11-24T15:56:00Z"
+      }
     }
   }
 }

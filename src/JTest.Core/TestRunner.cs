@@ -111,7 +111,7 @@ public class TestRunner
     /// <param name="debugLogger">Optional debug logger for detailed output</param>
     /// <returns>Test execution results</returns>
     public async Task<List<JTestCaseResult>> RunTestAsync(
-        string jsonDefinition,
+        JsonElement jsonDefinition,
         Dictionary<string, object>? environment = null,
         Dictionary<string, object>? globals = null)
     {
@@ -127,7 +127,7 @@ public class TestRunner
     /// <param name="globals">Global variables</param>
     /// <returns>Test execution results</returns>
     public async Task<List<JTestCaseResult>> RunTestAsync(
-        string jsonDefinition,
+        JsonElement jsonDefinition,
         string? testFilePath,
         Dictionary<string, object>? environment = null,
         Dictionary<string, object>? globals = null)
@@ -192,7 +192,7 @@ public class TestRunner
         return $"Welcome to JTest v{Version} - API Testing Tool";
     }
 
-    private JTestCase ParseTestCase(string jsonDefinition)
+    private JTestCase ParseTestCase(JsonElement jsonDefinition)
     {
         var options = new JsonSerializerOptions
         {
@@ -206,16 +206,13 @@ public class TestRunner
         return testCase;
     }
 
-    private bool IsTestSuite(string jsonDefinition)
+    private bool IsTestSuite(JsonElement jsonDefinition)
     {
         try
         {
-            var jsonDoc = JsonDocument.Parse(jsonDefinition);
-            var root = jsonDoc.RootElement;
-
             // Check if it has the test suite structure (version and tests array)
-            return root.TryGetProperty("version", out _) &&
-                   root.TryGetProperty("tests", out var testsElement) &&
+            return jsonDefinition.TryGetProperty("version", out _) &&
+                   jsonDefinition.TryGetProperty("tests", out var testsElement) &&
                    testsElement.ValueKind == JsonValueKind.Array;
         }
         catch (JsonException)
@@ -225,7 +222,7 @@ public class TestRunner
     }
 
     private async Task<List<JTestCaseResult>> RunTestSuiteAsync(
-        string jsonDefinition,
+        JsonElement jsonDefinition,
         Dictionary<string, object>? environment = null,
         Dictionary<string, object>? globals = null)
     {
@@ -233,7 +230,7 @@ public class TestRunner
     }
 
     private async Task<List<JTestCaseResult>> RunTestSuiteAsync(
-        string jsonDefinition,
+        JsonElement jsonDefinition,
         string? testFilePath,
         Dictionary<string, object>? environment = null,
         Dictionary<string, object>? globals = null)
@@ -270,7 +267,7 @@ public class TestRunner
         return allResults;
     }
 
-    private JTestSuite ParseTestSuite(string jsonDefinition)
+    private JTestSuite ParseTestSuite(JsonElement jsonDefinition)
     {
         var options = new JsonSerializerOptions
         {

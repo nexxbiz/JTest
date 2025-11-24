@@ -39,7 +39,6 @@ public class SaveIntegrationTests
         """;
         templateProvider.LoadTemplatesFromJson(templateJson);
 
-        var useStep = new UseStep(templateProvider, stepFactory);
 
         // Configure UseStep exactly as shown in the problem statement
         var config = JsonSerializer.Deserialize<JsonElement>("""
@@ -58,7 +57,7 @@ public class SaveIntegrationTests
             }
         }
         """);
-        useStep.ValidateConfiguration(config);
+        var useStep = new UseStep(templateProvider, stepFactory, config);
 
         var context = new TestExecutionContext();
         context.Variables["env"] = new Dictionary<string, object>
@@ -98,7 +97,6 @@ public class SaveIntegrationTests
     public async Task HttpStep_SaveFunctionality_WorksCorrectly()
     {
         // Arrange
-        var httpStep = new HttpStep(new HttpClient());
 
         var config = JsonSerializer.Deserialize<JsonElement>("""
         {
@@ -112,7 +110,7 @@ public class SaveIntegrationTests
         }
         """);
 
-        httpStep.ValidateConfiguration(config);
+        var httpStep = new HttpStep(new HttpClient(), config);
 
         var context = new TestExecutionContext();
         context.Variables["globals"] = new Dictionary<string, object>();

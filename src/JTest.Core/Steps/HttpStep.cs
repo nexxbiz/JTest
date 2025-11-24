@@ -2,7 +2,6 @@ using JTest.Core.Execution;
 using JTest.Core.Utilities;
 using System.Diagnostics;
 using System.Net.Http.Headers;
-using System.Net.Mime;
 using System.Text;
 using System.Text.Json;
 
@@ -11,7 +10,7 @@ namespace JTest.Core.Steps;
 /// <summary>
 /// HTTP step implementation for making HTTP requests
 /// </summary>
-public class HttpStep(HttpClient httpClient) : BaseStep
+public class HttpStep(HttpClient httpClient, JsonElement configuration) : BaseStep(configuration)
 {
     private const string stepType = "http";
     private const string defaultHttpMethod = "GET";
@@ -28,14 +27,18 @@ public class HttpStep(HttpClient httpClient) : BaseStep
     private const string contentTypeConfigurationProperty = "contentType";
     private const string jsonContentType = "application/json";
 
-    private string _stepDescription = string.Empty;
-
     public override sealed string Type => stepType;
 
-    public override bool ValidateConfiguration(JsonElement configuration)
+    public override void ValidateConfiguration(List<string> validationErrors)
     {
-        SetConfiguration(configuration);
-        return ValidateRequiredProperties();
+        if (!Configuration.TryGetProperty(methodConfigurationProperty, out _))
+        {
+            validationErrors.Add($"HTTP step configuration must have a '{methodConfigurationProperty}' property");
+        }
+        if (!Configuration.TryGetProperty(urlConfigurationProperty, out _))
+        {
+            validationErrors.Add($"HTTP step configuration must have a '{urlConfigurationProperty}' property");
+        }
     }
 
     public override async Task<StepResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
@@ -50,7 +53,8 @@ public class HttpStep(HttpClient httpClient) : BaseStep
             // Use common step completion logic from BaseStep
             var result = await ProcessStepCompletionAsync(context, contextBefore, stopwatch, responseData);
 
-            _stepDescription = $"HTTP {GetResolvedMethod(context)} {GetResolvedUrl(context)}";
+            Description += Environment.NewLine + $"HTTP {GetResolvedMethod(context)} {GetResolvedUrl(context)}";
+
             return result;
         }
         catch (Exception ex)
@@ -61,16 +65,10 @@ public class HttpStep(HttpClient httpClient) : BaseStep
             // Still process assertions even when HTTP request fails - this provides valuable debugging info
             var assertionResults = await ProcessAssertionsAsync(context);
 
-            var result = StepResult.CreateFailure(this, ex.Message, stopwatch.ElapsedMilliseconds);
+            var result = StepResult.CreateFailure(context.StepNumber, this, ex.Message, stopwatch.ElapsedMilliseconds);
             result.AssertionResults = assertionResults;
             return result;
         }
-    }
-
-    private bool ValidateRequiredProperties()
-    {
-        return Configuration.TryGetProperty(methodConfigurationProperty, out _) &&
-               Configuration.TryGetProperty(urlConfigurationProperty, out _);
     }
 
     private async Task<object> PerformHttpRequest(IExecutionContext context, Stopwatch stopwatch)
@@ -184,7 +182,7 @@ public class HttpStep(HttpClient httpClient) : BaseStep
             return CreateJsonStringContent(bodyElement, context);
         }
 
-        else if(Configuration.TryGetProperty(formFilesConfigurationProperty, out var formFiles))
+        else if (Configuration.TryGetProperty(formFilesConfigurationProperty, out var formFiles))
         {
             return CreateMultipartFormDataContent(formFiles, context);
         }
@@ -242,7 +240,7 @@ public class HttpStep(HttpClient httpClient) : BaseStep
 
         var result = new MultipartFormDataContent();
         foreach (var formFileElement in resolvedFormFilesElement.EnumerateArray())
-        {                        
+        {
             if (!formFileElement.TryGetProperty(formFileContentNameConfigurationProperty, out var name) || string.IsNullOrWhiteSpace(name.GetString()))
             {
                 throw new ArgumentException($"Form file configuration property '{formFileContentNameConfigurationProperty}' does not exist, or is null/empty");
@@ -264,12 +262,12 @@ public class HttpStep(HttpClient httpClient) : BaseStep
                 File.OpenRead(path.GetString()!)
             );
             streamContent.Headers.ContentType = new MediaTypeHeaderValue(contentType.GetString()!);
-            result.Add(streamContent, name.GetString()!, fileName.GetString()!);            
+            result.Add(streamContent, name.GetString()!, fileName.GetString()!);
         }
 
         return result;
     }
-    
+
 
     private object ResolveJsonElement(JsonElement bodyElement, IExecutionContext context)
     {
@@ -301,7 +299,7 @@ public class HttpStep(HttpClient httpClient) : BaseStep
             resolved.Add(resolvedItem);
         }
         return resolved;
-    }  
+    }
 
     private static object GetJsonElementValue(JsonElement element)
     {
@@ -392,8 +390,6 @@ public class HttpStep(HttpClient httpClient) : BaseStep
             .Select(h => new { name = h.Key, value = string.Join(", ", h.Value) })
             .ToArray();
     }
-
-    public override string GetStepDescription() => _stepDescription;
 }
 
 internal static class TypeExtensions

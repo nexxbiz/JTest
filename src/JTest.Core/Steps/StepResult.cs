@@ -7,7 +7,7 @@ namespace JTest.Core.Steps;
 /// <summary>
 /// Represents the result of step execution
 /// </summary>
-public class StepResult
+public class StepResult(int stepNumber)
 {
     /// <summary>
     ///  Stores the step that produced this result
@@ -52,17 +52,17 @@ public class StepResult
     /// <summary>
     /// Creates a successful step result
     /// </summary>
-    public static StepResult CreateSuccess(IStep step,object? data = null, long durationMs = 0)
+    public static StepResult CreateSuccess(int stepNumber, IStep step,object? data = null, long durationMs = 0)
     {
-        return new StepResult { Step = step, Success = true, Data = data, DurationMs = durationMs };
+        return new StepResult(stepNumber) { Step = step, Success = true, Data = data, DurationMs = durationMs };
     }
 
     /// <summary>
     /// Creates a failed step result
     /// </summary>
-    public static StepResult CreateFailure( IStep step, string errorMessage, long durationMs = 0)
+    public static StepResult CreateFailure(int stepNumber, IStep step, string errorMessage, long durationMs = 0)
     {
-        return new StepResult { Step = step, Success = false, ErrorMessage = errorMessage, DurationMs = durationMs };
+        return new StepResult(stepNumber) { Step = step, Success = false, ErrorMessage = errorMessage, DurationMs = durationMs };
     }
 
     public string DetailedAssertionFailures
@@ -75,5 +75,6 @@ public class StepResult
     /// <summary>
     /// List of inner step results if this step contains nested steps (e.g., a template step)
     /// </summary>
-    public List<StepResult> InnerResults { get; internal set; } = new();    
+    public List<StepResult> InnerResults { get; internal set; } = new();
+    public int StepNumber { get; } = stepNumber;
 }

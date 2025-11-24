@@ -1,4 +1,5 @@
 using JTest.Core;
+using System.Text.Json;
 
 namespace JTest.UnitTests;
 
@@ -68,7 +69,7 @@ public class TemplateFromSampleFileTests
         """;
 
         // Act
-        var results = await testRunner.RunTestAsync(testJson);
+        var results = await testRunner.RunTestAsync(JsonDocument.Parse(testJson).RootElement);
 
         // Assert
         Assert.Single(results);

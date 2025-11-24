@@ -1,5 +1,6 @@
 using JTest.Core;
 using System.IO;
+using System.Text.Json;
 using Xunit;
 
 namespace JTest.UnitTests;
@@ -95,7 +96,8 @@ public class RelativePathResolutionTests : IDisposable
         try
         {
             Directory.SetCurrentDirectory(_testDirectory); // Change to parent directory
-            var results = await testRunner.RunTestAsync(testContent, _testFile);
+            var testDoc = JsonDocument.Parse(testContent);
+            var results = await testRunner.RunTestAsync(testDoc.RootElement, _testFile);
 
             // Assert
             Assert.Single(results);
@@ -120,7 +122,8 @@ public class RelativePathResolutionTests : IDisposable
         try
         {
             Directory.SetCurrentDirectory(Path.GetTempPath()); // Change to a completely different directory
-            var results = await testRunner.RunTestAsync(testContent, _testFile);
+            var testDoc = JsonDocument.Parse(testContent);
+            var results = await testRunner.RunTestAsync(testDoc.RootElement, _testFile);
 
             // Assert
             Assert.Single(results);

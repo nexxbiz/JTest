@@ -11,7 +11,6 @@ public class StepAssertionIntegrationTests
     public async Task WaitStep_WithSimpleAssertions_ProcessesCorrectly()
     {
         // Arrange
-        var step = new WaitStep();
         var context = new TestExecutionContext();
 
         var config = JsonSerializer.SerializeToElement(new
@@ -23,7 +22,7 @@ public class StepAssertionIntegrationTests
             }
         });
 
-        step.ValidateConfiguration(config);
+        var step = new WaitStep(config);
 
         // Act
         var result = await step.ExecuteAsync(context);
@@ -42,11 +41,10 @@ public class StepAssertionIntegrationTests
     public async Task Step_WithoutAssertions_ReturnsEmptyAssertionResults()
     {
         // Arrange
-        var step = new WaitStep();
         var context = new TestExecutionContext();
 
         var config = JsonSerializer.SerializeToElement(new { ms = 10 });
-        step.ValidateConfiguration(config);
+        var step = new WaitStep(config);
 
         // Act
         var result = await step.ExecuteAsync(context);
@@ -85,7 +83,6 @@ public class StepAssertionIntegrationTests
         """;
         templateProvider.LoadTemplatesFromJson(templateJson);
 
-        var useStep = new UseStep(templateProvider, stepFactory);
         var context = new TestExecutionContext();
 
         var config = JsonSerializer.SerializeToElement(new
@@ -98,8 +95,7 @@ public class StepAssertionIntegrationTests
                 new { op = "equals", actualValue = "{{$.this.result}}", expectedValue = "Template result: test value" }
             }
         });
-
-        useStep.ValidateConfiguration(config);
+        var useStep = new UseStep(templateProvider, stepFactory, config);
 
         // Act
         var result = await useStep.ExecuteAsync(context);
@@ -124,7 +120,6 @@ public class StepAssertionIntegrationTests
     public async Task AssertStep_WithAssertions_ProcessesCorrectly()
     {
         // Arrange
-        var step = new AssertStep();
         var context = new TestExecutionContext();
 
         // Set up context with some test data
@@ -151,8 +146,7 @@ public class StepAssertionIntegrationTests
                 new { op = "equals", actualValue = "{{$.config.environment}}", expectedValue = "test" }
             }
         });
-
-        step.ValidateConfiguration(config);
+        var step = new AssertStep(config);
 
         // Act
         var result = await step.ExecuteAsync(context);
@@ -178,7 +172,6 @@ public class StepAssertionIntegrationTests
     public async Task AssertStep_WithMixedPassFailAssertions_ReportsCorrectResults()
     {
         // Arrange
-        var step = new AssertStep();
         var context = new TestExecutionContext();
 
         context.Variables["testData"] = "hello world";
@@ -195,7 +188,7 @@ public class StepAssertionIntegrationTests
             }
         });
 
-        step.ValidateConfiguration(config);
+        var step = new AssertStep(config);
 
         // Act
         var result = await step.ExecuteAsync(context);

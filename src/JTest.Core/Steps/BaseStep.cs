@@ -12,6 +12,14 @@ namespace JTest.Core.Steps;
 /// </summary>
 public abstract class BaseStep : IStep
 {
+    protected BaseStep(JsonElement configuration)
+    {
+        Configuration = configuration;
+        Name = GetStringValueFromConfiguration("name");
+        Description = GetStringValueFromConfiguration("description");
+        Id = GetStringValueFromConfiguration("id");
+    }
+
     /// <summary>
     /// Gets the step type identifier
     /// </summary>
@@ -20,33 +28,45 @@ public abstract class BaseStep : IStep
     /// <summary>
     /// Gets or sets the step ID for context storage
     /// </summary>
-    public string? Id { get; set; }
+    public string? Id { get; }
 
     /// <summary>
     /// Gets the step configuration JSON element
     /// </summary>
-    protected JsonElement Configuration { get; private set; }
+    protected JsonElement Configuration { get; }
 
+    public string? Name { get; }
 
-    /// <summary>
-    /// Sets the step configuration
-    /// </summary>
-    public void SetConfiguration(JsonElement configuration)
+    public string? Description { get; protected set; }
+
+    string? GetStringValueFromConfiguration(string elementName)
     {
-        Configuration = configuration;
+        if(Configuration.ValueKind == JsonValueKind.Undefined || Configuration.ValueKind == JsonValueKind.Null)
+        {
+            return null;
+        }
+
+        if (Configuration.TryGetProperty(elementName, out var element) && element.ValueKind == JsonValueKind.String)
+        {
+            return element.GetString();
+        }
+
+        return null;
     }
 
     /// <summary>
     /// Executes the step with the provided context
     /// </summary>
     public abstract Task<StepResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken);
-
-    /// <summary>
-    /// Validates the step configuration from JSON
-    /// </summary>
-    public virtual bool ValidateConfiguration(JsonElement configuration)
+    
+    bool IStep.ValidateConfiguration(List<string> validationErrors)
     {
-        return true;
+        ValidateConfiguration(validationErrors);
+        return validationErrors.Count == 0;
+    }
+
+    public virtual void ValidateConfiguration(List<string> validationErrors)
+    {        
     }
 
     /// <summary>
@@ -157,18 +177,6 @@ public abstract class BaseStep : IStep
         }
     }
 
-
-
-    /// <summary>
-    /// Gets the step description for debug output. Override in derived classes for custom descriptions.
-    /// </summary>
-    public virtual string GetStepDescription()
-    {
-        if (!string.IsNullOrEmpty(Id))
-            return "Step id " + Id;
-        return "";
-    }
-
     /// <summary>
     /// Detects context changes between before and after step execution
     /// </summary>
@@ -245,8 +253,8 @@ public abstract class BaseStep : IStep
 
         // Create result - fail if any assertions failed
         var stepResult = hasFailedAssertions
-            ? StepResult.CreateFailure(this,"One or more assertions failed", stopwatch.ElapsedMilliseconds)
-            : StepResult.CreateSuccess(this, resultData, stopwatch.ElapsedMilliseconds);
+            ? StepResult.CreateFailure(context.StepNumber, this,"One or more assertions failed", stopwatch.ElapsedMilliseconds)
+            : StepResult.CreateSuccess(context.StepNumber, this, resultData, stopwatch.ElapsedMilliseconds);
 
         stepResult.Data = resultData;
         stepResult.AssertionResults = assertionResults;
