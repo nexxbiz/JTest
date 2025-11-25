@@ -105,16 +105,14 @@ namespace JTest.Core.Output.Markdown
 
             writer.WriteLine();
 
-            if (stepResult.AssertionResults.Count == 0)
+            if (stepResult.AssertionResults.Count > 0)
             {
-                return;
+                writer.WriteLine();
+                writer.WriteLine("**Assertions:** <br/>");
+                writer.WriteLine();
+
+                WriteAssertionsTable(writer, stepResult.AssertionResults);
             }
-
-            writer.WriteLine();
-            writer.WriteLine("**Assertions:** <br/>");
-            writer.WriteLine();
-
-            WriteAssertionsTable(writer, stepResult.AssertionResults);
 
             if (stepResult.InnerResults.Count > 0)
             {
