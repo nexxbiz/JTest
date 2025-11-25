@@ -22,7 +22,7 @@ public class JTestCaseResult
     /// <summary>
     /// Gets or sets whether the test case execution was successful
     /// </summary>
-    public bool Success { get; set; }
+    public bool Success => errors.Count == 0 && StepResults.All(x => x.Success);
 
     /// <summary>
     /// Gets or sets the execution duration in milliseconds
@@ -38,8 +38,6 @@ public class JTestCaseResult
     /// Gets or sets any error message if execution failed
     /// </summary>
     public string? ErrorMessage => errors.Count > 0 ? string.Join("; ", errors) : null;
-
-    public bool HasErrors => errors.Count > 0;
 
     public void AddError(string? error)
     {

@@ -73,8 +73,7 @@ public class DatasetTests
         var result = new JTestCaseResult
         {
             TestCaseName = "Order processing",
-            Dataset = dataset,
-            Success = true,
+            Dataset = dataset,            
             DurationMs = 500
         };
 

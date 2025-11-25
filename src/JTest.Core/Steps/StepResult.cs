@@ -17,7 +17,7 @@ public class StepResult(int stepNumber)
     /// <summary>
     /// Gets or sets whether the step execution was successful
     /// </summary>
-    public bool Success { get; set; }
+    public bool Success { get; init; }
 
     /// <summary>
     /// Gets or sets detailed description 

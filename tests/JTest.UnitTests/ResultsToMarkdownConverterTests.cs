@@ -33,8 +33,7 @@ public class ResultsToMarkdownConverterTests
 
         var testCaseResult = new JTestCaseResult
         {
-            TestCaseName = "Test Case with Saves",
-            Success = true,
+            TestCaseName = "Test Case with Saves",            
             DurationMs = 200,
             StepResults = new List<StepResult> { stepResult }
         };
@@ -71,8 +70,7 @@ public class ResultsToMarkdownConverterTests
 
         var testCaseResult = new JTestCaseResult
         {
-            TestCaseName = "Test Case without Saves",
-            Success = true,
+            TestCaseName = "Test Case without Saves",            
             DurationMs = 200,
             StepResults = new List<StepResult> { stepResult }
         };
@@ -129,8 +127,7 @@ public class ResultsToMarkdownConverterTests
 
         var testCaseResult = new JTestCaseResult
         {
-            TestCaseName = "Test with Template Steps",
-            Success = true,
+            TestCaseName = "Test with Template Steps",            
             DurationMs = 250,
             StepResults = new List<StepResult> { templateStepResult }
         };
@@ -171,7 +168,6 @@ public class ResultsToMarkdownConverterTests
         var testCaseResult = new JTestCaseResult
         {
             TestCaseName = "Test Case with Assertions",
-            Success = true,
             DurationMs = 200,
             StepResults = new List<StepResult> { stepResult }
         };
@@ -232,7 +228,6 @@ public class ResultsToMarkdownConverterTests
         var testCaseResult = new JTestCaseResult
         {
             TestCaseName = "Test HTTP Request Display",
-            Success = true,
             DurationMs = 300,
             StepResults = new List<StepResult> { stepResult }
         };

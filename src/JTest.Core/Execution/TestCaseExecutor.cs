@@ -125,26 +125,20 @@ public class TestCaseExecutor
                     result.StepResults.Add(stepResult);
 
                     if (!stepResult.Success)
-                    {
-                        result.Success = false;
+                    {                        
                         result.AddError(stepResult.ErrorMessage);
                     }
 
                     stepNumber++;
                 }
                 catch (Exception ex)
-                {
-                    result.Success = false;
+                {                    
                     result.AddError($"Unexpected exception thrown: {ex.Message}");
                 }
             }
-
-            // Set success to true only if no errors occurred            
-            result.Success = !result.HasErrors;
         }
         catch (Exception ex)
-        {
-            result.Success = false;
+        {            
             result.AddError($"Unexpected exception thrown during execution of steps: {ex.Message}");
         }
         finally

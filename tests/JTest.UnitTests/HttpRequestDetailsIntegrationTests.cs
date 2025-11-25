@@ -67,10 +67,11 @@ public class HttpRequestDetailsIntegrationTests
         var testCaseResult = new JTestCaseResult
         {
             TestCaseName = "Create User with Request Details Demo",
-            Success = stepResult.Success,
             DurationMs = stepResult.DurationMs + 10,
             StepResults = new List<StepResult> { stepResult }
         };
+        if(!stepResult.Success)
+            testCaseResult.AddError(stepResult.ErrorMessage);
 
         // Convert to markdown
         var converter = new ResultsToMarkdownConverter();
@@ -123,8 +124,7 @@ public class HttpRequestDetailsIntegrationTests
 
         var testCaseResult = new JTestCaseResult
         {
-            TestCaseName = "Non-HTTP Step Test",
-            Success = true,
+            TestCaseName = "Non-HTTP Step Test",            
             DurationMs = 110,
             StepResults = new List<StepResult> { stepResult }
         };
