@@ -3,34 +3,20 @@
     "JTest.Cli": {
       "commandName": "Project"
     },
-    "if-else-debug": {
+    "debug tests": {
       "commandName": "Project",
-      "commandLineArgs": "debug if-else-tests.json",
-      "workingDirectory": "C:\\Users\\FransvanEk\\OneDrive - nexxbiz accelerating value delivery\\Documenten\\Documents\\Designs\\Testing QA\\tests"
-    },
-    "if-else-debug-v2": {
-      "commandName": "Project",
-      "commandLineArgs": "debug if-else-testsv2.json",
-      "workingDirectory": "C:\\Users\\FransvanEk\\OneDrive - nexxbiz accelerating value delivery\\Documenten\\Documents\\Designs\\Testing QA\\tests"
-    },
-    "set variable tests debug": {
-      "commandName": "Project",
-      "commandLineArgs": "debug set-variable-tests.json",
-      "workingDirectory": "C:\\Users\\FransvanEk\\OneDrive - nexxbiz accelerating value delivery\\Documenten\\Documents\\Designs\\Testing QA\\tests"
-    },
-    "debug all": {
-      "commandName": "Project",
-      "commandLineArgs": "debug *.json",
-      "workingDirectory": "C:\\Repos\\Nexxbiz\\JTest-elsa-tests"
-    },
-    "debug activity-tests": {
-      "commandName": "Project",
-      "commandLineArgs": "debug tests/storage-drivers/variables-tests.json --env-file ./environments/dev.json --output C:\\Users\\JoeyBarten\\Code --skip-output",
-      "workingDirectory": "C:\\Users\\JoeyBarten\\Code\\JTEST-nexxbiz",
+      "commandLineArgs": "debug tests/* --env-file ./environments/dev.json",
+      "workingDirectory": "<path-to-root-of-project>",
       "environmentVariables": {
-        "JTEST_CONFIG_FILE": "C:\\Users\\JoeyBarten\\Code\\JTEST-nexxbiz\\global-configuration.json",
-        "CORRELATION_ID": "2348732489732",
-        "DATE_NOW_ISO_STRING": "2025-11-24T15:56:00Z"
+        "JTEST_CONFIG_FILE": "global-configuration.json"
+      }
+    },
+    "run tests": {
+      "commandName": "Project",
+      "commandLineArgs": "run tests/* --env-file ./environments/dev.json",
+      "workingDirectory": "<path-to-root-of-project>",
+      "environmentVariables": {
+        "JTEST_CONFIG_FILE": "global-configuration.json"
       }
     }
   }

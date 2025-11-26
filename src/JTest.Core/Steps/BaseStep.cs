@@ -39,7 +39,7 @@ public abstract class BaseStep : IStep
 
     public string? Description { get; protected set; }
 
-    string? GetStringValueFromConfiguration(string elementName)
+    private string? GetStringValueFromConfiguration(string elementName)
     {
         if(Configuration.ValueKind == JsonValueKind.Undefined || Configuration.ValueKind == JsonValueKind.Null)
         {
