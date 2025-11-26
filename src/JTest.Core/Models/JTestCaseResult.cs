@@ -37,7 +37,9 @@ public class JTestCaseResult
     /// <summary>
     /// Gets or sets any error message if execution failed
     /// </summary>
-    public string? ErrorMessage => errors.Count > 0 ? string.Join("; ", errors) : null;
+    public string? ErrorMessage => errors.Count > 0 
+                                    ? string.Join("; ", errors) 
+                                    : null;
 
     public void AddError(string? error)
     {

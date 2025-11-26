@@ -17,7 +17,7 @@ public class AssertionResult
     public string Description { get; set; } = "";
     public object? ActualValue { get; set; }
     public object? ExpectedValue { get; set; }
-    public string ErrorMessage { get; set; } = "";
+    public string ErrorMessage { get; set; } = string.Empty;
 
     public bool MaskValue { get; set; }
 
