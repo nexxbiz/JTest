@@ -9,14 +9,16 @@ namespace JTest.Core.Steps;
 /// <summary>
 /// Wait step implementation for delaying execution
 /// </summary>
-public class WaitStep : BaseStep
+public sealed class WaitStep(JsonElement configuration) : BaseStep(configuration)
 {
     public override string Type => "wait";
 
-    public override bool ValidateConfiguration(JsonElement configuration)
+    public override void ValidateConfiguration(List<string> validationErrors)
     {
-        SetConfiguration(configuration);
-        return ValidateRequiredProperties();
+        if(!Configuration.TryGetProperty("ms", out _))
+        {
+            validationErrors.Add("Wait step configuration must have an 'ms' property specifying the delay in milliseconds");
+        }
     }
 
     public override async Task<StepResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
@@ -31,6 +33,12 @@ public class WaitStep : BaseStep
     {
         var contextBefore = CloneContext(context);
         var delayMs = ParseDelayMilliseconds(context);
+
+        if(string.IsNullOrWhiteSpace(Description))
+        {
+            Description = $"Wait {delayMs}ms";
+        }
+
         if (delayMs < 0) 
             return await CreateValidationFailure(context, contextBefore, stopwatch);
 
@@ -54,7 +62,7 @@ public class WaitStep : BaseStep
         // Still process assertions even when wait step fails
         var assertionResults = ProcessAssertionsAsync(context).Result;
 
-        var result = StepResult.CreateFailure(this, $"Wait step failed: {ex.Message}", stopwatch.ElapsedMilliseconds);
+        var result = StepResult.CreateFailure(context.StepNumber, this, $"Wait step failed: {ex.Message}", stopwatch.ElapsedMilliseconds);
         result.AssertionResults = assertionResults;
         return result;
     }
@@ -65,11 +73,6 @@ public class WaitStep : BaseStep
 
         // Use common step completion logic from BaseStep
         return await ProcessStepCompletionAsync(context, contextBefore, stopwatch, resultData);
-    }
-
-    private bool ValidateRequiredProperties()
-    {
-        return Configuration.TryGetProperty("ms", out _);
     }
 
     private int ParseDelayMilliseconds(IExecutionContext context)
@@ -141,18 +144,9 @@ public class WaitStep : BaseStep
         // Still process assertions even when validation fails
         var assertionResults = await ProcessAssertionsAsync(context);
 
-        var result = StepResult.CreateFailure(this,"Invalid ms value: must be a positive integer");
+        var result = StepResult.CreateFailure(context.StepNumber,this,"Invalid ms value: must be a positive integer");
         result.AssertionResults = assertionResults;
         return result;
     }
 
-    public override string GetStepDescription()
-    {
-        if (Configuration.TryGetProperty("ms", out var msProperty))
-        {
-            var msValue = msProperty.ValueKind == JsonValueKind.Number ? msProperty.GetInt32().ToString() : msProperty.GetString() ?? "unknown";
-            return $"Wait {msValue}ms";
-        }
-        return "Wait for specified time";
-    }
 }

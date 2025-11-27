@@ -74,9 +74,9 @@ public class TestCaseExecutor
             results.Add(result);
 
             // Capture updated globals for next iteration
-            if (iterationContext.Variables.ContainsKey("globals"))
+            if (iterationContext.Variables.TryGetValue("globals", out object? value))
             {
-                sharedGlobals = iterationContext.Variables["globals"] as Dictionary<string, object>;
+                sharedGlobals = value as Dictionary<string, object>;
             }
         }
 
@@ -125,32 +125,21 @@ public class TestCaseExecutor
                     result.StepResults.Add(stepResult);
 
                     if (!stepResult.Success)
-                    {
-                        result.Success = false;
-                        result.ErrorMessage = stepResult.ErrorMessage;
-                        break;
+                    {                        
+                        result.AddError(stepResult.ErrorMessage);
                     }
 
                     stepNumber++;
                 }
                 catch (Exception ex)
-                {
-                    result.Success = false;
-                    result.ErrorMessage = $"Step execution failed: {ex.Message}";
-                    break;
+                {                    
+                    result.AddError($"Unexpected exception thrown: {ex.Message}");
                 }
-            }
-
-            // Set success to true only if no errors occurred
-            if (result.ErrorMessage == null)
-            {
-                result.Success = true;
             }
         }
         catch (Exception ex)
-        {
-            result.Success = false;
-            result.ErrorMessage = ex.Message;
+        {            
+            result.AddError($"Unexpected exception thrown during execution of steps: {ex.Message}");
         }
         finally
         {

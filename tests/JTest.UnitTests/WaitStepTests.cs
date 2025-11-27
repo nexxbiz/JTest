@@ -12,24 +12,24 @@ public class WaitStepTests
     [Fact]
     public void Type_ShouldReturnWait()
     {
-        var step = new WaitStep();
+        var step = new WaitStep(new());
         Assert.Equal("wait", step.Type);
     }
 
     [Fact]
     public void ValidateConfiguration_WithValidMsProperty_ReturnsTrue()
     {
-        var step = new WaitStep();
         var config = JsonSerializer.SerializeToElement(new { ms = 1000 });
-        Assert.True(step.ValidateConfiguration(config));
+        IStep step = new WaitStep(config);
+        Assert.True(step.ValidateConfiguration([]));
     }
 
     [Fact]
     public void ValidateConfiguration_WithoutMsProperty_ReturnsFalse()
     {
-        var step = new WaitStep();
         var config = JsonSerializer.SerializeToElement(new { other = "value" });
-        Assert.False(step.ValidateConfiguration(config));
+        IStep step = new WaitStep(config);
+        Assert.False(step.ValidateConfiguration([]));
     }
 
     [Fact]
@@ -37,11 +37,10 @@ public class WaitStepTests
     {
         const long durationInput = 20;
         var expectedDuration = durationInput * expectedResultIncludingErrorMargin;
-        var step = new WaitStep();
         var context = new TestExecutionContext();
         var config = JsonSerializer.SerializeToElement(new { ms = durationInput });
+        var step = new WaitStep(config);
 
-        step.ValidateConfiguration(config);
         var result = await step.ExecuteAsync(context);
 
         Assert.True(result.Success);
@@ -52,11 +51,10 @@ public class WaitStepTests
     [Fact]
     public async Task ExecuteAsync_WithZeroMs_CompletesImmediately()
     {
-        var step = new WaitStep();
         var context = new TestExecutionContext();
         var config = JsonSerializer.SerializeToElement(new { ms = 0 });
+        var step = new WaitStep(config);
 
-        step.ValidateConfiguration(config);
         var result = await step.ExecuteAsync(context);
 
         Assert.True(result.Success);        
@@ -66,11 +64,10 @@ public class WaitStepTests
     [Fact]
     public async Task ExecuteAsync_WithNegativeMs_FailsValidation()
     {
-        var step = new WaitStep();
         var context = new TestExecutionContext();
         var config = JsonSerializer.SerializeToElement(new { ms = -100 });
+        var step = new WaitStep(config);
 
-        step.ValidateConfiguration(config);
         var result = await step.ExecuteAsync(context);
 
         Assert.False(result.Success);
@@ -82,11 +79,10 @@ public class WaitStepTests
     {
         const long durationInput = 50;
         var expectedDuration = durationInput * expectedResultIncludingErrorMargin;
-        var step = new WaitStep();
-        var context = new TestExecutionContext();
         var config = JsonSerializer.SerializeToElement(new { ms = durationInput.ToString() });
+        var step = new WaitStep(config);
+        var context = new TestExecutionContext();
 
-        step.ValidateConfiguration(config);
         var result = await step.ExecuteAsync(context);
 
         Assert.True(result.Success);        
@@ -96,11 +92,11 @@ public class WaitStepTests
     [Fact]
     public async Task ExecuteAsync_WithInvalidStringMs_FailsValidation()
     {
-        var step = new WaitStep();
         var context = new TestExecutionContext();
         var config = JsonSerializer.SerializeToElement(new { ms = "invalid" });
+        var step = new WaitStep(config);
 
-        step.ValidateConfiguration(config);
+        
         var result = await step.ExecuteAsync(context);
 
         Assert.False(result.Success);
@@ -112,12 +108,12 @@ public class WaitStepTests
     {
         const long durationInput = 25;
         var expectedDuration = durationInput * expectedResultIncludingErrorMargin;
-        var step = new WaitStep();
         var context = new TestExecutionContext();
         context.Variables["env"] = new { requestDelay = durationInput };
         var config = JsonSerializer.SerializeToElement(new { ms = "{{$.env.requestDelay}}" });
+        var step = new WaitStep(config);
 
-        step.ValidateConfiguration(config);
+
         var result = await step.ExecuteAsync(context);
 
         Assert.True(result.Success);
@@ -127,11 +123,10 @@ public class WaitStepTests
     [Fact]
     public async Task ExecuteAsync_WithMissingToken_FailsGracefully()
     {
-        var step = new WaitStep();
         var context = new TestExecutionContext();
         var config = JsonSerializer.SerializeToElement(new { ms = "{{$.missing.value}}" });
+        var step = new WaitStep(config);
 
-        step.ValidateConfiguration(config);
         var result = await step.ExecuteAsync(context);
 
         Assert.False(result.Success);
@@ -143,11 +138,10 @@ public class WaitStepTests
         const long durationInput = 20;
         var expectedDuration = durationInput * expectedResultIncludingErrorMargin;
 
-        var step = new WaitStep();
         var context = new TestExecutionContext();
         var config = JsonSerializer.SerializeToElement(new { ms = durationInput });
+        var step = new WaitStep(config);
 
-        step.ValidateConfiguration(config);
         var result = await step.ExecuteAsync(context);
 
         Assert.True(result.Success);
@@ -164,11 +158,10 @@ public class WaitStepTests
     [Fact]
     public async Task ExecuteAsync_WithStepId_StoresDataInNamedScope()
     {
-        var step = new WaitStep { Id = "myWait" };
         var context = new TestExecutionContext();
-        var config = JsonSerializer.SerializeToElement(new { ms = 15 });
+        var config = JsonSerializer.SerializeToElement(new { ms = 15, id = "myWait" });
+        var step = new WaitStep(config);
 
-        step.ValidateConfiguration(config);
         var result = await step.ExecuteAsync(context);
 
         Assert.True(result.Success);
@@ -189,12 +182,12 @@ public class WaitStepTests
     {
         const long durationInput = 30;
         var expectedDuration = durationInput * expectedResultIncludingErrorMargin;
-        var step = new WaitStep();
         var context = new TestExecutionContext();
         context.Variables["config"] = new { timeout = durationInput };
         var config = JsonSerializer.SerializeToElement(new { ms = "{{$.config.timeout}}" });
+        var step = new WaitStep(config);
 
-        step.ValidateConfiguration(config);
+        
         var result = await step.ExecuteAsync(context);
 
         Assert.True(result.Success, $"Step failed: {result.ErrorMessage}");
@@ -208,11 +201,11 @@ public class WaitStepTests
     [Fact]
     public async Task ExecuteAsync_SupportsCancellation()
     {
-        var step = new WaitStep();
         var context = new TestExecutionContext();
         var config = JsonSerializer.SerializeToElement(new { ms = 5000 }); // 5 seconds
 
-        step.ValidateConfiguration(config);
+        var step = new WaitStep(config);
+        
 
         using var cts = new CancellationTokenSource();
         cts.CancelAfter(100); // Cancel after 100ms
@@ -229,13 +222,12 @@ public class WaitStepTests
     [Fact]
     public void Integration_CanCreateAndValidateFromJson()
     {
-        var step = new WaitStep();
         var jsonText = """{"type": "wait", "id": "myWait", "ms": 100}""";
         var jsonDoc = JsonDocument.Parse(jsonText);
         var rootElement = jsonDoc.RootElement;
-
-        step.Id = rootElement.GetProperty("id").GetString();
-        var isValid = step.ValidateConfiguration(rootElement);
+        IStep step = new WaitStep(rootElement);
+        
+        var isValid = step.ValidateConfiguration([]);
 
         Assert.True(isValid);
         Assert.Equal("wait", step.Type);
@@ -246,13 +238,12 @@ public class WaitStepTests
     public async Task Integration_WorksWithComplexVariableExpression()
     {
         const long mediumDurationInput = 50;
-        var expectedDuration = mediumDurationInput * expectedResultIncludingErrorMargin;
-        var step = new WaitStep { Id = "complexWait" };
+        var expectedDuration = mediumDurationInput * expectedResultIncludingErrorMargin;        
         var context = new TestExecutionContext();
         context.Variables["env"] = new { delays = new { short_ = 10, medium = mediumDurationInput, long_ = 100 } };
 
-        var config = JsonSerializer.SerializeToElement(new { ms = "{{$.env.delays.medium}}" });
-        step.ValidateConfiguration(config);
+        var config = JsonSerializer.SerializeToElement(new { ms = "{{$.env.delays.medium}}", id = "complexWait" });
+        var step = new WaitStep(config);
 
         var result = await step.ExecuteAsync(context);
 

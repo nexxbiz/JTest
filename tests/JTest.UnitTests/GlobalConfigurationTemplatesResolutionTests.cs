@@ -2,6 +2,7 @@
 using JTest.Core.Models;
 using JTest.Core.Steps;
 using JTest.Core.Templates;
+using System.Text.Json;
 
 namespace JTest.UnitTests
 {
@@ -155,9 +156,10 @@ namespace JTest.UnitTests
             );
             var testRunner = new TestRunner(globalConfiguration);
             var testContent = await File.ReadAllTextAsync(_testFile);
+            var testDoc = JsonDocument.Parse(testContent); 
 
             // Act
-            var results = await testRunner.RunTestAsync(testContent, _testFile);
+            var results = await testRunner.RunTestAsync(testDoc.RootElement, _testFile);
 
             // Assert
             Assert.Single(results);
@@ -174,9 +176,10 @@ namespace JTest.UnitTests
             );
             var testRunner = new TestRunner(globalConfiguration);
             var testContent = await File.ReadAllTextAsync(_testFile);
+            var testDoc = JsonDocument.Parse(testContent);
 
             // Act
-            var results = await testRunner.RunTestAsync(testContent, _testFile);
+            var results = await testRunner.RunTestAsync(testDoc.RootElement, _testFile);
 
             // Assert
             Assert.Single(results);
@@ -194,9 +197,10 @@ namespace JTest.UnitTests
             var templateProvider = new TemplateProvider();
             var testRunner = new TestRunner(templateProvider, globalConfiguration);
             var testContent = await File.ReadAllTextAsync(_testFileWithExplicitUsings);
+            var testDoc = JsonDocument.Parse(testContent);
 
             // Act
-            _ = await testRunner.RunTestAsync(testContent, _testFileWithExplicitUsings);
+            _ = await testRunner.RunTestAsync(testDoc.RootElement, _testFileWithExplicitUsings);
 
             // Assert
             Assert.Equal(1, templateProvider.Count);

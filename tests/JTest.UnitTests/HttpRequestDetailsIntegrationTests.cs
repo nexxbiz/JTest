@@ -33,7 +33,7 @@ public class HttpRequestDetailsIntegrationTests
             .ReturnsAsync(response);
 
         var httpClient = new HttpClient(mockHandler.Object);
-        var httpStep = new HttpStep(httpClient);
+        
         
         // Configure HTTP step with headers and body
         var context = new TestExecutionContext();
@@ -58,18 +58,20 @@ public class HttpRequestDetailsIntegrationTests
             }
         });
 
+        var httpStep = new HttpStep(httpClient, config);
+
         // Act: Execute HTTP step
-        httpStep.ValidateConfiguration(config);
         var stepResult = await httpStep.ExecuteAsync(context);
 
         // Create test case result for markdown conversion
         var testCaseResult = new JTestCaseResult
         {
             TestCaseName = "Create User with Request Details Demo",
-            Success = stepResult.Success,
             DurationMs = stepResult.DurationMs + 10,
             StepResults = new List<StepResult> { stepResult }
         };
+        if(!stepResult.Success)
+            testCaseResult.AddError(stepResult.ErrorMessage);
 
         // Convert to markdown
         var converter = new ResultsToMarkdownConverter();
@@ -107,12 +109,12 @@ public class HttpRequestDetailsIntegrationTests
     }
 
     [Fact]
-    public async Task EndToEnd_NonHttpStep_DoesNotDisplayRequestDetails()
+    public void EndToEnd_NonHttpStep_DoesNotDisplayRequestDetails()
     {
         // Arrange: Create a non-HTTP step
         var mockStep = new MockTestStep { Type = "wait" };
         
-        var stepResult = new StepResult
+        var stepResult = new StepResult(1)
         {
             Step = mockStep,
             Success = true,
@@ -122,8 +124,7 @@ public class HttpRequestDetailsIntegrationTests
 
         var testCaseResult = new JTestCaseResult
         {
-            TestCaseName = "Non-HTTP Step Test",
-            Success = true,
+            TestCaseName = "Non-HTTP Step Test",            
             DurationMs = 110,
             StepResults = new List<StepResult> { stepResult }
         };
@@ -142,14 +143,17 @@ public class HttpRequestDetailsIntegrationTests
     {
         public string Type { get; set; } = "test";
         public string? Id { get; set; }
-        
-        public bool ValidateConfiguration(JsonElement configuration) => true;
+
+
+        public string? Name { get; set; }
+
+        public string? Description { get; set; }
+
+        public bool ValidateConfiguration(List<string> validationErrors) => true;
         
         public Task<StepResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
         {
-            return Task.FromResult(StepResult.CreateSuccess(this));
-        }
-        
-        public string GetStepDescription() => "Mock test step";
+            return Task.FromResult(StepResult.CreateSuccess(0, this));
+        }        
     }
 }

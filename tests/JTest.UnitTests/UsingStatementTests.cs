@@ -1,4 +1,5 @@
 using JTest.Core;
+using System.Text.Json;
 
 namespace JTest.UnitTests;
 
@@ -32,7 +33,7 @@ public class UsingStatementTests
 
         // Act & Assert
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => testRunner.RunTestAsync(testSuiteJson));
+            () => testRunner.RunTestAsync(JsonDocument.Parse(testSuiteJson).RootElement));
     }
 
     [Fact]
@@ -59,7 +60,7 @@ public class UsingStatementTests
         """;
 
         // Act
-        var results = await testRunner.RunTestAsync(testSuiteJson);
+        var results = await testRunner.RunTestAsync(JsonDocument.Parse(testSuiteJson).RootElement);
 
         // Assert
         Assert.Single(results);
@@ -89,7 +90,7 @@ public class UsingStatementTests
         """;
 
         // Act
-        var results = await testRunner.RunTestAsync(testSuiteJson);
+        var results = await testRunner.RunTestAsync(JsonDocument.Parse(testSuiteJson).RootElement);
 
         // Assert
         Assert.Single(results);
@@ -124,6 +125,6 @@ public class UsingStatementTests
 
         // Act & Assert
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => testRunner.RunTestAsync(testSuiteJson));
+            () => testRunner.RunTestAsync(JsonDocument.Parse(testSuiteJson).RootElement));
     }
 }

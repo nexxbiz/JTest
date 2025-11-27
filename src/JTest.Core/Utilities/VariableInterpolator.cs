@@ -14,7 +14,7 @@ public static class VariableInterpolator
 {
     // Updated regex to properly handle nested braces by counting brace pairs
     private static readonly Regex TokenRegex = new(@"\{\{\s*\$\.(?:[^{}]|\{[^{}]*\})*\s*\}\}", RegexOptions.Compiled);
-    private static readonly Regex EnvironmentVariableRegex = new(@"^\$\{([A-Za-z0-9_]+)\}$", RegexOptions.Compiled);
+    private static readonly Regex EnvironmentVariableRegex = new(@"\$\{([A-Za-z0-9_]+)\}", RegexOptions.Compiled);
     private const int MaxNestingDepth = 10; // Prevent infinite recursion
 
     /// <summary>
@@ -40,6 +40,8 @@ public static class VariableInterpolator
             return input;
         }
 
+        input = ResolveEnvironmentVariableTokens(input);
+
         var matches = TokenRegex.Matches(input);
         if (matches.Count == 0) return input;
 
@@ -55,6 +57,22 @@ public static class VariableInterpolator
 
         if (newMatches.Count == 0) return resolvedInput;
         return ResolveMultipleTokensRecursive(resolvedInput, newMatches, context, depth);
+    }
+
+    private static string ResolveEnvironmentVariableTokens(string input)
+    {
+        var matches = EnvironmentVariableRegex.Matches(input);
+        foreach(Match match in matches)
+        {
+            var envVarName = match.Groups[1].Value;
+            var envVarValue = Environment.GetEnvironmentVariable(envVarName, EnvironmentVariableTarget.Process);
+            if(!string.IsNullOrWhiteSpace(envVarValue))
+            {
+                input = input.Replace(match.Value, envVarValue);
+            }
+        }
+
+        return input;
     }
 
     /// <summary>
@@ -391,20 +409,7 @@ public static class VariableInterpolator
 
     private static string ExtractStringValue(string value)
     {
-        var environmentVariableTokenMatch = EnvironmentVariableRegex.Match(value);
-        if (!environmentVariableTokenMatch.Success)
-        {
-            return value;
-        }
-
-        var environmentVariableName = environmentVariableTokenMatch.Groups[1].Value;
-        var result = Environment.GetEnvironmentVariable(environmentVariableName, EnvironmentVariableTarget.Process);
-        if(!string.IsNullOrWhiteSpace(result))
-        {
-            return result;
-        }
-
-        return value;
+        return ResolveEnvironmentVariableTokens(value);
     }
 
     /// <summary>

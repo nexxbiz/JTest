@@ -1,4 +1,5 @@
 using JTest.Core;
+using System.Text.Json;
 
 namespace JTest.UnitTests;
 
@@ -23,7 +24,7 @@ public class TestSuiteTests
         """;
 
         // Act
-        var results = await testRunner.RunTestAsync(singleTestJson);
+        var results = await testRunner.RunTestAsync(JsonDocument.Parse(singleTestJson).RootElement);
 
         // Assert
         Assert.Single(results);
@@ -72,7 +73,7 @@ public class TestSuiteTests
         };
 
         // Act
-        var results = await testRunner.RunTestAsync(testSuiteJson, externalEnv, externalGlobals);
+        var results = await testRunner.RunTestAsync(JsonDocument.Parse(testSuiteJson).RootElement, externalEnv, externalGlobals);
 
         // Assert
         Assert.Single(results);

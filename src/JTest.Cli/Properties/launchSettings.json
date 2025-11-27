@@ -3,30 +3,21 @@
     "JTest.Cli": {
       "commandName": "Project"
     },
-    "if-else-debug": {
+    "debug tests": {
       "commandName": "Project",
-      "commandLineArgs": "debug if-else-tests.json",
-      "workingDirectory": "C:\\Users\\FransvanEk\\OneDrive - nexxbiz accelerating value delivery\\Documenten\\Documents\\Designs\\Testing QA\\tests"
+      "commandLineArgs": "debug tests/* --env-file ./environments/dev.json",
+      "workingDirectory": "<path-to-root-of-project>",
+      "environmentVariables": {
+        "JTEST_CONFIG_FILE": "global-configuration.json"
+      }
     },
-    "if-else-debug-v2": {
+    "run tests": {
       "commandName": "Project",
-      "commandLineArgs": "debug if-else-testsv2.json",
-      "workingDirectory": "C:\\Users\\FransvanEk\\OneDrive - nexxbiz accelerating value delivery\\Documenten\\Documents\\Designs\\Testing QA\\tests"
-    },
-    "set variable tests debug": {
-      "commandName": "Project",
-      "commandLineArgs": "debug set-variable-tests.json",
-      "workingDirectory": "C:\\Users\\FransvanEk\\OneDrive - nexxbiz accelerating value delivery\\Documenten\\Documents\\Designs\\Testing QA\\tests"
-    },
-    "debug all": {
-      "commandName": "Project",
-      "commandLineArgs": "debug *.json",
-      "workingDirectory": "C:\\Repos\\Nexxbiz\\JTest-elsa-tests"
-    },
-    "debug activity-tests": {
-      "commandName": "Project",
-      "commandLineArgs": "debug activity-tests/*.json --env-file ./environments/dev.json",
-      "workingDirectory": "C:\\Repos\\Nexxbiz\\JTest-elsa-tests2\\tests\\"
+      "commandLineArgs": "run tests/* --env-file ./environments/dev.json",
+      "workingDirectory": "<path-to-root-of-project>",
+      "environmentVariables": {
+        "JTEST_CONFIG_FILE": "global-configuration.json"
+      }
     }
   }
 }

@@ -22,6 +22,29 @@ public class VariableInterpolatorTests
     }
 
     [Fact]
+    public void ResolveVariableTokens_Solves_EnvironmentVariableTokensFirst()
+    {
+        // Arrange
+        var environmentVariables = new Dictionary<string, string>
+        {
+            { $"TEST_API_KEY_{Guid.NewGuid():N}", Guid.NewGuid().ToString() },
+            { $"TEST_API_KEY_{Guid.NewGuid():N}", Guid.NewGuid().ToString() }
+        };
+        Environment.SetEnvironmentVariable(environmentVariables.First().Key, environmentVariables.First().Value, EnvironmentVariableTarget.Process);
+        Environment.SetEnvironmentVariable(environmentVariables.Last().Key, environmentVariables.Last().Value, EnvironmentVariableTarget.Process);
+
+        var context = new TestExecutionContext();
+        var input = $"API Key 1: ${{{environmentVariables.First().Key}}}, API Key 2: ${{{environmentVariables.Last().Key}}}";
+
+        // Act
+        var result = VariableInterpolator.ResolveVariableTokens(input, context);
+
+        // Assert
+        var expectedResult = $"API Key 1: {environmentVariables.First().Value}, API Key 2: {environmentVariables.Last().Value}";
+        Assert.Equal(expectedResult, result);
+    }
+
+    [Fact]
     public void ResolveVariableTokens_WithNoTokens_ReturnsOriginalString()
     {
         // Arrange
@@ -41,36 +64,36 @@ public class VariableInterpolatorTests
         // Arrange
         var environmentVariableName = $"TEST_PASSWORD_{Guid.NewGuid():N}";
         var expectedEnvironmentVariableValue = Guid.NewGuid().ToString();
-    
+
         var context = new TestExecutionContext();
         var input = "{{$.env.password}}";
-        context.Variables["env"] = new { password = $"${{{environmentVariableName}}}"};
+        context.Variables["env"] = new { password = $"${{{environmentVariableName}}}" };
         Environment.SetEnvironmentVariable(environmentVariableName, expectedEnvironmentVariableValue, EnvironmentVariableTarget.Process);
-    
+
         // Act
         var result = VariableInterpolator.ResolveVariableTokens(input, context);
-    
+
         // Assert
         Assert.Equal(expectedEnvironmentVariableValue, result);
     }
 
-     [Fact]
-     public void ResolveVariableTokens_WithEnvironmentVariableToken_And_EnvironmentVariableDoesNotExist_ReturnsOriginalString()
-     {
-         // Arrange
-         var environmentVariableName = $"TEST_PASSWORD_{Guid.NewGuid():N}";
-         var passwordEnvValue = $"${{{environmentVariableName}}}";
-    
-         var context = new TestExecutionContext();
-         var input = "{{$.env.password}}";
-         context.Variables["env"] = new { password = passwordEnvValue };        
-    
-         // Act
-         var result = VariableInterpolator.ResolveVariableTokens(input, context);
-    
-         // Assert
-         Assert.Equal(passwordEnvValue, result);
-     }
+    [Fact]
+    public void ResolveVariableTokens_WithEnvironmentVariableToken_And_EnvironmentVariableDoesNotExist_ReturnsOriginalString()
+    {
+        // Arrange
+        var environmentVariableName = $"TEST_PASSWORD_{Guid.NewGuid():N}";
+        var passwordEnvValue = $"${{{environmentVariableName}}}";
+
+        var context = new TestExecutionContext();
+        var input = "{{$.env.password}}";
+        context.Variables["env"] = new { password = passwordEnvValue };
+
+        // Act
+        var result = VariableInterpolator.ResolveVariableTokens(input, context);
+
+        // Assert
+        Assert.Equal(passwordEnvValue, result);
+    }
 
     [Fact]
     public void ResolveVariableTokens_WithSingleToken_ReturnsRawValue()
@@ -91,11 +114,11 @@ public class VariableInterpolatorTests
     public void ResolveVariableTokens_WithComplexNestedToken_ReturnsRawValue()
     {
         // Arrange
-        var expectedPropertyValue = Guid.NewGuid().ToString();  
+        var expectedPropertyValue = Guid.NewGuid().ToString();
         var context = new TestExecutionContext();
         context.Variables["propertyKey"] = "somePropertyKey2";
-        context.Variables["complexObject"] = new 
-        { 
+        context.Variables["complexObject"] = new
+        {
             contexts = new[]
             {
                 new
@@ -112,7 +135,7 @@ public class VariableInterpolatorTests
             }
         };
         var input = "{{$.complexObject.contexts[0].properties.Variables['{{ $.propertyKey }}'] }}";
-        
+
         // Act
         var result = VariableInterpolator.ResolveVariableTokens(input, context);
 
@@ -621,7 +644,7 @@ public class VariableInterpolatorTests
     {
         // Arrange - This test validates the exact scenario described in the GitHub issue
         var context = new TestExecutionContext();
-        
+
         // Set up test data that matches the problem statement structure
         context.Variables["testResult"] = new
         {
@@ -636,7 +659,7 @@ public class VariableInterpolatorTests
                 }
             }
         };
-        
+
         context.Variables["case"] = new { expectedIterations = 2 };
 
         // Act - Simulate a length assertion operation as described in the problem statement
@@ -646,7 +669,7 @@ public class VariableInterpolatorTests
 
         // Before the fix: actualValue would be "item2" (just the first ID)
         // After the fix: actualValue should be ["item2", "item3"] (array of all matching IDs)
-        
+
         // Assert - Verify the JSONPath returns all matching items, not just the first
         Assert.IsType<object[]>(actualValue);
         var resultArray = (object[])actualValue;
@@ -658,7 +681,7 @@ public class VariableInterpolatorTests
         var lengthAssertion = new JTest.Core.Assertions.LengthAssertion();
         var assertionResult = lengthAssertion.Execute(actualValue, expectedValue);
         Assert.True(assertionResult.Success, "Length assertion should pass with 2 items matching the filter");
-        
+
         // This proves that the length assertion can now properly count the collection
         // returned by complex JSONPath expressions, which was the core issue described
     }

@@ -9,14 +9,13 @@ public class AssertStepTests
     [Fact]
     public void Type_ShouldReturnAssert()
     {
-        var step = new AssertStep();
+        var step = new AssertStep(new());
         Assert.Equal("assert", step.Type);
     }
 
     [Fact]
     public void ValidateConfiguration_WithValidAssertProperty_ReturnsTrue()
     {
-        var step = new AssertStep();
         var config = JsonSerializer.SerializeToElement(new
         {
             assert = new object[]
@@ -24,30 +23,31 @@ public class AssertStepTests
                 new { op = "exists", actualValue = "test" }
             }
         });
-        Assert.True(step.ValidateConfiguration(config));
+        IStep step = new AssertStep(config);
+
+        Assert.True(step.ValidateConfiguration([]));
     }
 
     [Fact]
     public void ValidateConfiguration_WithoutAssertProperty_ReturnsFalse()
     {
-        var step = new AssertStep();
         var config = JsonSerializer.SerializeToElement(new { other = "value" });
-        Assert.False(step.ValidateConfiguration(config));
+        IStep step = new AssertStep(config);
+        Assert.False(step.ValidateConfiguration([]));
     }
 
     [Fact]
     public void ValidateConfiguration_WithNonArrayAssertProperty_ReturnsFalse()
     {
-        var step = new AssertStep();
         var config = JsonSerializer.SerializeToElement(new { assert = "not an array" });
-        Assert.False(step.ValidateConfiguration(config));
+        IStep step = new AssertStep(config);
+        Assert.False(step.ValidateConfiguration([]));
     }
 
     [Fact]
     public async Task ExecuteAsync_WithValidAssertions_ProcessesCorrectly()
     {
         // Arrange
-        var step = new AssertStep();
         var context = new TestExecutionContext();
 
         // Set up some context variables for assertions to reference
@@ -64,7 +64,7 @@ public class AssertStepTests
             }
         });
 
-        step.ValidateConfiguration(config);
+        var step = new AssertStep(config);
 
         // Act
         var result = await step.ExecuteAsync(context);
@@ -90,7 +90,6 @@ public class AssertStepTests
     public async Task ExecuteAsync_WithFailingAssertions_ReturnsCorrectResults()
     {
         // Arrange
-        var step = new AssertStep();
         var context = new TestExecutionContext();
 
         context.Variables["testValue"] = "hello";
@@ -105,7 +104,7 @@ public class AssertStepTests
             }
         });
 
-        step.ValidateConfiguration(config);
+        var step = new AssertStep(config);
 
         // Act
         var result = await step.ExecuteAsync(context);
@@ -124,11 +123,10 @@ public class AssertStepTests
     public async Task ExecuteAsync_WithEmptyAssertionsArray_ReturnsSuccess()
     {
         // Arrange
-        var step = new AssertStep();
         var context = new TestExecutionContext();
 
         var config = JsonSerializer.SerializeToElement(new { assert = new object[0] });
-        step.ValidateConfiguration(config);
+        var step = new AssertStep(config);
 
         // Act
         var result = await step.ExecuteAsync(context);
@@ -142,8 +140,6 @@ public class AssertStepTests
     public async Task ExecuteAsync_WithStepId_StoresResultInContextWithId()
     {
         // Arrange
-        var step = new AssertStep();
-        step.Id = "my-assert-step";
         var context = new TestExecutionContext();
 
         var config = JsonSerializer.SerializeToElement(new
@@ -151,10 +147,11 @@ public class AssertStepTests
             assert = new object[]
             {
                 new { op = "exists", actualValue = "test" }
-            }
+            },
+            id = "my-assert-step"
         });
 
-        step.ValidateConfiguration(config);
+        var step = new AssertStep(config);        
 
         // Act
         var result = await step.ExecuteAsync(context);
@@ -166,28 +163,6 @@ public class AssertStepTests
 
         // Both should reference the same data
         Assert.Same(context.Variables["this"], context.Variables["my-assert-step"]);
-    }
-
-    [Fact]
-    public void GetStepDescription_ReturnsCorrectDescription()
-    {
-        var step = new AssertStep();
-        var config = JsonSerializer.SerializeToElement(new
-        {
-            assert = new object[]
-            {
-                new { op = "exists", actualValue = "test" }
-            }
-        });
-
-        step.ValidateConfiguration(config);
-
-        // Use reflection to access the method for testing
-        var method = typeof(AssertStep).GetMethod("GetStepDescription",
-            System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
-        var description = method?.Invoke(step, null) as string;
-
-        Assert.Equal("Execute assertions", description);
     }
 
     [Fact]

@@ -541,8 +541,8 @@ public class ResultsToMarkdownConverter
             return stepResult.DetailedDescription;
         }
         
-        return !string.IsNullOrEmpty(stepResult.Step.GetStepDescription()) 
-            ? stepResult.Step.GetStepDescription()
+        return !string.IsNullOrEmpty(stepResult.Step.Description) 
+            ? stepResult.Step.Description
             : $"{stepResult.Step.Type} step";
     }
 

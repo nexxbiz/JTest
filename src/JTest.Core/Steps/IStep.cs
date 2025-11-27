@@ -16,7 +16,17 @@ public interface IStep
     /// <summary>
     /// Gets or sets the step ID for context storage
     /// </summary>
-    string? Id { get; set; }
+    string? Id { get; }
+
+    /// <summary>
+    /// Gets or stes the name of the step. This is for display purposes only
+    /// </summary>
+    string? Name { get; }
+
+    /// <summary>
+    /// Gets or stes the description of the step. This is for display purposes only
+    /// </summary>
+    string? Description { get; }
 
     /// <summary>
     /// Executes the step with the provided context
@@ -26,12 +36,5 @@ public interface IStep
     /// <summary>
     /// Validates the step configuration from JSON
     /// </summary>
-    bool ValidateConfiguration(JsonElement configuration);
-
-    /// <summary>
-    /// returns a string description for logging purposes
-    /// </summary>
-    /// <returns></returns>
-    string GetStepDescription();
-
+    bool ValidateConfiguration(List<string> validationErrors);
 }

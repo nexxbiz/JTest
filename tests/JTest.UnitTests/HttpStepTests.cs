@@ -12,7 +12,7 @@ namespace JTest.UnitTests;
 public class HttpStepTests
 {
 
-    private static HttpStep CreateHttpStep(HttpResponseMessage? responseMessage = null, Expression<Func<HttpRequestMessage, bool>>? requestMessageRequirement = null)
+    private static HttpStep CreateHttpStep(HttpResponseMessage? responseMessage = null, Expression<Func<HttpRequestMessage, bool>>? requestMessageRequirement = null, JsonElement? configuration = null)
     {
         var mockHandler = new Mock<HttpMessageHandler>();
         var response = responseMessage ?? new HttpResponseMessage(HttpStatusCode.OK)
@@ -38,7 +38,8 @@ public class HttpStepTests
         }
 
         var httpClient = new HttpClient(mockHandler.Object);
-        return new HttpStep(httpClient);
+        var configElement = configuration ?? JsonSerializer.SerializeToElement(new { });
+        return new HttpStep(httpClient, configElement);
     }
 
     [Fact]
@@ -51,35 +52,43 @@ public class HttpStepTests
     [Fact]
     public void ValidateConfiguration_WithValidConfig_ReturnsTrue()
     {
-        var step = CreateHttpStep();
         var config = JsonSerializer.SerializeToElement(new { method = "GET", url = "https://api.example.com" });
-        Assert.True(step.ValidateConfiguration(config));
+        var step = CreateHttpStep(configuration: config);
+        var errors = new List<string>();
+        Assert.True(((IStep)step).ValidateConfiguration(errors));
+        Assert.Empty(errors);
     }
 
     [Fact]
     public void ValidateConfiguration_WithMissingMethod_ReturnsFalse()
     {
-        var step = CreateHttpStep();
         var config = JsonSerializer.SerializeToElement(new { url = "https://api.example.com" });
-        Assert.False(step.ValidateConfiguration(config));
+        var step = CreateHttpStep(configuration: config);
+        var errors = new List<string>();
+        Assert.False(((IStep)step).ValidateConfiguration(errors));
+        Assert.NotEmpty(errors);
     }
 
     [Fact]
     public void ValidateConfiguration_WithMissingUrl_ReturnsFalse()
     {
-        var step = CreateHttpStep();
         var config = JsonSerializer.SerializeToElement(new { method = "GET" });
-        Assert.False(step.ValidateConfiguration(config));
+        var step = CreateHttpStep(configuration: config);
+        var errors = new List<string>();
+        Assert.False(((IStep)step).ValidateConfiguration(errors));
+        Assert.NotEmpty(errors);
     }
 
     [Fact]
     public async Task ExecuteAsync_WithBasicGet_ReturnsSuccessResult()
     {
-        var step = CreateHttpStep();
         var context = new TestExecutionContext();
         var config = JsonSerializer.SerializeToElement(new { method = "GET", url = "https://api.example.com" });
+        var step = CreateHttpStep(configuration: config);
 
-        step.ValidateConfiguration(config);
+        var errors = new List<string>();
+        Assert.True(((IStep)step).ValidateConfiguration(errors));
+
         var result = await step.ExecuteAsync(context);
 
         Assert.True(result.Success);
@@ -89,7 +98,6 @@ public class HttpStepTests
     [Fact]
     public async Task ExecuteAsync_WithTokensInUrl_ResolvesTokens()
     {
-        var step = CreateHttpStep();
         var context = new TestExecutionContext();
         context.Variables["env"] = new { baseUrl = "https://api.example.com" };
 
@@ -99,7 +107,10 @@ public class HttpStepTests
             url = "{{$.env.baseUrl}}/users"
         });
 
-        step.ValidateConfiguration(config);
+        var step = CreateHttpStep(configuration: config);
+        var errors = new List<string>();
+        Assert.True(((IStep)step).ValidateConfiguration(errors));
+
         var result = await step.ExecuteAsync(context);
 
         Assert.True(result.Success);
@@ -108,7 +119,6 @@ public class HttpStepTests
     [Fact]
     public async Task ExecuteAsync_WithHeaders_AddsHeadersToRequest()
     {
-        var step = CreateHttpStep();
         var context = new TestExecutionContext();
         context.Variables["globals"] = new { token = "abc123" };
 
@@ -123,7 +133,10 @@ public class HttpStepTests
             }
         });
 
-        step.ValidateConfiguration(config);
+        var step = CreateHttpStep(configuration: config);
+        var errors = new List<string>();
+        Assert.True(((IStep)step).ValidateConfiguration(errors));
+
         var result = await step.ExecuteAsync(context);
 
         Assert.True(result.Success);
@@ -132,7 +145,6 @@ public class HttpStepTests
     [Fact]
     public async Task ExecuteAsync_WithJsonBody_SerializesCorrectly()
     {
-        var step = CreateHttpStep();
         var context = new TestExecutionContext();
         context.Variables["user"] = new { name = "John" };
 
@@ -147,7 +159,10 @@ public class HttpStepTests
             }
         });
 
-        step.ValidateConfiguration(config);
+        var step = CreateHttpStep(configuration: config);
+        var errors = new List<string>();
+        Assert.True(((IStep)step).ValidateConfiguration(errors));
+
         var result = await step.ExecuteAsync(context);
 
         Assert.True(result.Success);
@@ -156,7 +171,6 @@ public class HttpStepTests
     [Fact]
     public async Task ExecuteAsync_WithJsonArrayBody_SerializesCorrectly()
     {
-        var step = CreateHttpStep();
         var context = new TestExecutionContext();        
         var expectedBody = new[]
         {
@@ -182,7 +196,10 @@ public class HttpStepTests
             body = expectedBody
         });
 
-        step.ValidateConfiguration(config);
+        var step = CreateHttpStep(configuration: config);
+        var errors = new List<string>();
+        Assert.True(((IStep)step).ValidateConfiguration(errors));
+
         var result = await step.ExecuteAsync(context);
 
         Assert.True(result.Success);
@@ -204,7 +221,6 @@ public class HttpStepTests
         };
         Expression<Func<HttpRequestMessage, bool>> requestMessageRequirementForSuccessResponse = (requestMessage)
             => requestMessage.Content!.Headers.ContentType!.MediaType == contentType;
-        var step = CreateHttpStep(expectedResponse, requestMessageRequirementForSuccessResponse);
 
         var context = new TestExecutionContext();
         context.Variables["fileInfo"] = new { inputFilePath = "TestFiles/MockApiRequest.json" };
@@ -216,7 +232,10 @@ public class HttpStepTests
             file = "{{$.fileInfo.inputFilePath}}"
         });
 
-        step.ValidateConfiguration(config);
+        var step = CreateHttpStep(expectedResponse, requestMessageRequirementForSuccessResponse, config);
+
+        var errors = new List<string>();
+        Assert.True(((IStep)step).ValidateConfiguration(errors));
 
         // Act
         var result = await step.ExecuteAsync(context);
@@ -246,8 +265,6 @@ public class HttpStepTests
             => requestMessage.Content!.GetType() == typeof(MultipartFormDataContent) 
                 && ((MultipartFormDataContent)requestMessage.Content!).Count() == expectedMultiPartFormDataCount;
 
-        var step = CreateHttpStep(expectedResponse, requestMessageRequirementForSuccessResponse);
-
         var context = new TestExecutionContext();
         context.Variables["formFilesConfig"] = new[]
         {
@@ -274,7 +291,10 @@ public class HttpStepTests
             formFiles = "{{$.formFilesConfig}}"
         });
 
-        step.ValidateConfiguration(config);
+        var step = CreateHttpStep(expectedResponse, requestMessageRequirementForSuccessResponse, config);
+
+        var errors = new List<string>();
+        Assert.True(((IStep)step).ValidateConfiguration(errors));
 
         // Act
         var result = await step.ExecuteAsync(context);
@@ -299,8 +319,6 @@ public class HttpStepTests
     public async Task ExecuteAsync_WithFormFiles_And_ConfigurationMissesProperty_Then_ThrowsException(string name, string fileName, string path, string contentType)
     {
         // Arrange                
-        var step = CreateHttpStep();
-
         var context = new TestExecutionContext();
         context.Variables["formFilesConfig"] = new[]
         {
@@ -320,7 +338,9 @@ public class HttpStepTests
             formFiles = "{{$.formFilesConfig}}"
         });
 
-        step.ValidateConfiguration(config);
+        var step = CreateHttpStep(configuration: config);
+        var errors = new List<string>();
+        Assert.True(((IStep)step).ValidateConfiguration(errors));
 
         // Act
         var result = await step.ExecuteAsync(context);
@@ -343,7 +363,6 @@ public class HttpStepTests
         Expression<Func<HttpRequestMessage, bool>> requestMessageRequirementForSuccessResponse = (requestMessage) 
             => requestMessage.Content!.Headers.ContentType!.MediaType == contentType;
 
-        var step = CreateHttpStep(expectedResponse, requestMessageRequirementForSuccessResponse);
         var context = new TestExecutionContext();
         context.Variables["fileInfo"] = new { inputFilePath = "TestFiles/MockApiRequest.xml" };
 
@@ -355,7 +374,10 @@ public class HttpStepTests
             contentType
         });
 
-        step.ValidateConfiguration(config);
+        var step = CreateHttpStep(expectedResponse, requestMessageRequirementForSuccessResponse, config);
+
+        var errors = new List<string>();
+        Assert.True(((IStep)step).ValidateConfiguration(errors));
 
         // Act
         var result = await step.ExecuteAsync(context);
@@ -374,11 +396,13 @@ public class HttpStepTests
     [Fact]
     public async Task ExecuteAsync_StoresResponseInContext()
     {
-        var step = CreateHttpStep();
         var context = new TestExecutionContext();
         var config = JsonSerializer.SerializeToElement(new { method = "GET", url = "https://api.example.com" });
 
-        step.ValidateConfiguration(config);
+        var step = CreateHttpStep(configuration: config);
+        var errors = new List<string>();
+        Assert.True(((IStep)step).ValidateConfiguration(errors));
+
         await step.ExecuteAsync(context);
 
         Assert.True(context.Variables.ContainsKey("this"));
@@ -389,12 +413,14 @@ public class HttpStepTests
     [Fact]
     public async Task ExecuteAsync_WithStepId_StoresInBothScopes()
     {
-        var step = CreateHttpStep();
-        step.Id = "api-call";
         var context = new TestExecutionContext();
-        var config = JsonSerializer.SerializeToElement(new { method = "GET", url = "https://api.example.com" });
+        var config = JsonSerializer.SerializeToElement(new { method = "GET", url = "https://api.example.com", id="api-call" });
 
-        step.ValidateConfiguration(config);
+        var step = CreateHttpStep(configuration: config);
+
+        var errors = new List<string>();
+        Assert.True(((IStep)step).ValidateConfiguration(errors));
+
         await step.ExecuteAsync(context);
 
         Assert.True(context.Variables.ContainsKey("this"));
@@ -408,11 +434,14 @@ public class HttpStepTests
         {
             Content = new StringContent("Server Error", Encoding.UTF8, "text/plain")
         };
-        var step = CreateHttpStep(errorResponse);
         var context = new TestExecutionContext();
         var config = JsonSerializer.SerializeToElement(new { method = "GET", url = "https://api.example.com" });
 
-        step.ValidateConfiguration(config);
+        var step = CreateHttpStep(errorResponse, null, config);
+
+        var errors = new List<string>();
+        Assert.True(((IStep)step).ValidateConfiguration(errors));
+
         var result = await step.ExecuteAsync(context);
 
         // HttpClient doesn't throw for non-success status codes by default, so this should still succeed
@@ -431,11 +460,13 @@ public class HttpStepTests
             .ThrowsAsync(new HttpRequestException("Network error"));
 
         var httpClient = new HttpClient(mockHandler.Object);
-        var step = new HttpStep(httpClient);
-        var context = new TestExecutionContext();
         var config = JsonSerializer.SerializeToElement(new { method = "GET", url = "https://api.example.com" });
+        var step = new HttpStep(httpClient, config);
+        var context = new TestExecutionContext();
 
-        step.ValidateConfiguration(config);
+        var errors = new List<string>();
+        Assert.True(((IStep)step).ValidateConfiguration(errors));
+
         var result = await step.ExecuteAsync(context);
 
         Assert.False(result.Success);
@@ -446,11 +477,13 @@ public class HttpStepTests
     [Fact]
     public async Task ExecuteAsync_MeasuresRequestDuration()
     {
-        var step = CreateHttpStep();
         var context = new TestExecutionContext();
         var config = JsonSerializer.SerializeToElement(new { method = "GET", url = "https://api.example.com" });
 
-        step.ValidateConfiguration(config);
+        var step = CreateHttpStep(configuration: config);
+        var errors = new List<string>();
+        Assert.True(((IStep)step).ValidateConfiguration(errors));
+
         var result = await step.ExecuteAsync(context);
 
         Assert.True(result.Success);
@@ -464,11 +497,13 @@ public class HttpStepTests
         {
             Content = new StringContent("{\"id\":123,\"name\":\"test\"}", Encoding.UTF8, "application/json")
         };
-        var step = CreateHttpStep(jsonResponse);
         var context = new TestExecutionContext();
         var config = JsonSerializer.SerializeToElement(new { method = "GET", url = "https://api.example.com" });
 
-        step.ValidateConfiguration(config);
+        var step = CreateHttpStep(jsonResponse, null, config);
+        var errors = new List<string>();
+        Assert.True(((IStep)step).ValidateConfiguration(errors));
+
         await step.ExecuteAsync(context);
 
         Assert.True(context.Variables.ContainsKey("this"));
@@ -484,11 +519,13 @@ public class HttpStepTests
         {
             Content = new StringContent("Plain text response", Encoding.UTF8, "text/plain")
         };
-        var step = CreateHttpStep(textResponse);
         var context = new TestExecutionContext();
         var config = JsonSerializer.SerializeToElement(new { method = "GET", url = "https://api.example.com" });
 
-        step.ValidateConfiguration(config);
+        var step = CreateHttpStep(textResponse, null, config);
+        var errors = new List<string>();
+        Assert.True(((IStep)step).ValidateConfiguration(errors));
+
         await step.ExecuteAsync(context);
 
         Assert.True(context.Variables.ContainsKey("this"));
@@ -499,7 +536,6 @@ public class HttpStepTests
     [Fact]
     public async Task ExecuteAsync_WithQueryParameters_AddsToUrl()
     {
-        var step = CreateHttpStep();
         var context = new TestExecutionContext();
         context.Variables["filters"] = new { status = "active" };
 
@@ -515,7 +551,10 @@ public class HttpStepTests
             }
         });
 
-        step.ValidateConfiguration(config);
+        var step = CreateHttpStep(configuration: config);
+        var errors = new List<string>();
+        Assert.True(((IStep)step).ValidateConfiguration(errors));
+
         var result = await step.ExecuteAsync(context);
 
         Assert.True(result.Success);
@@ -530,11 +569,13 @@ public class HttpStepTests
         };
         response.Headers.Add("X-Custom-Header", "test-value");
 
-        var step = CreateHttpStep(response);
         var context = new TestExecutionContext();
         var config = JsonSerializer.SerializeToElement(new { method = "POST", url = "https://api.example.com" });
 
-        step.ValidateConfiguration(config);
+        var step = CreateHttpStep(response, null, config);
+        var errors = new List<string>();
+        Assert.True(((IStep)step).ValidateConfiguration(errors));
+
         var result = await step.ExecuteAsync(context);
 
         Assert.True(result.Success);
@@ -560,7 +601,6 @@ public class HttpStepTests
             Content = new StringContent("{\"result\":\"success\"}", Encoding.UTF8, "application/json")
         };
 
-        var step = CreateHttpStep(response);
         var context = new TestExecutionContext();
         context.Variables["auth"] = new { token = "bearer123" };
 
@@ -580,7 +620,10 @@ public class HttpStepTests
             }
         });
 
-        step.ValidateConfiguration(config);
+        var step = CreateHttpStep(response, null, config);
+        var errors = new List<string>();
+        Assert.True(((IStep)step).ValidateConfiguration(errors));
+
         var result = await step.ExecuteAsync(context);
 
         Assert.True(result.Success);
@@ -613,7 +656,6 @@ public class HttpStepTests
             Content = new StringContent("{\"id\":456,\"name\":\"John\"}", Encoding.UTF8, "application/json")
         };
 
-        var step = CreateHttpStep(response);
         var context = new TestExecutionContext();
         context.Variables["auth"] = new { token = "bearer123" };
 
@@ -633,7 +675,10 @@ public class HttpStepTests
             }
         });
 
-        step.ValidateConfiguration(config);
+        var step = CreateHttpStep(response, null, config);
+        var errors = new List<string>();
+        Assert.True(((IStep)step).ValidateConfiguration(errors));
+
         _ = await step.ExecuteAsync(context);
 
         // Verify the captured request details have the correct values
