@@ -1,5 +1,4 @@
 using JTest.Core;
-using Microsoft.VisualStudio.TestPlatform.ObjectModel.Client;
 using System.Text.Json;
 
 namespace JTest.UnitTests;

@@ -13,17 +13,19 @@ public sealed class AssertStep(JsonElement configuration) : BaseStep(configurati
 
     public override void ValidateConfiguration(List<string> validationErrors)
     {        
-        // Assert step requires an 'assert' property with assertion definitions
         if (!Configuration.TryGetProperty("assert", out var assertElement))
         {
             validationErrors.Add("Assert step configuration must have an 'assert' property");
         }
 
-        // The assert property should be an array
         if(assertElement.ValueKind != JsonValueKind.Array)
         {
             validationErrors.Add("'Assert' property must be an array");
-        }        
+        }              
+        else if (assertElement.GetArrayLength() == 0)
+        {
+            validationErrors.Add("'Assert' array must contain at least one assertion");
+        }
     }    
 
     public override async Task<StepResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)

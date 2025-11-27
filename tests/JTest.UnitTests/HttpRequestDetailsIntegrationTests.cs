@@ -154,8 +154,6 @@ public class HttpRequestDetailsIntegrationTests
         public Task<StepResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
         {
             return Task.FromResult(StepResult.CreateSuccess(0, this));
-        }
-        
-        public string GetStepDescription() => "Mock test step";
+        }        
     }
 }

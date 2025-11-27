@@ -6,15 +6,15 @@ namespace JTest.Core.Output.Markdown
     public sealed class MarkdownOutputGenerator : IOutputGenerator
     {
         private const string lineBreak = "<br/>";
-        private readonly MarkdownTestCaseResultWriter testCaseWriter = new ();
-        
+        private readonly MarkdownTestCaseResultWriter testCaseWriter = new();
+
         public string FileExtension => ".md";
 
         public string GenerateOutput(string fileName, string? testSuiteName, string? testSuiteDescription, IEnumerable<JTestCaseResult> results, bool isDebug, Dictionary<string, object>? environment, Dictionary<string, object>? globals)
         {
             using var writer = new StringWriter();
             writer.WriteLine($"# Test Results for suite '{testSuiteName ?? fileName}'");
-            if(!string.IsNullOrWhiteSpace(testSuiteDescription))
+            if (!string.IsNullOrWhiteSpace(testSuiteDescription))
             {
                 writer.WriteLine($"Description: {testSuiteDescription}");
             }
@@ -23,42 +23,36 @@ namespace JTest.Core.Output.Markdown
 
             if (isDebug && globals?.Count > 0)
             {
-                writer.WriteLine("### Global variables:");                
+                writer.WriteLine("### Global variables:");
                 WriteVariables(writer, globals);
                 writer.WriteLine();
             }
             if (isDebug && environment?.Count > 0)
             {
-                writer.WriteLine("### Environment variables:");                
+                writer.WriteLine("### Environment variables:");
                 WriteVariables(writer, environment);
                 writer.WriteLine();
             }
-            
+
             writer.WriteLine("# Test cases");
             writer.WriteLine();
             writer.WriteLine("Total cases executed: " + results.Count() + " <br/>");
 
-            if(results.Any(x => x.Success))
+            if (results.Any(x => x.Success))
             {
                 writer.WriteLine($"Cases passed ({results.Count(x => x.Success)}):");
-                foreach (var result in results)
+                foreach (var result in results.Where(x => x.Success))
                 {
-                    if (result.Success)
-                    {
-                        writer.WriteLine($"1. {result.TestCaseName}");
-                    }
+                    writer.WriteLine($"1. {result.TestCaseName}");
                 }
             }
 
-            if(results.Any(x => !x.Success))
+            if (results.Any(x => !x.Success))
             {
                 writer.WriteLine($"Cases failed ({results.Count(x => !x.Success)}):");
-                foreach (var result in results)
+                foreach (var result in results.Where(x => !x.Success))
                 {
-                    if (!result.Success)
-                    {
-                        writer.WriteLine($"1. {result.TestCaseName}");
-                    }
+                    writer.WriteLine($"1. {result.TestCaseName}");
                 }
             }
 

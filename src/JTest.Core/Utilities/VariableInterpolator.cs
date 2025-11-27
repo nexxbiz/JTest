@@ -40,6 +40,8 @@ public static class VariableInterpolator
             return input;
         }
 
+        input = ResolveEnvironmentVariableTokens(input);
+
         var matches = TokenRegex.Matches(input);
         if (matches.Count == 0) return input;
 
@@ -55,6 +57,22 @@ public static class VariableInterpolator
 
         if (newMatches.Count == 0) return resolvedInput;
         return ResolveMultipleTokensRecursive(resolvedInput, newMatches, context, depth);
+    }
+
+    private static string ResolveEnvironmentVariableTokens(string input)
+    {
+        var matches = EnvironmentVariableRegex.Matches(input);
+        foreach(Match match in matches)
+        {
+            var envVarName = match.Groups[1].Value;
+            var envVarValue = Environment.GetEnvironmentVariable(envVarName, EnvironmentVariableTarget.Process);
+            if(!string.IsNullOrWhiteSpace(envVarValue))
+            {
+                input = input.Replace(match.Value, envVarValue);
+            }
+        }
+
+        return input;
     }
 
     /// <summary>

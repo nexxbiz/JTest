@@ -53,7 +53,10 @@ public class HttpStep(HttpClient httpClient, JsonElement configuration) : BaseSt
             // Use common step completion logic from BaseStep
             var result = await ProcessStepCompletionAsync(context, contextBefore, stopwatch, responseData);
 
-            Description += Environment.NewLine + $"HTTP {GetResolvedMethod(context)} {GetResolvedUrl(context)}";
+            if(string.IsNullOrWhiteSpace(Description))
+            {
+                Description = $"HTTP {GetResolvedMethod(context)} {GetResolvedUrl(context)}";
+            }
 
             return result;
         }

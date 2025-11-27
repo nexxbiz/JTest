@@ -57,7 +57,7 @@ dotnet build src/JTest.Cli
 ./src/JTest.Cli/bin/Debug/net8.0/JTest run my-test.json
 ```
 
-Or run it locally:
+Or debug the solution:
 1. Go to launchsettings.json
 1. Replace "<path-to-root-of-project>" with the root path of your project
 1. Add or replace any environment variables

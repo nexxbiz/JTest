@@ -66,10 +66,7 @@ public class UseStep(ITemplateProvider templateProvider, StepFactory stepFactory
         // Get template name
         var templateName = Configuration.GetProperty("template").GetString()
             ?? throw new InvalidOperationException("Template name is required");
-        if(templateName == "elsa-get-workflow-instance")
-        {
-            var t = "";
-        }
+        
         Template = templateName;
 
         // Get template definition

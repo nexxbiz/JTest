@@ -264,10 +264,6 @@ public class MockHttpStep : IStep
         return Task.FromResult(StepResult.CreateSuccess(context.StepNumber, this,responseData, 100));
     }
 
-    public string GetStepDescription()
-    {
-        return "Mock";
-    }
 }
 
 /// <summary>
@@ -290,10 +286,5 @@ public class MockWaitStep : IStep
     {
         var resultData = new { delayMs = 1, executedAt = DateTime.UtcNow };
         return Task.FromResult(StepResult.CreateSuccess(context.StepNumber, this, resultData, 1));
-    }
-
-    public string GetStepDescription()
-    {
-        return "Mock wait";
     }
 }

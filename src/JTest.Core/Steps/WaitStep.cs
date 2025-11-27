@@ -1,6 +1,5 @@
 using JTest.Core.Execution;
 using JTest.Core.Utilities;
-using System.Data;
 using System.Diagnostics;
 using System.Globalization;
 using System.Text.Json;
