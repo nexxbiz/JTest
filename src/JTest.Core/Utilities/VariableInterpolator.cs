@@ -14,7 +14,7 @@ public static class VariableInterpolator
 {
     // Updated regex to properly handle nested braces by counting brace pairs
     private static readonly Regex TokenRegex = new(@"\{\{\s*\$\.(?:[^{}]|\{[^{}]*\})*\s*\}\}", RegexOptions.Compiled);
-    private static readonly Regex EnvironmentVariableRegex = new(@"^\$\{([A-Za-z0-9_]+)\}$", RegexOptions.Compiled);
+    private static readonly Regex EnvironmentVariableRegex = new(@"\$\{([A-Za-z0-9_]+)\}", RegexOptions.Compiled);
     private const int MaxNestingDepth = 10; // Prevent infinite recursion
 
     /// <summary>
@@ -409,20 +409,7 @@ public static class VariableInterpolator
 
     private static string ExtractStringValue(string value)
     {
-        var environmentVariableTokenMatch = EnvironmentVariableRegex.Match(value);
-        if (!environmentVariableTokenMatch.Success)
-        {
-            return value;
-        }
-
-        var environmentVariableName = environmentVariableTokenMatch.Groups[1].Value;
-        var result = Environment.GetEnvironmentVariable(environmentVariableName, EnvironmentVariableTarget.Process);
-        if(!string.IsNullOrWhiteSpace(result))
-        {
-            return result;
-        }
-
-        return value;
+        return ResolveEnvironmentVariableTokens(value);
     }
 
     /// <summary>
