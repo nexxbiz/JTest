@@ -34,6 +34,7 @@ namespace JTest.Core.Output.Markdown
                 writer.WriteLine();
             }
 
+            writer.WriteLine();
             writer.WriteLine("# Test cases");
             writer.WriteLine();
             writer.WriteLine("Total cases executed: " + results.Count() + " <br/>");
@@ -45,6 +46,7 @@ namespace JTest.Core.Output.Markdown
                 {
                     writer.WriteLine($"1. {result.TestCaseName}");
                 }
+                writer.WriteLine();
             }
 
             if (results.Any(x => !x.Success))
