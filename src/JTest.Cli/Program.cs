@@ -3,6 +3,7 @@ using JTest.Core;
 using JTest.Core.Models;
 using JTest.Core.Output;
 using JTest.Core.Output.Markdown;
+using JTest.Core.Utilities;
 using System.Collections.Concurrent;
 using System.Text.Json;
 
@@ -35,6 +36,7 @@ public class JTestCli
     private static readonly JsonSerializerOptions jsonSerializerOptions = new() { PropertyNameCaseInsensitive = true };
     private string OutputDirectory = Directory.GetCurrentDirectory();
     private bool skipOutput = false;
+    private readonly List<string> testFileCategories = [];
 
     public JTestCli()
     {
@@ -95,6 +97,7 @@ RUNTIME OPTIONS:
     --env-file <path.json>                      Load environment from JSON file
     --globals key=value                         Set global variable
     --globals-file <path.json>                  Load globals from JSON file    
+    --categories, -c                            Comma-separated list of test file categories to run (default: all)
     --parallel <count>, -p <count>              Run test files in parallel (default: 1)
     --output <folder-path>, -o <folder-path>    Output folder path where reports are saved (default: working directory)
     --skip-output                               When specified, then does not output a report file (default: false)
@@ -354,6 +357,11 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
             {
                 skipOutput = true;
             }
+            else if((arg == "--categories" || arg == "-c") && i + 1 < args.Length)
+            {
+                var categories = args[++i].Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                testFileCategories.AddRange(categories);
+            }
             else
             {
                 remainingArgs.Add(arg);
@@ -424,87 +432,27 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
         return command.ToLower() is "run" or "export" or "debug" or "validate" or "create" or "--help" or "-h";
     }
 
-    /// <summary>
-    /// Expands wildcard patterns to actual file paths
-    /// </summary>
-    /// <param name="pattern">File pattern (e.g., "*.json", "tests/*.json")</param>
-    /// <returns>List of matching file paths</returns>
-    private List<string> ExpandWildcardPattern(string pattern)
+    private async Task<IEnumerable<TestFileExecutionResult>?> RunCommand(List<string> testFilePatterns)
     {
-        var files = new List<string>();
-
-        try
-        {
-            // If it's not a pattern (no wildcards), treat as single file
-            if (!pattern.Contains('*') && !pattern.Contains('?'))
-            {
-                files.Add(pattern);
-                return files;
-            }
-
-            // Handle wildcard patterns
-            var directory = Path.GetDirectoryName(pattern);
-            var fileName = Path.GetFileName(pattern);
-
-            // If no directory specified, use current directory
-            if (string.IsNullOrEmpty(directory))
-            {
-                directory = ".";
-            }
-
-            // Ensure directory exists
-            if (!Directory.Exists(directory))
-            {
-                Console.Error.WriteLine($"Warning: Directory not found: {directory}");
-                return files;
-            }
-
-            // Get matching files
-            var matchingFiles = Directory.GetFiles(directory, fileName, SearchOption.TopDirectoryOnly);
-            files.AddRange(matchingFiles.OrderBy(f => f));
-
-            if (files.Count == 0)
-            {
-                Console.WriteLine($"Warning: No files found matching pattern: {pattern}");
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.Error.WriteLine($"Error expanding pattern '{pattern}': {ex.Message}");
-        }
-
-        return files;
-    }
-
-    private async Task<IEnumerable<TestFileExecutionResult>?> RunCommand(List<string> args)
-    {
-        if (args.Count == 0)
+        if (testFilePatterns.Count == 0)
         {
             Console.Error.WriteLine($"Error: Run command requires a test file argument");
             Console.Error.WriteLine($"Usage: jtest run <testfile>");
             return null;
         }
 
-        var testFiles = new List<string>();
-
-        // Process all arguments as patterns/files
-        foreach (var arg in args)
+        var testFiles = TestFileSearcher.Search(testFilePatterns, testFileCategories);
+        if (testFiles.Length == 0)
         {
-            var expandedFiles = ExpandWildcardPattern(arg);
-            testFiles.AddRange(expandedFiles);
-        }
-
-        if (testFiles.Count == 0)
-        {
-            Console.Error.WriteLine($"Error: No test files found matching patterns: {string.Join(", ", args)}");
+            Console.Error.WriteLine($"Error: No test files found matching patterns: {string.Join(", ", testFilePatterns)}");
             return null;
         }
 
         var allResults = new List<TestFileExecutionResult>();
 
-        if (_parallelCount > 1 && testFiles.Count > 1)
+        if (_parallelCount > 1 && testFiles.Length > 1)
         {
-            Console.WriteLine($"Running {testFiles.Count} test files in parallel (max concurrent: {_parallelCount})");
+            Console.WriteLine($"Running {testFiles.Length} test files in parallel (max concurrent: {_parallelCount})");
 
             // Thread-safe collections for parallel execution
             var allResultsThreadSafe = new ConcurrentBag<JTestCaseResult>();
@@ -699,27 +647,20 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
         }
     }
 
-    private async Task<int> ValidateCommand(List<string> args)
+    private async Task<int> ValidateCommand(List<string> testFilePatterns)
     {
-        if (args.Count == 0)
+        if (testFilePatterns.Count == 0)
         {
             Console.Error.WriteLine("Error: validate command requires a test file argument");
             Console.Error.WriteLine("Usage: jtest validate <testfile>");
             return 1;
         }
 
-        var testFiles = new List<string>();
+        var testFiles = TestFileSearcher.Search(testFilePatterns);
 
-        // Process all arguments as patterns/files
-        foreach (var arg in args)
+        if (testFiles.Length == 0)
         {
-            var expandedFiles = ExpandWildcardPattern(arg);
-            testFiles.AddRange(expandedFiles);
-        }
-
-        if (testFiles.Count == 0)
-        {
-            Console.Error.WriteLine($"Error: No test files found matching patterns: {string.Join(", ", args)}");
+            Console.Error.WriteLine($"Error: No test files found matching patterns: {string.Join(", ", testFilePatterns)}");
             return 1;
         }
 

@@ -18,6 +18,24 @@
       "environmentVariables": {
         "JTEST_CONFIG_FILE": "global-configuration.json"
       }
+    },
+
+    "run all tests in subfolders": {
+      "commandName": "Project",
+      "commandLineArgs": "run tests/**/* --env-file \"./environments/dev.json\"",
+      "workingDirectory": "<path-to-project>",
+      "environmentVariables": {
+        "JTEST_CONFIG_FILE": "global-configuration.json"
+      }
+    },
+
+    "run tests by categories": {
+      "commandName": "Project",
+      "commandLineArgs": "run tests/* --env-file \"./environments/dev.json\" -c \"smoke, regression\"",
+      "workingDirectory": "<path-to-project>",
+      "environmentVariables": {
+        "JTEST_CONFIG_FILE": "global-configuration.json"
+      }
     }
   }
 }

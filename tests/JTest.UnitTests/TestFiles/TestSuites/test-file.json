@@ -1,0 +1,29 @@
+{
+  "version": "1.0",
+  "info": {
+    "name": "Fake test file"
+  },
+  "categories": [
+  ],
+  "globals": {
+  },
+  "tests": [
+    {
+      "name": "Mock test",
+      "description": "",
+      "steps": [
+        {
+          "type": "assert",
+          "name": "Fake assert",
+          "assert": [
+            {
+              "op": "equals",
+              "actualValue": "{{ $.this.mockData }}",
+              "expectedValue": "123"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
