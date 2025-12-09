@@ -68,6 +68,28 @@ namespace JTest.UnitTests
         }
 
         [Fact]
+        public void When_Search_Then_MaintainsPatternArgumentOrder()
+        {
+            // Arrange
+            const string pattern1 = "TestFiles/TestSuites/test-file.json";
+            const string pattern2 = "TestFiles/TestSuites/test-file-with-categories.json";            
+
+            // Act
+            var result = TestFileSearcher.Search([pattern1, pattern2]);
+
+            // Assert
+            var resultFileNames = result.Select(Path.GetFileName);
+            Assert.Equal(
+               Path.GetFileName(pattern1),
+               resultFileNames.First()
+            );
+            Assert.Equal(
+               Path.GetFileName(pattern2),
+               resultFileNames.Last()
+            );
+        }
+
+        [Fact]
         public void When_Specifying_Categories_Then_Returns_Only_TestFiles_With_Categories()
         {
             // Arrange

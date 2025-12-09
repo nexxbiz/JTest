@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.FileSystemGlobbing;
 using Microsoft.Extensions.FileSystemGlobbing.Abstractions;
+using System.ComponentModel.DataAnnotations;
 using System.Data;
 using System.Text.Json;
 
@@ -21,21 +22,29 @@ namespace JTest.Core.Utilities
         /// Expands DevOps-style include/exclude wildcard patterns into file paths.
         /// Supports **, *, ?, and !exclude patterns.
         /// </summary>
-        static IEnumerable<string> ExpandWildCardPatterns(IEnumerable<string> patterns)
+        static List<string> ExpandWildCardPatterns(IEnumerable<string> patterns)
+        {
+            var result = new List<string>();
+            var excludedPatterns = patterns.Where(p => p.StartsWith('!'));
+            var includedPatterns = patterns.Except(excludedPatterns);
+            foreach (var pattern in includedPatterns)
+            {
+                var expandedFiles = ExpandWildCardPattern(pattern, excludedPatterns);
+                result.AddRange(expandedFiles);
+            }
+            return result;
+        }
+
+        static IEnumerable<string> ExpandWildCardPattern(string pattern, IEnumerable<string> excludedPatterns)
         {
             var matcher = new Matcher(StringComparison.OrdinalIgnoreCase);
-
-            foreach (var pattern in patterns)
+            foreach (var excludedPattern in excludedPatterns)
             {
-                if (pattern.StartsWith('!'))
-                {
-                    matcher.AddExclude(pattern.Substring(1));  // strip "!"
-                }
-                else
-                {
-                    matcher.AddInclude(pattern);
-                }
+                var trimmedExcludePattern = excludedPattern.TrimStart('!');
+                matcher.AddExclude(trimmedExcludePattern);
             }
+
+            matcher.AddInclude(pattern);
 
             // Use the working directory as base (adjust if needed)
             var workingDirectory = Directory.GetCurrentDirectory();
@@ -47,10 +56,9 @@ namespace JTest.Core.Utilities
 
             return result.Files
                 .Select(f => Path.GetFullPath(f.Path))
-                .Where(f => f.EndsWith(".json"))
-                .OrderBy(f => f);
+                .Where(f => f.EndsWith(".json"));
         }
-        
+
         static bool DoesTestFileMatchCategories(string filePath, IEnumerable<string> categories)
         {
             if (!categories.Any())
