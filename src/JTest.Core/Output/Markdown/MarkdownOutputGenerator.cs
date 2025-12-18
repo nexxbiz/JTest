@@ -1,16 +1,21 @@
-﻿using JTest.Core.Debugging;
-using JTest.Core.Models;
+﻿using JTest.Core.Models;
+using JTest.Core.Variables;
+using System.Text.Json;
 
 namespace JTest.Core.Output.Markdown
 {
-    public sealed class MarkdownOutputGenerator : IOutputGenerator
+    public sealed class MarkdownOutputGenerator(IVariablesContext variablesContext) : IOutputGenerator
     {
         private const string lineBreak = "<br/>";
         private readonly MarkdownTestCaseResultWriter testCaseWriter = new();
+        private static readonly JsonSerializerOptions jsonSerializerOptions = new()
+        {
+            WriteIndented = true
+        };
 
         public string FileExtension => ".md";
 
-        public string GenerateOutput(string fileName, string? testSuiteName, string? testSuiteDescription, IEnumerable<JTestCaseResult> results, bool isDebug, Dictionary<string, object>? environment, Dictionary<string, object>? globals)
+        public string GenerateOutput(string fileName, string? testSuiteName, string? testSuiteDescription, IEnumerable<JTestCaseResult> results, bool isDebug)
         {
             using var writer = new StringWriter();
             writer.WriteLine($"# Test Results for suite '{testSuiteName ?? fileName}'");
@@ -21,16 +26,16 @@ namespace JTest.Core.Output.Markdown
 
             writer.WriteLine(lineBreak);
 
-            if (isDebug && globals?.Count > 0)
+            if (isDebug && variablesContext.GlobalVariables?.Count > 0)
             {
                 writer.WriteLine("### Global variables:");
-                WriteVariables(writer, globals);
+                WriteVariables(writer, variablesContext.GlobalVariables);
                 writer.WriteLine();
             }
-            if (isDebug && environment?.Count > 0)
+            if (isDebug && variablesContext.EnvironmentVariables?.Count > 0)
             {
                 writer.WriteLine("### Environment variables:");
-                WriteVariables(writer, environment);
+                WriteVariables(writer, variablesContext.EnvironmentVariables);
                 writer.WriteLine();
             }
 
@@ -71,12 +76,9 @@ namespace JTest.Core.Output.Markdown
             return writer.ToString();
         }
 
-        static void WriteVariables(TextWriter writer, IDictionary<string, object> variables)
+        static void WriteVariables(TextWriter writer, IReadOnlyDictionary<string, object?> variables)
         {
-            var json = System.Text.Json.JsonSerializer.Serialize(variables, new System.Text.Json.JsonSerializerOptions
-            {
-                WriteIndented = true
-            });
+            var json = JsonSerializer.Serialize(variables, jsonSerializerOptions);
             writer.WriteLine("```json");
             writer.Write(json);
             writer.WriteLine();

@@ -10,12 +10,12 @@ namespace JTest.Core.Steps;
 public class StepFactory
 {
     private readonly HttpClient _httpClient;
-    private readonly ITemplateProvider _templateProvider;
+    private readonly ITemplateContext _templateProvider;
 
-    public StepFactory(ITemplateProvider? templateProvider = null)
+    public StepFactory(ITemplateContext? templateProvider = null)
     {
         _httpClient = new HttpClient();
-        _templateProvider = templateProvider ?? new TemplateProvider();
+        _templateProvider = templateProvider ?? new Templates.TemplateCollection();
     }
 
     /// <summary>
@@ -59,7 +59,7 @@ public class StepFactory
     /// <summary>
     /// Gets the template provider
     /// </summary>
-    public ITemplateProvider TemplateProvider => _templateProvider;
+    public ITemplateContext TemplateProvider => _templateProvider;
 
     /// <summary>
     /// Disposes resources used by the factory

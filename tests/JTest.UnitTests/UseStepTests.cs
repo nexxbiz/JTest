@@ -15,7 +15,7 @@ namespace JTest.UnitTests;
 /// </summary>
 public class TestStepFactory : StepFactory
 {
-    public TestStepFactory(ITemplateProvider templateProvider)
+    public TestStepFactory(ITemplateContext templateProvider)
         : base(templateProvider)
     {
 
@@ -77,7 +77,7 @@ public class TestUseStep : UseStep
 {
     private readonly StepFactory _testStepFactory;
 
-    public TestUseStep(ITemplateProvider templateProvider, StepFactory stepFactory, JsonElement configuration)
+    public TestUseStep(ITemplateContext templateProvider, StepFactory stepFactory, JsonElement configuration)
         : base(templateProvider, stepFactory, configuration)
     {
         _testStepFactory = stepFactory;
@@ -92,7 +92,7 @@ public class UseStepTests
     public void UseStep_ValidateConfiguration_RequiresTemplateProperty()
     {
         // Arrange
-        var templateProvider = new TemplateProvider();
+        var templateProvider = new Core.Templates.TemplateCollection();
         var stepFactory = new StepFactory(templateProvider);
 
         var configWithoutTemplate = JsonSerializer.Deserialize<JsonElement>("{}");
@@ -109,7 +109,7 @@ public class UseStepTests
     public async Task UseStep_ExecuteAsync_ThrowsWhenTemplateNotFound()
     {
         // Arrange
-        var templateProvider = new TemplateProvider();
+        var templateProvider = new Core.Templates.TemplateCollection();
         var stepFactory = new StepFactory(templateProvider);
 
         var config = JsonSerializer.Deserialize<JsonElement>("{\"template\": \"nonexistent\"}");
@@ -127,7 +127,7 @@ public class UseStepTests
     public async Task UseStep_ExecuteAsync_ExecutesTemplateWithParameters()
     {
         // Arrange
-        var templateProvider = new TemplateProvider();
+        var templateProvider = new Core.Templates.TemplateCollection();
         var stepFactory = new StepFactory(templateProvider);
 
         // Load test template
@@ -188,7 +188,7 @@ public class UseStepTests
     public async Task UseStep_ExecuteAsync_ValidatesRequiredParameters()
     {
         // Arrange
-        var templateProvider = new TemplateProvider();
+        var templateProvider = new Core.Templates.TemplateCollection();
         var stepFactory = new StepFactory(templateProvider);
 
         // Load template with required parameter
@@ -234,7 +234,7 @@ public class UseStepTests
     public async Task UseStep_ExecuteAsync_UsesDefaultParameterValues()
     {
         // Arrange
-        var templateProvider = new TemplateProvider();
+        var templateProvider = new Core.Templates.TemplateCollection();
         var stepFactory = new StepFactory(templateProvider);
 
         // Load template with default parameter
@@ -286,7 +286,7 @@ public class UseStepTests
     public async Task UseStep_ExecuteAsync_ResolvesParameterTokensFromParentContext()
     {
         // Arrange
-        var templateProvider = new TemplateProvider();
+        var templateProvider = new Core.Templates.TemplateCollection();
         var stepFactory = new StepFactory(templateProvider);
 
         var templateJson = """
@@ -342,7 +342,7 @@ public class UseStepTests
     public async Task UseStep_ExecuteAsync_ProcessesSaveOperations()
     {
         // Arrange
-        var templateProvider = new TemplateProvider();
+        var templateProvider = new Core.Templates.TemplateCollection();
         var stepFactory = new StepFactory(templateProvider);
 
         var templateJson = """
@@ -414,7 +414,7 @@ public class TemplateProviderTests
     public void TemplateProvider_LoadTemplatesFromJson_LoadsValidTemplates()
     {
         // Arrange
-        var provider = new TemplateProvider();
+        var provider = new Core.Templates.TemplateCollection();
         var templateJson = """
         {
             "version": "1.0",
@@ -449,8 +449,8 @@ public class TemplateProviderTests
     public void TemplateProvider_RegisterTemplateCollection_RegistersTemplates()
     {
         // Arrange
-        var provider = new TemplateProvider();
-        var collection = new TemplateCollection
+        var provider = new Core.Templates.TemplateCollection();
+        var collection = new Core.Models.TemplateCollection
         {
             Components = new TemplateComponents
             {
@@ -473,8 +473,8 @@ public class TemplateProviderTests
     public void TemplateProvider_Clear_RemovesAllTemplates()
     {
         // Arrange
-        var provider = new TemplateProvider();
-        var collection = new TemplateCollection
+        var provider = new Core.Templates.TemplateCollection();
+        var collection = new Core.Models.TemplateCollection
         {
             Components = new TemplateComponents
             {
@@ -506,7 +506,7 @@ public class TemplateProviderTests
         public async Task UseStep_WithCaseData_CanAccessCaseVariablesInTemplate()
         {
             // Arrange - Create a template that uses case data
-            var templateProvider = new TemplateProvider();
+            var templateProvider = new Core.Templates.TemplateCollection();
 
             var templateJson = """
         {
@@ -575,7 +575,7 @@ public class TemplateProviderTests
         public async Task UseStep_WithoutCaseData_WorksNormally()
         {
             // Arrange - Create a simple template that doesn't use case data
-            var templateProvider = new TemplateProvider();
+            var templateProvider = new Core.Templates.TemplateCollection();
 
             var templateJson = """
         {
@@ -629,7 +629,7 @@ public class TemplateProviderTests
         public async Task UseStep_WithCaseDataAndTemplateParams_BothAccessible()
         {
             // Arrange - Template that uses both case data and template parameters
-            var templateProvider = new TemplateProvider();
+            var templateProvider = new Core.Templates.TemplateCollection();
 
             var templateJson = """
         {

@@ -1,6 +1,7 @@
 using JTest.Core.Debugging;
 using JTest.Core.Execution;
 using JTest.Core.Models;
+using JTest.Core.Templates;
 using JTest.Core.Utilities;
 using System.Diagnostics;
 using System.Text.Json;
@@ -10,7 +11,7 @@ namespace JTest.Core.Steps;
 /// <summary>
 /// Step that executes a template with provided parameters in an isolated context
 /// </summary>
-public class UseStep(ITemplateProvider templateProvider, StepFactory stepFactory, JsonElement configuration) 
+public class UseStep(ITemplateContext templateProvider, StepFactory stepFactory, JsonElement configuration) 
     : BaseStep(configuration)
 {
     public override string Type => "use";

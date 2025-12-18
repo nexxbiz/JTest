@@ -194,7 +194,7 @@ namespace JTest.UnitTests
             var globalConfiguration = new GlobalConfiguration(
                 Templates: new(SearchPaths: [_templateSearchFolderPath], Paths: [])
             );
-            var templateProvider = new TemplateProvider();
+            var templateProvider = new Core.Templates.TemplateCollection();
             var testRunner = new TestRunner(templateProvider, globalConfiguration);
             var testContent = await File.ReadAllTextAsync(_testFileWithExplicitUsings);
             var testDoc = JsonDocument.Parse(testContent);

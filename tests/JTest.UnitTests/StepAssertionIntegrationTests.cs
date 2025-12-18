@@ -58,7 +58,7 @@ public class StepAssertionIntegrationTests
     public async Task UseStep_WithAssertions_ProcessesCorrectly()
     {
         // Arrange
-        var templateProvider = new JTest.Core.Templates.TemplateProvider();
+        var templateProvider = new JTest.Core.Templates.TemplateCollection();
         var stepFactory = new StepFactory(templateProvider);
 
         // Load test template

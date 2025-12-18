@@ -1,6 +1,4 @@
-﻿using JTest.Core.Models;
-
-namespace JTest.Cli;
+﻿namespace JTest.Core.Models;
 
 public sealed record TestFileExecutionResult(string FilePath, string? TestSuiteName, string? TestSuiteDescription, IEnumerable<JTestCaseResult> TestCaseResults)
 {

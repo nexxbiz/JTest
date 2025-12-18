@@ -11,7 +11,7 @@ public class SaveIntegrationTests
     public async Task UseStep_SaveFunctionality_MatchesRequirementsExample()
     {
         // Arrange - create template matching the auth example from docs
-        var templateProvider = new TemplateProvider();
+        var templateProvider = new TemplateCollection();
         var stepFactory = new StepFactory(templateProvider);
 
         var templateJson = """

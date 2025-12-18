@@ -40,36 +40,12 @@ public class JTestCli
 
     public JTestCli()
     {
-        var globalConfig = LoadGlobalConfigurationFile();
         _testRunner = new TestRunner(globalConfig);
 
         if (!string.IsNullOrWhiteSpace(globalConfig?.OutputDirectory))
         {
             OutputDirectory = globalConfig.OutputDirectory;
         }
-    }
-
-    private static GlobalConfiguration? LoadGlobalConfigurationFile()
-    {
-        var globalConfigFilePath = Environment.GetEnvironmentVariable(globalConfigFileEnvVar, EnvironmentVariableTarget.Process);
-        if (string.IsNullOrWhiteSpace(globalConfigFilePath))
-        {
-            return null;
-        }
-        if (!File.Exists(globalConfigFilePath))
-        {
-            Console.ForegroundColor = ConsoleColor.Yellow;
-            Console.WriteLine(
-                $"WARNING: Global configuration file at path '{globalConfigFilePath}' does not exist. Continuing without global config file."
-            );
-            Console.ResetColor();
-            return null;
-        }
-
-        return JsonSerializer.Deserialize<GlobalConfiguration>(
-            File.ReadAllText(globalConfigFilePath),
-            options: jsonSerializerOptions
-        );
     }
 
     private static readonly string HelpText = @"JTEST CLI v1.0 - Universal Test Definition Language
@@ -141,10 +117,6 @@ EXAMPLES:
 
 For more information, visit: https://github.com/ELSA-X/JTEST";
 
-    private static IOutputGenerator GetTestCaseOutputGenerator(List<string> args)
-    {
-        return new MarkdownOutputGenerator();
-    }
 
     public async Task<int> RunAsync(string[] args)
     {
@@ -172,123 +144,18 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
             return 0;
         }
 
-        // Handle direct test execution (shorthand)
-        if (command.EndsWith(".json") && !IsKnownCommand(command))
-        {
-            return await ExecuteRunOrDebugCommand([.. parsedArgs], command);
-        }
-        else if (command == "run" || command == "debug")
-        {
-            return await ExecuteRunOrDebugCommand([.. parsedArgs.Skip(1)], command);
-        }
-        else
-        {
-            // Handle NON-execution known commands
-            return command switch
-            {
-                "export" => await ExportCommand([.. parsedArgs.Skip(1)]),
-                "validate" => await ValidateCommand([.. parsedArgs.Skip(1)]),
-                "create" => await CreateCommand([.. parsedArgs.Skip(1)]),
 
-                _ => HandleUnknownCommand(command)
-            };
-        }
+        // Handle NON-execution known commands
+        return command switch
+        {
+            "export" => await ExportCommand([.. parsedArgs.Skip(1)]),
+            "validate" => await ValidateCommand([.. parsedArgs.Skip(1)]),
+            "create" => await CreateCommand([.. parsedArgs.Skip(1)]),
+
+            _ => HandleUnknownCommand(command)
+        };
     }
 
-    async Task<int> ExecuteRunOrDebugCommand(List<string> args, string command)
-    {
-        var outputGenerator = GetTestCaseOutputGenerator(args);
-        var results = await RunCommand(args);
-        if (results is null)
-        {
-            return 1;
-        }
-
-        ProcessResults(outputGenerator, results, command == "debug");
-        if (results.All(x => x.CasesFailed == 0))
-        {
-            return 0;
-        }
-
-        return 1;
-    }
-
-    void ProcessResults(IOutputGenerator outputGenerator, IEnumerable<TestFileExecutionResult> results, bool isDebug)
-    {
-        if (!Directory.Exists(OutputDirectory))
-        {
-            Directory.CreateDirectory(OutputDirectory);
-        }
-
-        Console.WriteLine();
-        Console.WriteLine($"OVERALL TEST SUMMARY");
-
-        Console.WriteLine($"Files processed: {results.Count()}");
-        Console.WriteLine();
-        Console.WriteLine($"Files passed:");
-        var filesPassed = results.Where(x => x.CasesFailed == 0).Select(x => x.TestSuiteName ?? x.FilePath);
-        foreach(var file in filesPassed)
-        {
-            Console.WriteLine("  - " + file);
-        }
-        Console.WriteLine();
-
-        var filesFailed = results.Where(x => x.CasesFailed > 0).Select(x => x.TestSuiteName ?? x.FilePath);
-        if (filesFailed.Any())
-        {
-            Console.WriteLine($"Files failed:");
-            foreach (var file in filesFailed)
-            {
-                Console.WriteLine("  - " + file);
-            }
-            Console.WriteLine();
-        }
-        
-        Console.WriteLine($"Total test cases executed: {results.Sum(x => x.TestCaseResults.Count())}");
-        Console.WriteLine($"Total test cases passed: {results.Sum(x => x.CasesPassed)}");
-        Console.WriteLine($"Total test cases failed: {results.Sum(x => x.CasesFailed)}");
-
-        foreach (var result in results)
-        {
-            var output = outputGenerator.GenerateOutput(
-                result.FilePath,
-                result.TestSuiteName,
-                result.TestSuiteDescription,
-                result.TestCaseResults,
-                isDebug: isDebug,
-                environment: _envVars,
-                globals: _globals
-            );
-
-            if(!skipOutput)
-            {
-                var outputFileName = GenerateTestCaseOutputFileName(result.FilePath, result.TestCaseResults.All(x => x.Success));
-                var outputFilePath = Path.Combine(OutputDirectory, $"{outputFileName}{outputGenerator.FileExtension}");
-
-                Console.WriteLine($"Writing output report to: {outputFilePath}");
-                File.WriteAllText(outputFilePath, output);
-            }
-        }        
-    }
-
-    private static string GenerateTestCaseOutputFileName(string filePath, bool success)
-    {
-        var name = Path.GetFileNameWithoutExtension(filePath);
-
-        var dateTimeString = DateTime.UtcNow.ToString("yyyyMMdd_HHmmssfff");
-
-        var safeName = string.Concat(
-            name.Split(Path.GetInvalidFileNameChars(), StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-        );
-
-        var result = $"{safeName}_{dateTimeString}";
-        if (success)
-        {
-            return $"{result}_PASSED";
-        }
-
-        return $"{result}_FAILED";
-    }
 
     private List<string> ParseRuntimeOptions(string[] args)
     {
@@ -353,11 +220,11 @@ For more information, visit: https://github.com/ELSA-X/JTEST";
                 OutputDirectory = args[++i];
                 Console.WriteLine($"Set output directory: {OutputDirectory}");
             }
-            else if (arg == "--skip-output"  && i < args.Length)
+            else if (arg == "--skip-output" && i < args.Length)
             {
                 skipOutput = true;
             }
-            else if((arg == "--categories" || arg == "-c") && i + 1 < args.Length)
+            else if ((arg == "--categories" || arg == "-c") && i + 1 < args.Length)
             {
                 var categories = args[++i].Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
                 testFileCategories.AddRange(categories);
