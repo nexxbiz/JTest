@@ -12,6 +12,8 @@ public sealed class TypeDescriptorRegistry<TInterfaceMarker> : ITypeDescriptorRe
 
     public Type InterfaceMarkerType => typeof(TInterfaceMarker);
 
+    public ITypeDescriptorIdentification Identification => descriptorIdentification;
+
     public TypeDescriptorRegistry(IServiceProvider serviceProvider, ITypeDescriptorIdentification descriptorIdentification)
         : this(typeof(TypeDescriptorRegistry<>).Assembly, serviceProvider, descriptorIdentification)
     {

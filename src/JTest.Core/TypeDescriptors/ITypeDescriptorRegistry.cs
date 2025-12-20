@@ -12,6 +12,8 @@ public interface ITypeDescriptorRegistry
     TypeDescriptor GetDescriptor(string typeIdentifier);
 
     Type InterfaceMarkerType { get; }
+
+    ITypeDescriptorIdentification Identification { get; }
 }
 
 public static class TypeDescriptorRegistryExtensions

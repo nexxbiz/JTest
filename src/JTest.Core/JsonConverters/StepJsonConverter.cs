@@ -1,4 +1,5 @@
-﻿using JTest.Core.Steps;
+﻿using JTest.Core.Assertions;
+using JTest.Core.Steps;
 using JTest.Core.TypeDescriptorRegistries;
 using JTest.Core.TypeDescriptors;
 using Microsoft.Extensions.DependencyInjection;
@@ -17,21 +18,22 @@ public sealed class StepJsonConverter(IServiceProvider serviceProvider) : JsonCo
         {
             throw new JsonException("Failed to parse JsonDocument");
         }
-
-        if (!doc.RootElement.TryGetProperty("type", out var stepType) || stepType.ValueKind != JsonValueKind.String || string.IsNullOrWhiteSpace(stepType.GetString()))
+        if(doc.RootElement.ValueKind != JsonValueKind.Object)
         {
-            throw new JsonException("Failed to extract step type property");
+            throw new JsonException($"Expected json object but got '{doc.RootElement.ValueKind}'");
         }
+
+        var stepType = GetStepType(doc.RootElement);
 
         var typeRegistry = serviceProvider
             .GetRequiredService<ITypeDescriptorRegistryProvider>()
             .StepTypeRegistry;
 
-        var descriptor = typeRegistry.GetDescriptor(stepType.GetString()!);
+        var descriptor = typeRegistry.GetDescriptor(stepType);
 
         var configurationType = GetConfigurationType(descriptor.Type);
-        var configurationJson = JsonSerializer.Serialize(doc.RootElement, options);
-        var configuration = JsonSerializer.Deserialize(configurationJson, JsonTypeInfo.CreateJsonTypeInfo(configurationType, options));
+        var configurationJson = doc.RootElement.GetRawText();        
+        var configuration = JsonSerializer.Deserialize(configurationJson, configurationType, options);
 
         var constructorArguments = new TypeDescriptorConstructorArgument[]
         {
@@ -39,7 +41,32 @@ public sealed class StepJsonConverter(IServiceProvider serviceProvider) : JsonCo
         };
         var result = descriptor.Constructor.Invoke(constructorArguments);
 
-        return (IStep)result;
+        if (result is not IStep step)
+        {
+            throw new InvalidOperationException($"Step for type {stepType} cannot be constructed");
+        }
+
+        return step;
+    }
+
+    private static string GetStepType(JsonElement json)
+    {
+        var stepTypeProperty = json
+            .EnumerateObject()
+            .FirstOrDefault(x => x.Name.Equals("type", StringComparison.OrdinalIgnoreCase));
+
+        if(stepTypeProperty.Value.ValueKind != JsonValueKind.String)
+        {
+            throw new JsonException("Step is missing required string property 'type'");
+        }
+
+        var result = stepTypeProperty.Value.GetString();
+        if(string.IsNullOrWhiteSpace(result))
+        {
+            throw new JsonException("Required property 'type' is null or empty");
+        }
+
+        return result;
     }
 
     private static Type GetConfigurationType(Type type)
@@ -61,8 +88,13 @@ public sealed class StepJsonConverter(IServiceProvider serviceProvider) : JsonCo
     {
         writer.WriteStartObject();
 
+        var typeRegistry = serviceProvider
+            .GetRequiredService<ITypeDescriptorRegistryProvider>()
+            .StepTypeRegistry;
+
+        var typeIdentifier = typeRegistry.Identification.Identify(value.GetType());
         writer.WritePropertyName("type");
-        writer.WriteStringValue(value.TypeName);
+        writer.WriteStringValue(typeIdentifier);
 
         var properties = value.Configuration?
             .GetType()

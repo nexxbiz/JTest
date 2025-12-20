@@ -11,22 +11,43 @@ public sealed class AssertionOperationJsonConverter(IServiceProvider serviceProv
 {
     public override void Write(Utf8JsonWriter writer, IAssertionOperation value, JsonSerializerOptions options)
     {
+        var typeRegistry = serviceProvider
+            .GetRequiredService<ITypeDescriptorRegistryProvider>()
+            .AssertionTypeRegistry;
+
         writer.WriteStartObject();
 
+        var typeIdentifier = typeRegistry.Identification.Identify(value.GetType());
         writer.WritePropertyName("op");
-        writer.WriteStringValue(value.OperationName);
-        writer.WritePropertyName("actualValue");
-        writer.WriteRawValue(
-            JsonSerializer.SerializeToElement(value.ActualValue).GetRawText()
-        );
-        writer.WritePropertyName("expectedValue");
-        writer.WriteRawValue(
-            JsonSerializer.SerializeToElement(value.ExpectedValue).GetRawText()
-        );
-        writer.WritePropertyName("description");
-        writer.WriteStringValue(value.Description);
-        writer.WritePropertyName("mask");
-        writer.WriteBooleanValue(value.Mask == true);
+        writer.WriteStringValue(typeIdentifier);
+
+        if(value.ActualValue is not null)
+        {
+            writer.WritePropertyName("actualValue");
+            writer.WriteRawValue(
+                JsonSerializer.SerializeToElement(value.ActualValue).GetRawText()
+            );
+        }
+
+        if(value.ExpectedValue is not null)
+        {
+            writer.WritePropertyName("expectedValue");
+            writer.WriteRawValue(
+                JsonSerializer.SerializeToElement(value.ExpectedValue).GetRawText()
+            );
+        }
+
+        if(!string.IsNullOrWhiteSpace(value.Description))
+        {
+            writer.WritePropertyName("description");
+            writer.WriteStringValue(value.Description);
+        }
+
+        if(value.Mask.HasValue)
+        {
+            writer.WritePropertyName("mask");
+            writer.WriteBooleanValue(value.Mask == true);
+        }
 
         writer.WriteEndObject();
     }
@@ -37,26 +58,47 @@ public sealed class AssertionOperationJsonConverter(IServiceProvider serviceProv
         {
             throw new JsonException("Failed to parse JsonDocument");
         }
-
-        if (!doc.RootElement.TryGetProperty("op", out var operationType) || operationType.ValueKind != JsonValueKind.String || string.IsNullOrWhiteSpace(operationType.GetString()))
+        if (doc.RootElement.ValueKind != JsonValueKind.Object)
         {
-            throw new JsonException("Failed to extract operation type property");
+            throw new JsonException($"Expected json object but got '{doc.RootElement.ValueKind}'");
         }
+
+        var operationType = GetOperationType(doc.RootElement);
 
         var typeRegistry = serviceProvider
             .GetRequiredService<ITypeDescriptorRegistryProvider>()
             .AssertionTypeRegistry;
 
-        var descriptor = typeRegistry.GetDescriptor(operationType.GetString()!);
+        var descriptor = typeRegistry.GetDescriptor(operationType);
         var arguments = CreateArguments(doc.RootElement);
         var result = descriptor.Constructor.Invoke(arguments);
 
         if (result is not IAssertionOperation assertionOperation)
         {
-            throw new JsonException($"Assertion operation for type {operationType} cannot be constructed");
+            throw new InvalidOperationException($"Assertion operation for type {operationType} cannot be constructed");
         }
 
         return assertionOperation;
+    }
+
+    private static string GetOperationType(JsonElement json)
+    {
+        var operationTypeProperty = json
+            .EnumerateObject()
+            .FirstOrDefault(x => x.Name.Equals("op", StringComparison.OrdinalIgnoreCase));
+
+        if (operationTypeProperty.Value.ValueKind != JsonValueKind.String)
+        {
+            throw new JsonException("Assertion is missing required string property 'op'");
+        }
+
+        var result = operationTypeProperty.Value.GetString();
+        if (string.IsNullOrWhiteSpace(result))
+        {
+            throw new JsonException("Required property 'op' is null or empty");
+        }
+
+        return result;
     }
 
     private static IEnumerable<TypeDescriptorConstructorArgument> CreateArguments(JsonElement root)
