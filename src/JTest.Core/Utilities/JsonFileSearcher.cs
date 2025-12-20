@@ -5,7 +5,7 @@ using System.Text.Json;
 
 namespace JTest.Core.Utilities;
 
-public static class TestFileSearcher
+public static class JsonFileSearcher
 {
     public static string[] Search(IEnumerable<string> testFilePatterns, IEnumerable<string> categories)
     {

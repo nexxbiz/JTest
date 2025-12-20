@@ -85,8 +85,8 @@ internal class Program
             {
                 return new ITypeDescriptorRegistry[]
                 {
-                    ITypeDescriptorRegistry.CreateStepRegistry(sp),
-                    ITypeDescriptorRegistry.CreateAssertionRegistry(sp)
+                    new TypeDescriptorRegistry<IStep>(sp, nameof(IStep.Type)),
+                    new TypeDescriptorRegistry<IAssertionOperation>(sp, nameof(IAssertionOperation.OperationType))
                 };
             })
             .RegisterInstance<IDictionary<string, IOutputGenerator>>(sp =>

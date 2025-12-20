@@ -1,20 +1,23 @@
-﻿using JTest.Core.Assertions;
-using JTest.Core.Models;
-using JTest.Core.Steps;
+﻿using JTest.Core.Models;
 using System.Reflection;
 
 namespace JTest.Core;
 
 public interface ITypeDescriptorRegistry
 {
-    void RegisterTypesFromAssembly(Assembly assembly);
+    void RegisterTypes(params Type[] types);
 
     IReadOnlyDictionary<string, TypeDescriptor> GetDescriptors();
 
     TypeDescriptor GetDescriptor(string typeIdentifier);
 
-    Type InterfaceMarkerType { get; }
+    Type InterfaceMarkerType { get; }    
+}
 
-    static ITypeDescriptorRegistry CreateStepRegistry(IServiceProvider serviceProvider) => new TypeDescriptorRegistry<IStep>(serviceProvider, nameof(IStep.Type));
-    static ITypeDescriptorRegistry CreateAssertionRegistry(IServiceProvider serviceProvider) => new TypeDescriptorRegistry<IAssertionOperation>(serviceProvider, nameof(IAssertionOperation.OperationType));
+public static class TypeDescriptorRegistryExtensions
+{
+    public static void RegisterTypesFromAssembly(this ITypeDescriptorRegistry registry, Assembly assembly)
+    {
+        registry.RegisterTypes(assembly.GetTypes());
+    }
 }

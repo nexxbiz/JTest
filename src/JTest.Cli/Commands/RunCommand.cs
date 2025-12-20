@@ -57,7 +57,7 @@ public class RunCommand(IAnsiConsole ansiConsole, IJTestSuiteExecutionResultProc
 
     private IEnumerable<JTestSuite> ReadTestSuites(RunCommandSettings settings)
     {
-        var testFiles = TestFileSearcher.Search(settings.TestFilePatterns!, settings.GetCategories());
+        var testFiles = JsonFileSearcher.Search(settings.TestFilePatterns!, settings.GetCategories());
 
         return testFiles.Select(filePath =>
         {

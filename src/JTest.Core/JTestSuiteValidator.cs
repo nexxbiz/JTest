@@ -13,7 +13,7 @@ public sealed class JTestSuiteValidator(IAnsiConsole console) : IJTestSuiteValid
             throw new InvalidOperationException("Must at least specify one test file pattern.");
         }
 
-        var testFiles = TestFileSearcher.Search(testFilePatterns, categories);
+        var testFiles = JsonFileSearcher.Search(testFilePatterns, categories);
 
         if (testFiles.Length == 0)
         {

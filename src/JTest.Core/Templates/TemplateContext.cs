@@ -143,11 +143,7 @@ public sealed class TemplateContext(HttpClient httpClient, GlobalConfigurationAc
                 return [];
             }
 
-            var jsonFiles = Directory.GetFiles(
-                searchPath,
-                "*.json",
-                SearchOption.AllDirectories
-            );
+            var jsonFiles = JsonFileSearcher.Search(searchPaths);
 
             return jsonFiles;
         });

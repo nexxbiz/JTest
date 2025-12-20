@@ -33,15 +33,15 @@ public sealed class StepTypeRegistryTests
     }
 
     [Theory]
-    [MemberData(nameof(CreateInstancesAssertionInput))]
-    public void When_Construct_Then_CreatesInstance(string typeIdentifier, Type expectedType, TypeDescriptorConstructorArgument[] arguments)
+    [MemberData(nameof(CreateAllStepsInput))]
+    public void Can_Create_AllSteps(string typeIdentifier, Type expectedType, TypeDescriptorConstructorArgument[] arguments)
     {
         // Arrange        
         var sut = GetSut();
+        var descriptor = sut.GetDescriptor(typeIdentifier);
 
         // Act
-        var result = sut.GetDescriptor(typeIdentifier);
-        var instance = result.Constructor.Invoke(arguments);
+        var instance = descriptor.Constructor.Invoke(arguments);
 
         // Assert        
         Assert.NotNull(instance);
@@ -51,29 +51,34 @@ public sealed class StepTypeRegistryTests
         Assert.NotNull(step.Configuration);
         Assert.NotNull(step.Name);
         Assert.NotNull(step.Description);
-        Assert.NotNull(step.Id);
+        Assert.NotNull(step.Id);        
     }
 
-    static ITypeDescriptorRegistry GetSut()
+
+    static ITypeDescriptorRegistry GetSut(bool registerStepDependencies = true)
     {
         var serviceCollection = new ServiceCollection();
-        serviceCollection.AddSingleton(new HttpClient());
-        serviceCollection.AddSingleton(ITypeDescriptorRegistry.CreateStepRegistry);
-        serviceCollection.AddSingleton(AnsiConsole.Console);
 
-        var templateContext = Substitute.For<ITemplateContext>();
-        templateContext.GetTemplate(Arg.Any<string>()).Returns(new Template());
-        serviceCollection.AddSingleton(templateContext);
-        serviceCollection.AddSingleton(Substitute.For<IStepProcessor>());
+        serviceCollection
+            .AddSingleton<ITypeDescriptorRegistry>(serviceProvider => new TypeDescriptorRegistry<IStep>(serviceProvider, nameof(IStep.Type)));
+
+        if(registerStepDependencies)
+        {
+            serviceCollection
+                .AddSingleton(new HttpClient())
+                .AddSingleton(AnsiConsole.Console)
+                .AddSingleton(Substitute.For<ITemplateContext>())
+                .AddSingleton(Substitute.For<IStepProcessor>());
+        }
 
         var serviceProvider = serviceCollection.BuildServiceProvider();
 
         return serviceProvider.GetRequiredService<ITypeDescriptorRegistry>();
     }
 
-    public static IEnumerable<object[]> CreateInstancesAssertionInput => [CreateUseStepInstance, CreateAssertInstance];
+    public static IEnumerable<object[]> CreateAllStepsInput => [CreateHttpStepInput, CreateWaitStepInput, CreateUseStepInput, CreateAssertStepInput];
 
-    private static readonly object[] CreateAssertInstance =
+    private static readonly object[] CreateAssertStepInput =
     [
         "assert",
         typeof(AssertStep),
@@ -83,7 +88,7 @@ public sealed class StepTypeRegistryTests
         }
     ];
 
-    private static readonly object[] CreateUseStepInstance =
+    private static readonly object[] CreateUseStepInput =
     [
         "use",
         typeof(UseStep),
@@ -92,4 +97,24 @@ public sealed class StepTypeRegistryTests
             new("configuration", new UseStepConfiguration($"{Guid.NewGuid()}", $"{Guid.NewGuid()}", $"{Guid.NewGuid()}", null,null, "template1", new Dictionary<string, object>()))
         }
     ];
+
+    private static readonly object[] CreateWaitStepInput =
+    [
+        "wait",
+        typeof(WaitStep),
+        new TypeDescriptorConstructorArgument[]
+        {
+            new("configuration", new WaitStepConfiguration($"{Guid.NewGuid()}", $"{Guid.NewGuid()}", $"{Guid.NewGuid()}", null,null, 500))
+        }
+    ];
+
+    private static readonly object[] CreateHttpStepInput =
+    [
+       "http",
+        typeof(HttpStep),
+        new TypeDescriptorConstructorArgument[]
+        {
+            new("configuration", new HttpStepConfiguration($"{Guid.NewGuid()}", $"{Guid.NewGuid()}", $"{Guid.NewGuid()}", null,null, "GET", "https://url.com", null, null, null, null, null, null))
+        }
+   ];
 }

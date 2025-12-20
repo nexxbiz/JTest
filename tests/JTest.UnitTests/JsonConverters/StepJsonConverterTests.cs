@@ -1,5 +1,6 @@
 ﻿using JTest.Core;
 using JTest.Core.JsonConverters;
+using JTest.Core.Steps;
 using JTest.Core.Utilities;
 using Microsoft.Extensions.DependencyInjection;
 using System.Text.Json;
@@ -46,8 +47,9 @@ internal class StepJsonConverterTests
     public StepJsonConverterTests()
     {
         var serviceCollection = new ServiceCollection();
-        serviceCollection.AddSingleton(new HttpClient());
-        serviceCollection.AddSingleton(ITypeDescriptorRegistry.CreateStepRegistry);
+        serviceCollection
+            .AddSingleton(new HttpClient())
+            .AddSingleton<ITypeDescriptorRegistry>(serviceProvider => new TypeDescriptorRegistry<IStep>(serviceProvider, nameof(IStep.Type)));
 
         var serviceProvider = serviceCollection.BuildServiceProvider();
 
