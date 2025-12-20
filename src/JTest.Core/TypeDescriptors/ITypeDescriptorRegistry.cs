@@ -1,7 +1,7 @@
-﻿using JTest.Core.Models;
+﻿using JTest.Core.TypeDescriptors;
 using System.Reflection;
 
-namespace JTest.Core;
+namespace JTest.Core.TypeDescriptorRegistries;
 
 public interface ITypeDescriptorRegistry
 {
@@ -11,7 +11,7 @@ public interface ITypeDescriptorRegistry
 
     TypeDescriptor GetDescriptor(string typeIdentifier);
 
-    Type InterfaceMarkerType { get; }    
+    Type InterfaceMarkerType { get; }
 }
 
 public static class TypeDescriptorRegistryExtensions

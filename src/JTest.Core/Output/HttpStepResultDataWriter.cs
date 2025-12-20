@@ -25,7 +25,7 @@ public sealed class HttpStepResultDataWriter
     private void WriteHttpRequestDetails(TextWriter writer, StepResult step)
     {
         // Only show HTTP request details for HTTP steps
-        if (step.Step.Type != "http" || step.Data == null) return;
+        if (step.Step.TypeName != "http" || step.Data == null) return;
 
         var requestData = ExtractRequestDetails(step.Data);
         if (requestData is null)

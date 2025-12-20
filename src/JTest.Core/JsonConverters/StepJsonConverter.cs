@@ -1,5 +1,6 @@
-﻿using JTest.Core.Models;
-using JTest.Core.Steps;
+﻿using JTest.Core.Steps;
+using JTest.Core.TypeDescriptorRegistries;
+using JTest.Core.TypeDescriptors;
 using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
 using System.Text.Json;
@@ -23,7 +24,7 @@ public sealed class StepJsonConverter(IServiceProvider serviceProvider) : JsonCo
         }
 
         var typeRegistry = serviceProvider
-            .GetRequiredService<TypeDescriptorRegistryProvider>()
+            .GetRequiredService<ITypeDescriptorRegistryProvider>()
             .StepTypeRegistry;
 
         var descriptor = typeRegistry.GetDescriptor(stepType.GetString()!);
@@ -61,7 +62,7 @@ public sealed class StepJsonConverter(IServiceProvider serviceProvider) : JsonCo
         writer.WriteStartObject();
 
         writer.WritePropertyName("type");
-        writer.WriteStringValue(value.Type);
+        writer.WriteStringValue(value.TypeName);
 
         var properties = value.Configuration?
             .GetType()

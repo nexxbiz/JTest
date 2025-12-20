@@ -1,38 +1,38 @@
-﻿using JTest.Core.Models;
+﻿using JTest.Core.TypeDescriptors;
 using System.Reflection;
 
-namespace JTest.Core;
+namespace JTest.Core.TypeDescriptorRegistries;
 
 public sealed class TypeDescriptorRegistry<TInterfaceMarker> : ITypeDescriptorRegistry
 {
     private readonly Lazy<Dictionary<string, TypeDescriptor>> getDescriptors;
     private readonly IServiceProvider serviceProvider;
-    private readonly string typeIdentifierPropertyName;
+    private readonly ITypeDescriptorIdentification descriptorIdentification;
     private Dictionary<string, TypeDescriptor>? descriptors;
 
     public Type InterfaceMarkerType => typeof(TInterfaceMarker);
 
-    public TypeDescriptorRegistry(IServiceProvider serviceProvider, string typeIdentifierPropertyName)
-        : this(typeof(TypeDescriptorRegistry<>).Assembly, serviceProvider, typeIdentifierPropertyName)
+    public TypeDescriptorRegistry(IServiceProvider serviceProvider, ITypeDescriptorIdentification descriptorIdentification)
+        : this(typeof(TypeDescriptorRegistry<>).Assembly, serviceProvider, descriptorIdentification)
     {
     }
 
-    public TypeDescriptorRegistry(Assembly assembly, IServiceProvider serviceProvider, string typeIdentifierPropertyName)
-        : this(assembly.GetTypes(), serviceProvider, typeIdentifierPropertyName)
+    public TypeDescriptorRegistry(Assembly assembly, IServiceProvider serviceProvider, ITypeDescriptorIdentification descriptorIdentification)
+        : this(assembly.GetTypes(), serviceProvider, descriptorIdentification)
     {
     }
 
-    public TypeDescriptorRegistry(Type[] types, IServiceProvider serviceProvider, string typeIdentifierPropertyName)
+    public TypeDescriptorRegistry(Type[] types, IServiceProvider serviceProvider, ITypeDescriptorIdentification descriptorIdentification)
     {
         this.serviceProvider = serviceProvider;
-        this.typeIdentifierPropertyName = typeIdentifierPropertyName;
+        this.descriptorIdentification = descriptorIdentification;
         getDescriptors = new(() => GetTypeDescriptors(types));
     }
 
     public void RegisterTypes(params Type[] types)
     {
         var registeredDescriptors = GetDescriptors();
-        var mergedDescriptors = new Dictionary<string, TypeDescriptor>(registeredDescriptors);
+        var mergedDescriptors = new Dictionary<string, TypeDescriptor>(registeredDescriptors, StringComparer.OrdinalIgnoreCase);
 
         var descriptorsToAdd = GetTypeDescriptors(types);
 
@@ -80,8 +80,7 @@ public sealed class TypeDescriptorRegistry<TInterfaceMarker> : ITypeDescriptorRe
             .FirstOrDefault()
             ?? throw new InvalidOperationException($"No constructor found with parameters on type '{type.FullName}'. Please make sure the type has 1 constructor defined with parameters");
 
-        var instance = Instantiate(constructor);
-        var typeIdentifier = GetTypeIdentifier(instance);
+        var typeIdentifier = descriptorIdentification.Identify(type);
 
         return new TypeDescriptor(
             CreateConstructor(constructor),
@@ -99,10 +98,10 @@ public sealed class TypeDescriptorRegistry<TInterfaceMarker> : ITypeDescriptorRe
         };
     }
 
-    private object[] GetArguments(ConstructorInfo constructor, IEnumerable<TypeDescriptorConstructorArgument> arguments)
+    private object?[] GetArguments(ConstructorInfo constructor, IEnumerable<TypeDescriptorConstructorArgument> arguments)
     {
         var parameters = constructor.GetParameters();
-        var args = new object[parameters.Length];
+        var args = new object?[parameters.Length];
 
         for (var i = 0; i < args.Length; i++)
         {
@@ -110,40 +109,9 @@ public sealed class TypeDescriptorRegistry<TInterfaceMarker> : ITypeDescriptorRe
             var arg = arguments.FirstOrDefault(x => x.Name == param.Name)?.Value;
             arg ??= serviceProvider.GetService(param.ParameterType);
 
-            if (arg is null)
-            {
-                throw new InvalidOperationException($"Cannot construct assertion; constructor argument '{param.Name}' cannot be resolved.");
-            }
-
             args[i] = arg;
         }
 
         return args;
-    }
-
-    private string GetTypeIdentifier(object instance)
-    {
-        var typeIdentifierProperty = instance
-            .GetType()
-            .GetProperty(typeIdentifierPropertyName, BindingFlags.Public | BindingFlags.Instance)
-            ?? throw new InvalidOperationException($"Could not find type identifier property '{typeIdentifierPropertyName}' on type '{instance.GetType().FullName}'");
-
-        var result = typeIdentifierProperty.GetValue(instance);
-        if (result is not string stringResult)
-        {
-            throw new InvalidOperationException($"Property '{typeIdentifierPropertyName}' on type '{instance.GetType().FullName}' is not of type string");
-        }
-
-        return stringResult;
-    }
-
-    private static object Instantiate(ConstructorInfo constructor)
-    {
-        var parameters = Enumerable
-            .Range(0, constructor.GetParameters().Length)
-            .Select(x => default(object))
-            .ToArray();
-
-        return constructor.Invoke(parameters);
     }
 }

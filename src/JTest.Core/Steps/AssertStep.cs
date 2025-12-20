@@ -8,14 +8,14 @@ namespace JTest.Core.Steps;
 /// </summary>
 public sealed class AssertStep(StepConfiguration configuration) : BaseStep<StepConfiguration>(configuration)
 {
-    public override string Type => "assert";
-
-    public override async Task<object?> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
+    public override Task<object?> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {
-        return new Dictionary<string, object>
+        object result = new Dictionary<string, object>
         {
             ["type"] = "assert",
             ["executed"] = true
         };
+
+        return Task.FromResult(result)!;
     }
 }

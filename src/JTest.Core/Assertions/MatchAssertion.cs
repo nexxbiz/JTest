@@ -5,11 +5,9 @@ namespace JTest.Core.Assertions;
 /// <summary>
 /// Checks whether the actual value matches the expected regex pattern
 /// </summary>
-public sealed class MatchesAssertion(object? actualValue, object? expectedValue, string? description, bool? mask)
+public sealed class MatchAssertion(object? actualValue, object? expectedValue, string? description, bool? mask)
     : AssertionOperationBase(actualValue, expectedValue, description, mask)
-{
-    public override string OperationType => "match";
-
+{    
     protected override string GetErrorMessage(object? resolvedActualValue, object? resolvedExpectedValue)
     {
         return $"Expected '{resolvedActualValue}' to match pattern '{resolvedExpectedValue}'";

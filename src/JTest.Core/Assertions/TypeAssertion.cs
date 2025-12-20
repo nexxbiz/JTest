@@ -8,9 +8,7 @@ namespace JTest.Core.Assertions;
 /// </summary>
 public sealed class TypeAssertion(object? actualValue, object? expectedValue, string? description, bool? mask)
     : AssertionOperationBase(actualValue, expectedValue, description, mask)
-{
-    public override string OperationType => "type";
-
+{    
     protected override string GetErrorMessage(object? resolvedActualValue, object? resolvedExpectedValue)
     {
         return $"Expected type '{resolvedExpectedValue}' but got '{GetValueType(resolvedActualValue)}'";

@@ -1,8 +1,9 @@
-﻿using JTest.Core;
-using JTest.Core.Models;
+﻿using JTest.Core.Assertions;
 using JTest.Core.Steps;
 using JTest.Core.Steps.Configuration;
 using JTest.Core.Templates;
+using JTest.Core.TypeDescriptorRegistries;
+using JTest.Core.TypeDescriptors;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
 using Spectre.Console;
@@ -16,19 +17,13 @@ public sealed class StepTypeDescriptorRegistryTests
     public void When_GetDescriptors_Then_Returns_All_StepTypeDescriptors()
     {
         // Arrange        
+        var expectedTypes = GetKnownStepTypes();
         var sut = GetSut();
 
         // Act
         var result = sut.GetDescriptors();
 
         // Assert
-        var expectedTypes = new Type[]
-        {
-            typeof(UseStep),
-            typeof(WaitStep),
-            typeof(HttpStep),
-            typeof(AssertStep)
-        };
         Assert.True(result.All(descriptor => expectedTypes.Contains(descriptor.Value.Type)));
     }
 
@@ -54,10 +49,21 @@ public sealed class StepTypeDescriptorRegistryTests
         Assert.NotNull(step.Id);        
     }
 
+    private static Type[] GetKnownStepTypes()
+    {
+        var assembly = typeof(IStep).Assembly;
+        var types = assembly
+            .GetTypes()
+            .Where(x => !x.IsAbstract && x.GetInterface(nameof(IStep)) != null)
+            .ToArray();
 
-    static TypeDescriptorRegistry<IStep> GetSut(bool registerStepDependencies = true)
+        return types;
+    }
+
+    static ITypeDescriptorRegistry GetSut(bool registerStepDependencies = true)
     {
         var serviceCollection = new ServiceCollection();
+        serviceCollection.AddSingleton<TypeDescriptorRegistryProvider>();
 
         if(registerStepDependencies)
         {
@@ -70,7 +76,9 @@ public sealed class StepTypeDescriptorRegistryTests
 
         var serviceProvider = serviceCollection.BuildServiceProvider();
 
-        return new TypeDescriptorRegistry<IStep>(serviceProvider, nameof(IStep.Type));
+        return serviceProvider
+            .GetRequiredService<TypeDescriptorRegistryProvider>()
+            .StepTypeRegistry;
     }
 
     public static IEnumerable<object[]> CreateAllStepsInput => [CreateHttpStepInput, CreateWaitStepInput, CreateUseStepInput, CreateAssertStepInput];

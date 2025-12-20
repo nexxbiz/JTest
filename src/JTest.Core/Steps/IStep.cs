@@ -9,9 +9,9 @@ namespace JTest.Core.Steps;
 public interface IStep
 {
     /// <summary>
-    /// Gets the step type identifier
+    /// Gets the step type name
     /// </summary>
-    string Type { get; }
+    string TypeName { get; }
 
     /// <summary>
     /// Gets or sets the step ID for context storage

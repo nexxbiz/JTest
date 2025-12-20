@@ -9,8 +9,6 @@ namespace JTest.Core.Steps;
 /// </summary>
 public sealed class WaitStep(WaitStepConfiguration configuration) : BaseStep<WaitStepConfiguration>(configuration)
 {
-    public override string Type => "wait";
-
     public override async Task<object?> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(Description))

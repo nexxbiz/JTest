@@ -7,8 +7,6 @@
 public class ExistsAssertion(object? actualValue, string? description, bool? mask)
     : AssertionOperationBase(actualValue, expectedValue: null, description, mask)
 {
-    public override string OperationType => "exists";
-
     protected override string GetErrorMessage(object? resolvedActualValue, object? resolvedExpectedValue)
     {
         return "Value does not exist or is null/empty";

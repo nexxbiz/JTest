@@ -11,11 +11,8 @@ namespace JTest.Core.Steps;
 /// HTTP step implementation for making HTTP requests
 /// </summary>
 public sealed class HttpStep(HttpClient httpClient, HttpStepConfiguration configuration) : BaseStep<HttpStepConfiguration>(configuration)
-{
-    private const string stepType = "http";
+{    
     private const string jsonContentType = "application/json";
-
-    public override sealed string Type => stepType;
 
     public override async Task<object?> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {

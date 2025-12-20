@@ -8,8 +8,10 @@ namespace JTest.Core.Assertions;
 public interface IAssertionOperation
 {
     object? ActualValue { get; }
+
     object? ExpectedValue { get; }
-    string OperationType { get; }
+
+    string OperationName { get; }
 
     string? Description { get; }
 

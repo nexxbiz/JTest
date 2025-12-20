@@ -1,4 +1,4 @@
-﻿namespace JTest.Core.Models;
+﻿namespace JTest.Core.Exceptions;
 
 public sealed class StepConfigurationValidationException(string type, IEnumerable<string> validationErrors)
     : Exception(ParseValidationErrorMessage(type, validationErrors))

@@ -1,12 +1,12 @@
 ﻿using JTest.Cli.Commands;
 using JTest.Cli.DI;
-using JTest.Core;
 using JTest.Core.Assertions;
 using JTest.Core.Execution;
 using JTest.Core.Output;
 using JTest.Core.Output.Markdown;
 using JTest.Core.Steps;
 using JTest.Core.Templates;
+using JTest.Core.TypeDescriptorRegistries;
 using JTest.Core.Utilities;
 using JTest.Core.Variables;
 using Microsoft.Extensions.DependencyInjection;
@@ -81,7 +81,7 @@ internal class Program
             .RegisterInstance<IAnsiConsole>(AnsiConsole.Console)
             .Register<ITemplateContext, TemplateContext>()
             .Register<MarkdownOutputGenerator>()
-            .Register<TypeDescriptorRegistryProvider>()
+            .Register<ITypeDescriptorRegistryProvider, TypeDescriptorRegistryProvider>()
             .RegisterInstance<IDictionary<string, IOutputGenerator>>(sp =>
             {
                 return new Dictionary<string, IOutputGenerator>(StringComparer.OrdinalIgnoreCase)

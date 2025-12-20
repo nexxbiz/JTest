@@ -1,5 +1,6 @@
 ﻿using JTest.Core.Assertions;
-using JTest.Core.Models;
+using JTest.Core.TypeDescriptorRegistries;
+using JTest.Core.TypeDescriptors;
 using Microsoft.Extensions.DependencyInjection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -13,7 +14,7 @@ public sealed class AssertionOperationJsonConverter(IServiceProvider serviceProv
         writer.WriteStartObject();
 
         writer.WritePropertyName("op");
-        writer.WriteStringValue(value.OperationType);
+        writer.WriteStringValue(value.OperationName);
         writer.WritePropertyName("actualValue");
         writer.WriteRawValue(
             JsonSerializer.SerializeToElement(value.ActualValue).GetRawText()
@@ -43,7 +44,7 @@ public sealed class AssertionOperationJsonConverter(IServiceProvider serviceProv
         }
 
         var typeRegistry = serviceProvider
-            .GetRequiredService<TypeDescriptorRegistryProvider>()
+            .GetRequiredService<ITypeDescriptorRegistryProvider>()
             .AssertionTypeRegistry;
 
         var descriptor = typeRegistry.GetDescriptor(operationType.GetString()!);

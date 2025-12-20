@@ -1,8 +1,11 @@
 ﻿using JTest.Core;
-using JTest.Core.Models;
+using JTest.Core.Assertions;
+using JTest.Core.Execution;
 using JTest.Core.Steps;
 using JTest.Core.Steps.Configuration;
 using JTest.Core.Templates;
+using JTest.Core.TypeDescriptorRegistries;
+using JTest.Core.TypeDescriptors;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
 using Spectre.Console;
@@ -16,25 +19,19 @@ public sealed class AssertionTypeDescriptorRegistryTests
     public void When_GetDescriptors_Then_Returns_All_StepTypeDescriptors()
     {
         // Arrange        
+        var expectedTypes = GetKnownAssertionTypes();
         var sut = GetSut();
 
         // Act
         var result = sut.GetDescriptors();
 
         // Assert
-        var expectedTypes = new Type[]
-        {
-            typeof(UseStep),
-            typeof(WaitStep),
-            typeof(HttpStep),
-            typeof(AssertStep)
-        };
         Assert.True(result.All(descriptor => expectedTypes.Contains(descriptor.Value.Type)));
     }
 
     [Theory]
-    [MemberData(nameof(CreateAllStepsInput))]
-    public void Can_Create_AllSteps(string typeIdentifier, Type expectedType, TypeDescriptorConstructorArgument[] arguments)
+    [MemberData(nameof(CreateAllAssertionsInput))]
+    public void Can_Create_AllAssertions(string typeIdentifier, Type expectedType, TypeDescriptorConstructorArgument[] arguments)
     {
         // Arrange        
         var sut = GetSut();
@@ -47,11 +44,10 @@ public sealed class AssertionTypeDescriptorRegistryTests
         Assert.NotNull(instance);
         Assert.IsType(expectedType, instance);
 
-        var step = (IStep)instance;
-        Assert.NotNull(step.Configuration);
-        Assert.NotNull(step.Name);
-        Assert.NotNull(step.Description);
-        Assert.NotNull(step.Id);        
+        var assertion = (IAssertionOperation)instance;
+        Assert.NotNull(assertion.Mask);        
+        Assert.NotNull(assertion.Description);
+        Assert.NotNull(assertion.OperationName);
     }
 
 
@@ -60,7 +56,7 @@ public sealed class AssertionTypeDescriptorRegistryTests
         var serviceCollection = new ServiceCollection();
 
         serviceCollection
-            .AddSingleton<ITypeDescriptorRegistry>(serviceProvider => new TypeDescriptorRegistry<IStep>(serviceProvider, nameof(IStep.Type)));
+            .AddSingleton<TypeDescriptorRegistryProvider>();
 
         if(registerStepDependencies)
         {
@@ -73,48 +69,183 @@ public sealed class AssertionTypeDescriptorRegistryTests
 
         var serviceProvider = serviceCollection.BuildServiceProvider();
 
-        return serviceProvider.GetRequiredService<ITypeDescriptorRegistry>();
+        return serviceProvider
+            .GetRequiredService<TypeDescriptorRegistryProvider>()
+            .AssertionTypeRegistry;
     }
 
-    public static IEnumerable<object[]> CreateAllStepsInput => [CreateHttpStepInput, CreateWaitStepInput, CreateUseStepInput, CreateAssertStepInput];
+    private static Type[] GetKnownAssertionTypes()
+    {
+        var assembly = typeof(IAssertionOperation).Assembly;
+        var types = assembly
+            .GetTypes()
+            .Where(x => !x.IsAbstract && x.GetInterface(nameof(IAssertionOperation)) != null)
+            .ToArray();
 
-    private static readonly object[] CreateAssertStepInput =
+        return types;
+    }
+
+    public static IEnumerable<object[]> CreateAllAssertionsInput => 
     [
-        "assert",
-        typeof(AssertStep),
-        new TypeDescriptorConstructorArgument[]
-        {
-            new("configuration", new StepConfiguration($"{Guid.NewGuid()}", $"{Guid.NewGuid()}", $"{Guid.NewGuid()}", null,null))
-        }
+        CreateInAssertionStepInput,
+        CreateTypeAssertionStepInput,
+        CreateEqualsAssertionStepInput,
+        CreateNotEqualsAssertionStepInput,
+        CreateGreaterThanAssertionStepInput,
+        CreateGreaterOrEqualAssertionStepInput,
+        CreateLessThanAssertionStepInput,
+        CreateLessOrEqualAssertionStepInput,
+        CreateContainsAssertionStepInput,
+        CreateNotContainsAssertionStepInput,
+        CreateEmptyAssertionStepInput,
+        CreateNotEmptyAssertionStepInput,
+        CreateExistsAssertionStepInput,
+        CreateNotExistsAssertionStepInput,
+        CreateMatchAssertionStepInput,
+        CreateBetweenAssertionStepInput,
+        CreateLengthAssertionStepInput,
+        CreateStartsWithAssertionStepInput,
+        CreateEndsWithAssertionStepInput
     ];
 
-    private static readonly object[] CreateUseStepInput =
+    private static readonly TypeDescriptorConstructorArgument[] DefaultArguments =
     [
-        "use",
-        typeof(UseStep),
-        new TypeDescriptorConstructorArgument[]
-        {
-            new("configuration", new UseStepConfiguration($"{Guid.NewGuid()}", $"{Guid.NewGuid()}", $"{Guid.NewGuid()}", null,null, "template1", new Dictionary<string, object>()))
-        }
+        new("expectedValue", $"{Guid.NewGuid()}"),
+        new("actualValue", $"{Guid.NewGuid()}"),
+        new("description", $"{Guid.NewGuid()}"),
+        new("mask", true),
     ];
 
-    private static readonly object[] CreateWaitStepInput =
-    [
-        "wait",
-        typeof(WaitStep),
-        new TypeDescriptorConstructorArgument[]
-        {
-            new("configuration", new WaitStepConfiguration($"{Guid.NewGuid()}", $"{Guid.NewGuid()}", $"{Guid.NewGuid()}", null,null, 500))
-        }
-    ];
-
-    private static readonly object[] CreateHttpStepInput =
-    [
-       "http",
-        typeof(HttpStep),
-        new TypeDescriptorConstructorArgument[]
-        {
-            new("configuration", new HttpStepConfiguration($"{Guid.NewGuid()}", $"{Guid.NewGuid()}", $"{Guid.NewGuid()}", null,null, "GET", "https://url.com", null, null, null, null, null, null))
-        }
+    private static readonly object[] CreateInAssertionStepInput =
+   [
+       "in",
+        typeof(InAssertion),
+        DefaultArguments
    ];
+
+    private static readonly object[] CreateTypeAssertionStepInput =
+   [
+       "type",
+        typeof(TypeAssertion),
+        DefaultArguments
+   ];
+
+    private static readonly object[] CreateEqualsAssertionStepInput =
+    [
+        "equals",
+        typeof(EqualsAssertion),
+        DefaultArguments
+    ];
+
+    private static readonly object[] CreateNotEqualsAssertionStepInput =
+    [
+        "notequals",
+        typeof(NotEqualsAssertion),
+        DefaultArguments
+    ];
+
+    private static readonly object[] CreateGreaterThanAssertionStepInput =
+    [
+        "greaterthan",
+        typeof(GreaterThanAssertion),
+        DefaultArguments
+    ];
+
+    private static readonly object[] CreateGreaterOrEqualAssertionStepInput =
+    [
+        "greaterorequal",
+        typeof(GreaterOrEqualAssertion),
+        DefaultArguments
+    ];
+
+    private static readonly object[] CreateLessThanAssertionStepInput =
+    [
+        "lessthan",
+        typeof(LessThanAssertion),
+        DefaultArguments
+    ];
+
+    private static readonly object[] CreateLessOrEqualAssertionStepInput =
+    [
+        "lessorequal",
+        typeof(LessOrEqualAssertion),
+        DefaultArguments
+    ];
+
+    private static readonly object[] CreateContainsAssertionStepInput =
+    [
+        "contains",
+        typeof(ContainsAssertion),
+        DefaultArguments
+    ];
+
+    private static readonly object[] CreateNotContainsAssertionStepInput =
+    [
+        "notcontains",
+        typeof(NotContainsAssertion),
+        DefaultArguments
+    ];
+
+    private static readonly object[] CreateEmptyAssertionStepInput =
+    [
+        "empty",
+        typeof(EmptyAssertion),
+        DefaultArguments
+    ];
+
+    private static readonly object[] CreateNotEmptyAssertionStepInput =
+    [
+        "notempty",
+        typeof(NotEmptyAssertion),
+        DefaultArguments
+    ];
+
+    private static readonly object[] CreateExistsAssertionStepInput =
+    [
+        "exists",
+        typeof(ExistsAssertion),
+        DefaultArguments
+    ];
+
+    private static readonly object[] CreateNotExistsAssertionStepInput =
+    [
+        "notexists",
+        typeof(NotExistsAssertion),
+        DefaultArguments
+    ];
+
+    private static readonly object[] CreateMatchAssertionStepInput =
+    [
+        "match",
+        typeof(MatchAssertion),
+        DefaultArguments
+    ];
+
+    private static readonly object[] CreateBetweenAssertionStepInput =
+    [
+        "between",
+        typeof(BetweenAssertion),
+        DefaultArguments
+    ];
+
+    private static readonly object[] CreateLengthAssertionStepInput =
+    [
+        "length",
+        typeof(LengthAssertion),
+        DefaultArguments
+    ];
+
+    private static readonly object[] CreateStartsWithAssertionStepInput =
+    [
+        "startswith",
+        typeof(StartsWithAssertion),
+        DefaultArguments
+    ];
+
+    private static readonly object[] CreateEndsWithAssertionStepInput =
+    [
+        "endswith",
+        typeof(EndsWithAssertion),
+        DefaultArguments
+    ];
 }

@@ -2,7 +2,7 @@
 
 namespace JTest.Core.Assertions;
 
-public abstract class EqualityOperatorAssertion(object? actualValue, object? expectedValue, string? description, bool? mask)
+public abstract class EqualityOperatorAssertionBase(object? actualValue, object? expectedValue, string? description, bool? mask)
     : AssertionOperationBase(actualValue, expectedValue, description, mask)
 {
     protected abstract string Operator { get; }

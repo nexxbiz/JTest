@@ -1,5 +1,6 @@
 ﻿using JTest.Core.Assertions;
 using JTest.Core.Debugging;
+using JTest.Core.Exceptions;
 using JTest.Core.Execution;
 using JTest.Core.Steps.Configuration;
 using JTest.Core.Utilities;
@@ -8,11 +9,17 @@ using System.Text.Json;
 
 namespace JTest.Core.Steps;
 
-public sealed class StepProcessor(IAssertionProcessor assertionProcessor) : IStepProcessor
+public sealed class StepProcessor(IAssertionProcessor assertionProcessor, IServiceProvider serviceProvider) : IStepProcessor
 {
     public async Task<StepResult> ProcessStep(IStep step, StepConfiguration? stepConfiguration, IExecutionContext executionContext, CancellationToken cancellationToken)
     {
         var contextBefore = CloneContext(executionContext);
+
+        var validationErrors = new List<string>();
+        if(!step.ValidateConfiguration(serviceProvider, executionContext, validationErrors))
+        {
+            throw new StepConfigurationValidationException(step.TypeName, validationErrors);
+        }
 
         var stopWatch = Stopwatch.StartNew();
         var resultData = await step.ExecuteAsync(executionContext, cancellationToken);
@@ -203,7 +210,7 @@ public sealed class StepProcessor(IAssertionProcessor assertionProcessor) : ISte
         {
             if (stepResult.Success && hasFailedAssertions)
             {
-                throw new InvalidProgramException($"Step '{step.Type}' returns a StepResult directly, but the success outcome contradicts the processed assertion results.");
+                throw new InvalidProgramException($"Step '{step.TypeName}' returns a StepResult directly, but the success outcome contradicts the processed assertion results.");
             }
 
             return stepResult;

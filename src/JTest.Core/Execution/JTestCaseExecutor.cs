@@ -1,4 +1,5 @@
-﻿using JTest.Core.Models;
+﻿using JTest.Core.Exceptions;
+using JTest.Core.Models;
 using JTest.Core.Steps;
 using JTest.Core.Steps.Configuration;
 
@@ -118,6 +119,10 @@ public sealed class JTestCaseExecutor(IStepProcessor stepProcessor) : IJTestCase
                     }
 
                     stepNumber++;
+                }
+                catch (StepConfigurationValidationException ex)
+                {
+                    result.AddError(ex.Message);
                 }
                 catch (Exception ex)
                 {

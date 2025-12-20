@@ -9,9 +9,7 @@ namespace JTest.Core.Assertions;
 /// </summary>
 public sealed class LengthAssertion(object? actualValue, object? expectedValue, string? description, bool? mask)
     : AssertionOperationBase(actualValue, expectedValue, description, mask)
-{
-    public override string OperationType => "length";
-
+{    
     protected override string GetErrorMessage(object? resolvedActualValue, object? resolvedExpectedValue)
     {
         return $"Expected length {resolvedExpectedValue} but got {GetLength(resolvedActualValue)}";

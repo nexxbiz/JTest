@@ -3,8 +3,8 @@
 /// <summary>
 /// Less than assertion with culture-independent numeric comparison
 /// </summary>
-public sealed class LessThanAssertion(object? actualValue, object? expectedValue, string? description, bool? mask)
+public sealed class GreaterOrEqualAssertion(object? actualValue, object? expectedValue, string? description, bool? mask)
     : EqualityOperatorAssertionBase(actualValue, expectedValue, description, mask)
 {
-    protected override string Operator => EqualityOperators.LessThan;
+    protected override string Operator => EqualityOperators.GreaterThanOrEqual;
 }

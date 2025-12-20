@@ -4,8 +4,7 @@
 /// Greater than assertion with culture-independent numeric comparison
 /// </summary>
 public sealed class GreaterThanAssertion(object? actualValue, object? expectedValue, string? description, bool? mask)
-    : EqualityOperatorAssertion(actualValue, expectedValue, description, mask)
+    : EqualityOperatorAssertionBase(actualValue, expectedValue, description, mask)
 {
-    public override string OperationType => "greaterthan";
     protected override string Operator => EqualityOperators.GreaterThan;
 }

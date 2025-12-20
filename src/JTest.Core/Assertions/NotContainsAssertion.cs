@@ -4,9 +4,7 @@
 /// </summary>
 public sealed class NotContainsAssertion(object? actualValue, object? expectedValue, string? description, bool? mask)
     : AssertionOperationBase(actualValue, expectedValue, description, mask)
-{
-    public override string OperationType => "notcontains";
-
+{    
     internal override bool Execute(object? resolvedActualValue, object? resolvedExpectedValue)
     {
         var containsAssertion = new ContainsAssertion(ActualValue, ExpectedValue, Description, Mask);

@@ -14,7 +14,9 @@ public abstract class AssertionOperationBase(object? actualValue, object? expect
     public string? Description { get; } = description;
     public bool? Mask { get; } = mask;
 
-    public abstract string OperationType { get; }
+    public string OperationName => GetType().Name
+        .Replace("Assertion", string.Empty)
+        .ToLowerInvariant();
 
     public AssertionResult Execute(IExecutionContext context)
     {
@@ -36,7 +38,7 @@ public abstract class AssertionOperationBase(object? actualValue, object? expect
             {
                 ActualValue = resolvedActualValue,
                 ExpectedValue = resolvedExpectedValue,
-                Operation = OperationType
+                Operation = OperationName
             };
         }
 
@@ -47,7 +49,7 @@ public abstract class AssertionOperationBase(object? actualValue, object? expect
         {
             ActualValue = resolvedExpectedValue,
             ExpectedValue = resolvedActualValue,
-            Operation = OperationType
+            Operation = OperationName
         };
     }
 
@@ -102,14 +104,14 @@ public abstract class AssertionOperationBase(object? actualValue, object? expect
 
         var collectionOperators = new[] { "length", "empty", "notempty", "in" };
 
-        if (collectionOperators.Contains(OperationType) && resolvedActualValue != null && !IsCollectionLike(resolvedActualValue))
+        if (collectionOperators.Contains(OperationName) && resolvedActualValue != null && !IsCollectionLike(resolvedActualValue))
         {
             errorMessage =
-                $"Operator '{OperationType}' expects a collection or string, but got {GetValueTypeDescription(resolvedActualValue)}. " +
+                $"Operator '{OperationName}' expects a collection or string, but got {GetValueTypeDescription(resolvedActualValue)}. " +
                 "Consider using a scalar operator like 'equals' or 'type' instead.";
         }
 
-        if (OperationType == "between" && resolvedExpectedValue != null && !(resolvedExpectedValue is JsonElement { ValueKind: JsonValueKind.Array }))
+        if (OperationName == "between" && resolvedExpectedValue != null && !(resolvedExpectedValue is JsonElement { ValueKind: JsonValueKind.Array }))
         {
             errorMessage = "Operator 'between' requires an array of [min, max] values as expectedValue.";
         }

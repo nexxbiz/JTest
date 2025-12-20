@@ -5,9 +5,7 @@
 /// </summary>
 public sealed class ContainsAssertion(object? actualValue, object? expectedValue, string? description, bool? mask)
     : AssertionOperationBase(actualValue, expectedValue, description, mask)
-{
-    public override string OperationType => "contains";
-
+{    
     internal override bool Execute(object? resolvedActualValue, object? resolvedExpectedValue)
     {
         if (resolvedActualValue == null || resolvedExpectedValue == null)

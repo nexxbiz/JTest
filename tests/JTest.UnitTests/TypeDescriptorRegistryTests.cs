@@ -1,5 +1,6 @@
-﻿using JTest.Core;
-using JTest.Core.Models;
+﻿using JTest.Core.Models;
+using JTest.Core.TypeDescriptorRegistries;
+using JTest.Core.TypeDescriptors;
 using NSubstitute;
 using Xunit;
 
@@ -8,41 +9,15 @@ namespace JTest.UnitTests;
 public sealed class TypeDescriptorRegistryTests
 {
     [Fact]
-    public void When_RegisterType_And_TypeIdentifierPropertyNameInvalid_Then_ThrowsException()
-    {
-        // Arrange        
-        var sut = GetSut<IMarkerInterfaceWithoutTypeIdentifier>("test");
-
-        // Act & Assert
-        Assert.Throws<InvalidOperationException>(() =>
-        {
-            sut.RegisterTypes(typeof(MockImplementation));
-        });
-    }
-
-    [Fact]
-    public void When_RegisterTypes_And_TypeIdentifierPropertyTypeInvalid_Then_ThrowsException()
-    {
-        // Arrange
-        var sut = GetSut<IMarkerInterfaceWithInvalidTypeIdentifierType>(nameof(IMarkerInterfaceWithInvalidTypeIdentifierType.Value));
-
-        // Act & Assert
-        Assert.Throws<InvalidOperationException>(() =>
-        {
-            sut.RegisterTypes(typeof(MockImplementation));
-        });
-    }
-
-    [Fact]
     public void When_RegisterTypes_And_ConstructorNotFound_Then_ThrowsException()
     {
         // Arrange                
-        var sut = GetValidSut();
+        var sut = GetSut();
 
         // Act & Assert
         Assert.Throws<InvalidOperationException>(() =>
         {
-            sut.RegisterTypes(typeof(MockImplementationWithoutConstructor));
+            sut.RegisterTypes(typeof(MockImplementationWithoutValidConstructor));
         });
     }
 
@@ -51,7 +26,7 @@ public sealed class TypeDescriptorRegistryTests
     {
         // Arrange        
         const string unknownTypeIdentifier = "unknown_type";
-        var sut = GetValidSut();
+        var sut = GetSut();
         sut.RegisterTypes(typeof(MockImplementation));
 
         // Act & Assert
@@ -62,48 +37,10 @@ public sealed class TypeDescriptorRegistryTests
     }
 
     [Fact]
-    public void When_Construct_And_ArgumentIsNull_Then_ThrowsException()
-    {
-        // Arrange        
-        const string typeIdentifier = "test";
-        var argument = new TypeDescriptorConstructorArgument("value", default(int?));
-        var sut = GetValidSut();
-        sut.RegisterTypes(typeof(MockImplementation));
-        var descriptor = sut.GetDescriptor(typeIdentifier);
-
-        // Act & Assert
-        Assert.Throws<InvalidOperationException>(() =>
-        {
-            var _ = descriptor.Constructor.Invoke([argument]);
-        });
-    }
-
-    [Fact]
-    public void When_Construct_And_ArgumentIsUnregisteredDependency_Then_ThrowsException()
-    {
-        // Arrange        
-        const string typeIdentifier = "test-with-dependency";
-        var validArgument = new TypeDescriptorConstructorArgument(
-            "value",
-            123
-        );
-
-        var sut = GetValidSut();
-        sut.RegisterTypes(typeof(MockImplementationWithDependency));
-        var descriptor = sut.GetDescriptor(typeIdentifier);
-
-        // Act & Assert
-        Assert.Throws<InvalidOperationException>(() =>
-        {
-            var _ = descriptor.Constructor.Invoke([validArgument]);
-        });
-    }
-
-    [Fact]
     public void When_Construct_And_AndAllArgumentsCanBeResolved_Then_CreatesInstance()
     {
         // Arrange        
-        const string typeIdentifier = "test-with-dependency";
+        const string typeIdentifier = nameof(MockImplementationWithDependency);
         var validArgument = new TypeDescriptorConstructorArgument(
             "value",
             123
@@ -112,10 +49,10 @@ public sealed class TypeDescriptorRegistryTests
 
         var serviceProvider = Substitute.For<IServiceProvider>();
         serviceProvider
-            .GetService(typeof(IValidMarkerInterface))
+            .GetService(typeof(IMarkerInterface))
             .Returns(dependency);
 
-        var sut = GetValidSut(serviceProvider);
+        var sut = GetSut(serviceProvider);
         sut.RegisterTypes(typeof(MockImplementationWithDependency));
         var descriptor = sut.GetDescriptor(typeIdentifier);
 
@@ -128,54 +65,41 @@ public sealed class TypeDescriptorRegistryTests
         Assert.Equal(instance.Value, validArgument.Value);
         Assert.Same(instance.Dependency, dependency);
     }
-
-    private static TypeDescriptorRegistry<IValidMarkerInterface> GetValidSut(IServiceProvider? serviceProvider = null)
+    
+    private static TypeDescriptorRegistry<IMarkerInterface> GetSut(IServiceProvider? serviceProvider = null)
     {
-        return GetSut<IValidMarkerInterface>(nameof(IValidMarkerInterface.ValidType), serviceProvider);
-    }
-
-
-    private static TypeDescriptorRegistry<TMarkerInterface> GetSut<TMarkerInterface>(string typeIdentifierPropertyName, IServiceProvider? serviceProvider = null)
-    {
-        return new TypeDescriptorRegistry<TMarkerInterface>(
+        return new TypeDescriptorRegistry<IMarkerInterface>(
             types: [],
             serviceProvider ?? Substitute.For<IServiceProvider>(),
-            typeIdentifierPropertyName
+            new MockDescriptorIdentification()
         );        
     }
 
-    private class MockImplementation(int? value) : IMarkerInterfaceWithoutTypeIdentifier, IMarkerInterfaceWithInvalidTypeIdentifierType, IValidMarkerInterface
+    private class MockDescriptorIdentification : ITypeDescriptorIdentification
+    {
+        public string Identify(Type type)
+        {
+            return type.Name;
+        }
+    }
+
+    private class MockImplementation(int? value) : IMarkerInterface
     {
         public int Value => value ?? 0;
-
-        public string ValidType => "test";
     }
 
-    private class MockImplementationWithDependency(int? value, IValidMarkerInterface? dependency) : IValidMarkerInterface
+    private class MockImplementationWithDependency(int? value, IMarkerInterface? dependency) : IMarkerInterface
     {
-        public string ValidType => "test-with-dependency";
-
         public int? Value { get; } = value;
 
-        public IValidMarkerInterface? Dependency { get; } = dependency;
+        public IMarkerInterface? Dependency { get; } = dependency;
     }
 
-    private class MockImplementationWithoutConstructor() : IValidMarkerInterface
-    {
-        public string ValidType => "testWithoutConstructor";
+    private class MockImplementationWithoutValidConstructor() : IMarkerInterface
+    {        
     }
 
-    private interface IMarkerInterfaceWithoutTypeIdentifier
+    private interface IMarkerInterface
     {
-    }
-
-    private interface IMarkerInterfaceWithInvalidTypeIdentifierType
-    {
-        int Value { get; }
-    }
-
-    private interface IValidMarkerInterface
-    {
-        string ValidType { get; }
     }
 }

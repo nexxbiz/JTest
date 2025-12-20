@@ -59,21 +59,21 @@ public sealed class MarkdownTestCaseResultWriter : ITestCaseResultWriter
             if (showStepNumber)
             {
                 writer.WriteLine($"**Step {stepResult.StepNumber}**: {stepResult.Step.Name} <br/>");
-                writer.WriteLine($"**Step type:** {stepResult.Step.Type} <br/>");
+                writer.WriteLine($"**Step type:** {stepResult.Step.TypeName} <br/>");
             }
             else
             {
                 writer.WriteLine($"**Step for template {templateName}:** {stepResult.Step.Name} <br/>");
-                writer.WriteLine($"**Step type:** {stepResult.Step.Type} <br/>");
+                writer.WriteLine($"**Step type:** {stepResult.Step.TypeName} <br/>");
             }
         }
         else if (showStepNumber)
         {
-            writer.WriteLine($"**Step {stepResult.StepNumber}**: {stepResult.Step.Type} <br/>");
+            writer.WriteLine($"**Step {stepResult.StepNumber}**: {stepResult.Step.TypeName} <br/>");
         }
         else
         {
-            writer.WriteLine($"**Step for template {templateName}**: {stepResult.Step.Type} <br/>");
+            writer.WriteLine($"**Step for template {templateName}**: {stepResult.Step.TypeName} <br/>");
         }
 
         var useStepConfig = stepResult.Step.Configuration as UseStepConfiguration;

@@ -10,8 +10,6 @@ namespace JTest.Core.Assertions;
 public sealed class EmptyAssertion(object? actualValue, string? description, bool? mask)
     : AssertionOperationBase(actualValue, expectedValue: null, description, mask)
 {
-    public override string OperationType => "empty";
-
     protected override string GetErrorMessage(object? resolvedActualValue, object? resolvedExpectedValue)
     {
         return $"Expected value to be empty but it has {GetLength(resolvedActualValue)} items/characters";

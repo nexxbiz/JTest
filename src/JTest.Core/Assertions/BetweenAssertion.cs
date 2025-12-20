@@ -8,9 +8,7 @@ namespace JTest.Core.Assertions;
 /// </summary>
 public sealed class BetweenAssertion(object? actualValue, object? expectedValue, string? description, bool? mask)
     : AssertionOperationBase(actualValue, expectedValue, description, mask)
-{
-    public override string OperationType => "between";
-
+{    
     private string errorMessage = string.Empty;
 
     protected override string GetErrorMessage(object? resolvedActualValue, object? resolvedExpectedValue)

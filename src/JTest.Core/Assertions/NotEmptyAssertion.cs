@@ -6,12 +6,10 @@
 /// </summary>
 public sealed class NotEmptyAssertion(object? actualValue, string? description, bool? mask)
     : AssertionOperationBase(actualValue, expectedValue: null, description, mask)
-{
-    public override string OperationType => "empty";
-
+{    
     protected override string GetErrorMessage(object? resolvedActualValue, object? resolvedExpectedValue)
     {
-        return $"Expected value to have values, but it was empty.";
+        return $"Expected value to be empty, but it had values.";
     }
 
     internal override bool Execute(object? resolvedActualValue, object? resolvedExpectedValue)

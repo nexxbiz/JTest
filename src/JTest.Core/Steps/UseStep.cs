@@ -15,8 +15,6 @@ namespace JTest.Core.Steps;
 public sealed class UseStep(IAnsiConsole ansiConsole, ITemplateContext templateContext, IStepProcessor stepProcessor, UseStepConfiguration configuration)
     : BaseStep<UseStepConfiguration>(configuration)
 {
-    public override string Type => "use";
-
     public override async Task<object?> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {
         var stopWatch = Stopwatch.StartNew();

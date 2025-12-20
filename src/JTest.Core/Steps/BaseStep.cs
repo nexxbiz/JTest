@@ -14,7 +14,9 @@ public abstract class BaseStep<TConfiguration>(TConfiguration configuration) : I
     /// <summary>
     /// Gets the step type identifier
     /// </summary>
-    public abstract string Type { get; }
+    public string TypeName => GetType().Name
+        .Replace("Step", string.Empty)
+        .ToLowerInvariant();
 
     /// <summary>
     /// Gets or sets the step ID for context storage. Value derived from configuration

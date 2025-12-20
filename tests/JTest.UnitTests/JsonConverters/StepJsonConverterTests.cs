@@ -1,7 +1,7 @@
-﻿using JTest.Core;
-using JTest.Core.JsonConverters;
+﻿using JTest.Core.JsonConverters;
 using JTest.Core.Steps;
 using JTest.Core.Templates;
+using JTest.Core.TypeDescriptorRegistries;
 using JTest.Core.Utilities;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
@@ -10,9 +10,9 @@ using System.Text.Json;
 
 namespace JTest.UnitTests.JsonConverters;
 
-internal class StepJsonConverterTests
+public sealed class StepJsonConverterTests
 {
-    const string httpStepJson =
+    private const string httpStepJson =
     """
     {
       "type": "http",
