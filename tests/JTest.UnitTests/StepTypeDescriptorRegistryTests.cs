@@ -10,7 +10,7 @@ using Xunit;
 
 namespace JTest.UnitTests;
 
-public sealed class StepTypeRegistryTests
+public sealed class StepTypeDescriptorRegistryTests
 {
     [Fact]
     public void When_GetDescriptors_Then_Returns_All_StepTypeDescriptors()
@@ -55,12 +55,9 @@ public sealed class StepTypeRegistryTests
     }
 
 
-    static ITypeDescriptorRegistry GetSut(bool registerStepDependencies = true)
+    static TypeDescriptorRegistry<IStep> GetSut(bool registerStepDependencies = true)
     {
         var serviceCollection = new ServiceCollection();
-
-        serviceCollection
-            .AddSingleton<ITypeDescriptorRegistry>(serviceProvider => new TypeDescriptorRegistry<IStep>(serviceProvider, nameof(IStep.Type)));
 
         if(registerStepDependencies)
         {
@@ -73,7 +70,7 @@ public sealed class StepTypeRegistryTests
 
         var serviceProvider = serviceCollection.BuildServiceProvider();
 
-        return serviceProvider.GetRequiredService<ITypeDescriptorRegistry>();
+        return new TypeDescriptorRegistry<IStep>(serviceProvider, nameof(IStep.Type));
     }
 
     public static IEnumerable<object[]> CreateAllStepsInput => [CreateHttpStepInput, CreateWaitStepInput, CreateUseStepInput, CreateAssertStepInput];

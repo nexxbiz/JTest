@@ -43,9 +43,8 @@ public sealed class AssertionOperationJsonConverter(IServiceProvider serviceProv
         }
 
         var typeRegistry = serviceProvider
-            .GetRequiredService<IEnumerable<ITypeDescriptorRegistry>>()
-            .FirstOrDefault(r => r.InterfaceMarkerType == typeof(IAssertionOperation))
-            ?? throw new JsonException("Failed to create assertion; type registry is not configured");
+            .GetRequiredService<TypeDescriptorRegistryProvider>()
+            .AssertionTypeRegistry;
 
         var descriptor = typeRegistry.GetDescriptor(operationType.GetString()!);
         var arguments = CreateArguments(doc.RootElement);

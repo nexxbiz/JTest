@@ -1,8 +1,11 @@
 ﻿using JTest.Core;
 using JTest.Core.JsonConverters;
 using JTest.Core.Steps;
+using JTest.Core.Templates;
 using JTest.Core.Utilities;
 using Microsoft.Extensions.DependencyInjection;
+using NSubstitute;
+using Spectre.Console;
 using System.Text.Json;
 
 namespace JTest.UnitTests.JsonConverters;
@@ -49,12 +52,18 @@ internal class StepJsonConverterTests
         var serviceCollection = new ServiceCollection();
         serviceCollection
             .AddSingleton(new HttpClient())
-            .AddSingleton<ITypeDescriptorRegistry>(serviceProvider => new TypeDescriptorRegistry<IStep>(serviceProvider, nameof(IStep.Type)));
+            .AddSingleton(AnsiConsole.Console)
+            .AddSingleton(Substitute.For<ITemplateContext>())
+            .AddSingleton(Substitute.For<IStepProcessor>())
+            .AddSingleton<TypeDescriptorRegistryProvider>();
 
         var serviceProvider = serviceCollection.BuildServiceProvider();
 
         options.Converters.Add(
             new StepJsonConverter(serviceProvider)
+        );
+        options.Converters.Add(
+            new AssertionOperationJsonConverter(serviceProvider)
         );
     }
 }

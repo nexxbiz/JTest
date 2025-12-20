@@ -1,12 +1,11 @@
 ﻿using JTest.Core;
 using JTest.Core.Models;
-using JTest.Core.Steps.Configuration;
 using NSubstitute;
 using Xunit;
 
 namespace JTest.UnitTests;
 
-public sealed class TypeRegistryTests
+public sealed class TypeDescriptorRegistryTests
 {
     [Fact]
     public void When_RegisterType_And_TypeIdentifierPropertyNameInvalid_Then_ThrowsException()

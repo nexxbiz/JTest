@@ -81,14 +81,7 @@ internal class Program
             .RegisterInstance<IAnsiConsole>(AnsiConsole.Console)
             .Register<ITemplateContext, TemplateContext>()
             .Register<MarkdownOutputGenerator>()
-            .RegisterInstance<IEnumerable<ITypeDescriptorRegistry>>(sp =>
-            {
-                return new ITypeDescriptorRegistry[]
-                {
-                    new TypeDescriptorRegistry<IStep>(sp, nameof(IStep.Type)),
-                    new TypeDescriptorRegistry<IAssertionOperation>(sp, nameof(IAssertionOperation.OperationType))
-                };
-            })
+            .Register<TypeDescriptorRegistryProvider>()
             .RegisterInstance<IDictionary<string, IOutputGenerator>>(sp =>
             {
                 return new Dictionary<string, IOutputGenerator>(StringComparer.OrdinalIgnoreCase)

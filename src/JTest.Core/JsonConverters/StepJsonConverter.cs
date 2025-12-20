@@ -23,9 +23,8 @@ public sealed class StepJsonConverter(IServiceProvider serviceProvider) : JsonCo
         }
 
         var typeRegistry = serviceProvider
-            .GetRequiredService<IEnumerable<ITypeDescriptorRegistry>>()
-            .FirstOrDefault(r => r.InterfaceMarkerType == typeof(IStep))
-            ?? throw new JsonException("Failed to create step; type registry is not configured");
+            .GetRequiredService<TypeDescriptorRegistryProvider>()
+            .StepTypeRegistry;
 
         var descriptor = typeRegistry.GetDescriptor(stepType.GetString()!);
 
