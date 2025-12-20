@@ -4,6 +4,7 @@ using JTest.Core.Steps;
 using JTest.Core.Steps.Configuration;
 using JTest.Core.Templates;
 using JTest.Core.TypeDescriptorRegistries;
+using JTest.Core.TypeDescriptors;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
 using Spectre.Console;
@@ -141,6 +142,140 @@ public sealed class StepJsonConverterTests
         Assert.Equal("$.globals.var", save.Key);
         Assert.Equal("{{ $.this.value }}", $"{save.Value}");
     }
+
+    [Fact]
+    public void When_DeserializeAssertStep_Then_Returns_AssertStep()
+    {
+        // Act
+        var result = JsonSerializer.Deserialize<IStep>(assertStepJson, options);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.IsType<AssertStep>(result);
+        Assert.Equal("assert-id", result.Id);
+        Assert.Equal("Execute assert", result.Name);
+        Assert.Equal("test", result.Description);
+
+        var configuration = result.Configuration as StepConfiguration;
+        Assert.NotNull(configuration);
+        Assert.Equal("assert-id", configuration.Id);
+        Assert.Equal("Execute assert", configuration.Name);
+        Assert.Equal("test", configuration.Description);        
+
+        Assert.NotNull(configuration.Assert);
+        Assert.Single(configuration.Assert);
+        var assertion = configuration.Assert.First();
+        Assert.IsType<EqualsAssertion>(assertion);
+        Assert.Equal("{{ $.this.value }}", $"{assertion.ActualValue}");
+        Assert.Equal("{{ $.globals.value }}", $"{assertion.ExpectedValue}");
+
+        Assert.NotNull(configuration.Save);
+        Assert.Single(configuration.Save);
+        var save = configuration.Save.First();
+        Assert.Equal("$.globals.var", save.Key);
+        Assert.Equal("{{ $.this.value }}", $"{save.Value}");
+    }
+
+
+    [Fact]
+    public void When_Deserialize_And_InvalidJson_Then_ThrowsException()
+    {
+        // Arrange
+        const string invalidJson = "{\"op\": \"equals\" { }]";
+
+        // Act & Assert
+        Assert.Throws<JsonException>(
+            () => JsonSerializer.Deserialize<IStep>(invalidJson, options)
+        );
+    }
+
+    [Fact]
+    public void When_Deserialize_And_MissingTypeProperty_Then_ThrowsException()
+    {
+        // Arrange
+        const string invalidStepJson = "{\"description\": \"test\", \"name\": \"testName\", \"id\": \"123\" }";
+
+        // Act & Assert
+        Assert.Throws<JsonException>(
+            () => JsonSerializer.Deserialize<IStep>(invalidStepJson, options)
+        );
+    }
+
+    [Theory]
+    [InlineData("[{\"type\": \"test\"}]")]
+    [InlineData("textValue")]
+    public void When_Deserialize_And_JsonIsNotObject_Then_ThrowsException(string invalidStepJson)
+    {
+        // Act & Assert
+        Assert.Throws<JsonException>(
+            () => JsonSerializer.Deserialize<IStep>(invalidStepJson, options)
+        );
+    }
+
+    [Theory]
+    [InlineData("{\"type\": \"\", \"description\": \"test\", \"mask\": true, \"actualValue\": 12, \"expectedValue\": 12.3 }")]
+    [InlineData("{\"type\": null, \"description\": \"test\", \"mask\": true, \"actualValue\": 12, \"expectedValue\": 12.3 }")]
+    public void When_Deserialize_And_TypeIsNullOrEmpty_Then_ThrowsException(string invalidStepJson)
+    {
+        // Act & Assert
+        Assert.Throws<JsonException>(
+            () => JsonSerializer.Deserialize<IStep>(invalidStepJson, options)
+        );
+    }
+
+    [Theory]
+    [InlineData("{\"type\": {}, \"description\": \"test\", \"id\": \"12\", \"name\": \"name\" }")]
+    [InlineData("{\"type\": [], \"description\": \"test\", \"id\": \"12\", \"name\": \"name\" }")]
+    [InlineData("{\"type\": 123, \"description\": \"test\", \"id\": \"12\", \"name\": \"name\" }")]
+    [InlineData("{\"type\": true, \"description\": \"test\", \"id\": \"12\", \"name\": \"name\" }")]
+    public void When_Deserialize_And_TypePropertyIsInvalidType_Then_ThrowsException(string invalidStepJson)
+    {
+        // Act & Assert
+        Assert.Throws<JsonException>(
+            () => JsonSerializer.Deserialize<IStep>(invalidStepJson, options)
+        );
+    }
+
+    [Fact]
+    public void When_Deserialize_And_Registry_Returns_InvalidDescriptorConstructor_Then_ThrowsException()
+    {
+        // Arrange
+        const string json = "{\"type\": \"test\"}";
+
+        var brokenDescriptorRegistry = Substitute.For<ITypeDescriptorRegistry>();
+        brokenDescriptorRegistry
+            .GetDescriptor("test")
+            .Returns(new TypeDescriptor(args => new object(), "test", typeof(object)));
+        var registryProvider = Substitute.For<ITypeDescriptorRegistryProvider>();
+        registryProvider.StepTypeRegistry.Returns(brokenDescriptorRegistry);
+
+        var serializerOptions = GetSerializerOptions(registryProvider);
+
+        // Act & Assert
+        Assert.Throws<InvalidOperationException>(
+            () => JsonSerializer.Deserialize<IStep>(json, serializerOptions)
+        );
+    }
+
+    private const string assertStepJson =
+    """
+    {
+        "type": "assert",
+        "id": "assert-id",
+        "name": "Execute assert",
+        "description": "test",
+        "assert": [
+            {
+                "op": "equals",
+                "actualValue": "{{ $.this.value }}",
+                "expectedValue": "{{ $.globals.value }}"
+            }
+        ],
+        "save":{
+            "$.globals.var": "{{ $.this.value }}"
+        }
+    }
+    """;
 
     private const string waitStepJson =
     """

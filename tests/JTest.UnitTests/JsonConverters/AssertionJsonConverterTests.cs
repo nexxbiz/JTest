@@ -150,7 +150,7 @@ public sealed class AssertionJsonConverterTests
             .GetDescriptor("test")
             .Returns(new TypeDescriptor(args => new object(), "test", typeof(object)));
         var registryProvider = Substitute.For<ITypeDescriptorRegistryProvider>();
-        registryProvider.StepTypeRegistry.Returns(brokenDescriptorRegistry);
+        registryProvider.AssertionTypeRegistry.Returns(brokenDescriptorRegistry);
 
         var serializerOptions = GetSerializerOptions(registryProvider);
 
