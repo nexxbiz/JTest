@@ -1,12 +1,11 @@
-﻿namespace JTest.Core.Models
+﻿namespace JTest.Core.Models;
+
+public sealed class StepConfigurationValidationException(string type, IEnumerable<string> validationErrors)
+    : Exception(ParseValidationErrorMessage(type, validationErrors))
 {
-    public sealed class StepConfigurationValidationException(string type, IEnumerable<string> validationErrors) 
-        : Exception(ParseValidationErrorMessage(type, validationErrors))
+    private static string ParseValidationErrorMessage(string type, IEnumerable<string> validationErrors)
     {
-        static string ParseValidationErrorMessage(string type, IEnumerable<string> validationErrors)
-        {            
-            var errors = string.Join("; ", validationErrors);
-            return $"Invalid configuration for step type '{type}'. Validation errors: {errors}";
-        }
+        var errors = string.Join("; ", validationErrors);
+        return $"Invalid configuration for step type '{type}'. Validation errors: {errors}";
     }
 }

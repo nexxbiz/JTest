@@ -32,18 +32,18 @@ public class JTestCaseResult
     /// <summary>
     /// Gets or sets the step results from the test execution
     /// </summary>
-    public List<StepResult> StepResults { get; set; } = new();
+    public List<StepResult> StepResults { get; set; } = [];
 
     /// <summary>
     /// Gets or sets any error message if execution failed
     /// </summary>
-    public string? ErrorMessage => errors.Count > 0 
-                                    ? string.Join("; ", errors) 
+    public string? ErrorMessage => errors.Count > 0
+                                    ? string.Join("; ", errors)
                                     : null;
 
     public void AddError(string? error)
     {
-        if(!string.IsNullOrWhiteSpace(error))
+        if (!string.IsNullOrWhiteSpace(error))
         {
             errors.Add(error);
         }

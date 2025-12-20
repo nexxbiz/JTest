@@ -8,7 +8,7 @@ public interface IExecutionContext
     /// <summary>
     /// Gets the variables dictionary containing all execution variables
     /// </summary>
-    Dictionary<string, object> Variables { get; }
+    Dictionary<string, object?> Variables { get; }
 
     /// <summary>
     /// Gets the log list for warnings and errors during execution

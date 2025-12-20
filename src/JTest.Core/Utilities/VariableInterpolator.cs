@@ -62,11 +62,11 @@ public static class VariableInterpolator
     private static string ResolveEnvironmentVariableTokens(string input)
     {
         var matches = EnvironmentVariableRegex.Matches(input);
-        foreach(Match match in matches)
+        foreach (Match match in matches)
         {
             var envVarName = match.Groups[1].Value;
             var envVarValue = Environment.GetEnvironmentVariable(envVarName, EnvironmentVariableTarget.Process);
-            if(!string.IsNullOrWhiteSpace(envVarValue))
+            if (!string.IsNullOrWhiteSpace(envVarValue))
             {
                 input = input.Replace(match.Value, envVarValue);
             }
@@ -348,13 +348,13 @@ public static class VariableInterpolator
         var jsonNode = JsonSerializer.SerializeToNode(context.Variables);
         var result = jsonPath.Evaluate(jsonNode);
         if (result.Matches == null || !result.Matches.Any()) return HandleMissingPath(path, context);
-        
+
         // If there's only one match, return the single value (preserves existing behavior)
         if (result.Matches.Count() == 1)
         {
             return ExtractValue(result.Matches.First().Value, context, depth);
         }
-        
+
         // If there are multiple matches, return an array of all extracted values
         var extractedValues = new List<object>();
         foreach (var match in result.Matches)
@@ -390,14 +390,14 @@ public static class VariableInterpolator
         try
         {
             if (value.TryGetValue<string>(out var stringVal))
-            {                
+            {
                 return ExtractStringValue(stringVal);
             }
-            if (value.TryGetValue<int>(out var intVal)) 
+            if (value.TryGetValue<int>(out var intVal))
                 return intVal;
-            if (value.TryGetValue<double>(out var doubleVal)) 
+            if (value.TryGetValue<double>(out var doubleVal))
                 return doubleVal;
-            if (value.TryGetValue<bool>(out var boolVal)) 
+            if (value.TryGetValue<bool>(out var boolVal))
                 return boolVal;
             return value.GetValue<object>();
         }

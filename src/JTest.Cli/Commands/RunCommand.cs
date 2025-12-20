@@ -1,80 +1,87 @@
-﻿using JTest.Cli.Options;
-using JTest.Cli.Utilities;
-using JTest.Core;
+﻿using JTest.Cli.Settings;
+using JTest.Core.Execution;
 using JTest.Core.Models;
 using JTest.Core.Utilities;
+using JTest.Core.Variables;
+using Spectre.Console;
 using Spectre.Console.Cli;
 using System.Text.Json;
 
-namespace JTest.Cli.Commands
+namespace JTest.Cli.Commands;
+
+public class RunCommand(IAnsiConsole ansiConsole, IJTestSuiteExecutionResultProcessor testExecutionResultsProcessor, IJTestSuiteExecutor testSuiteExecutor, IVariablesContext variablesContext, JsonSerializerOptionsCache serializerOptionsCache)
+    : CommandBase<RunCommandSettings>(ansiConsole)
 {
-    public class RunCommand(TestExecutionResultsProcessor testExecutionResultsProcessor, JTestSuiteExecutor testSuiteExecutor) : ICommand<RunCommandSettings>
+    protected virtual bool IsDebug => false;
+
+    public override sealed async Task<int> ExecuteAsync(CommandContext context, RunCommandSettings settings, CancellationToken cancellationToken)
     {
-        private static readonly JsonSerializerOptions jsonSerializerOptions = new()
+        InitializeVariablesContext(settings);
+
+        var results = await ExecuteRunCommand(settings);
+        if (results is null)
         {
-            PropertyNameCaseInsensitive = true
-        };
-
-        protected virtual bool IsDebug => false;
-
-        public async Task<int> ExecuteAsync(CommandContext context, RunCommandSettings settings, CancellationToken cancellationToken)
-        {
-            var results = await ExecuteRunCommand(settings);
-            if (results is null)
-            {
-                return 1;
-            }
-
-            testExecutionResultsProcessor.ProcessResults(results, settings.OutputDirectoryPath, IsDebug, settings.SkipOutput == true);
-            if (results.All(x => x.CasesFailed == 0))
-            {
-                return 0;
-            }
-
             return 1;
         }
 
-        public Spectre.Console.ValidationResult Validate(CommandContext context, CommandSettings settings)
+        var outputDirectory = GetOutputDirectory(settings);
+        testExecutionResultsProcessor.Process(results, outputDirectory, IsDebug, settings.SkipOutput == true, settings.OutputFormat);
+        if (results.All(x => x.CasesFailed == 0))
         {
-            return settings.Validate();
+            return 0;
         }
 
-        public Task<int> ExecuteAsync(CommandContext context, CommandSettings settings, CancellationToken cancellationToken)
+        return 1;
+    }
+
+    private async Task<IEnumerable<JTestSuiteExecutionResult>?> ExecuteRunCommand(RunCommandSettings settings)
+    {
+        var testSuites = ReadTestSuites(settings);
+        if (!testSuites.Any())
         {
-            return ExecuteAsync(context, (RunCommandSettings)settings, cancellationToken);
+            Console.WriteLine(
+                $"Error: No test files found matching patterns: {string.Join(", ", settings.TestFilePatterns ?? [])}",
+                new Style(foreground: Color.Red)
+            );
+            return null;
         }
 
-        private async Task<IEnumerable<TestFileExecutionResult>?> ExecuteRunCommand(RunCommandSettings settings)
+        if (settings.ParallelTestExecutionCount > 1)
         {
-            var testSuites = ReadTestSuites(settings);
-            if (!testSuites.Any())
-            {
-                Console.Error.WriteLine($"Error: No test files found matching patterns: {string.Join(", ", settings.TestFilePatterns ?? [])}");
-                return null;
-            }
-
-            if (settings.ParallelTestExecutionCount > 1)
-            {
-                Console.WriteLine($"Running {testSuites.Count()} test files in parallel (max concurrent: {settings.ParallelTestExecutionCount})");
-                return testSuiteExecutor.ExecuteParallel(testSuites, settings.ParallelTestExecutionCount.Value);
-            }
-
-            return await testSuiteExecutor.Execute(testSuites);
+            Console.WriteLine($"Running {testSuites.Count()} test files in parallel (max concurrent: {settings.ParallelTestExecutionCount})");
+            return testSuiteExecutor.ExecuteParallel(testSuites, settings.ParallelTestExecutionCount.Value);
         }
 
-        private static IEnumerable<JTestSuite> ReadTestSuites(RunCommandSettings settings)
+        return await testSuiteExecutor.Execute(testSuites);
+    }
+
+    private IEnumerable<JTestSuite> ReadTestSuites(RunCommandSettings settings)
+    {
+        var testFiles = TestFileSearcher.Search(settings.TestFilePatterns!, settings.GetCategories());
+
+        return testFiles.Select(filePath =>
         {
-            var testFiles = TestFileSearcher.Search(settings.TestFilePatterns!, settings.Categories ?? []);
+            var json = File.ReadAllText(filePath);
+            var testSuite = JsonSerializer.Deserialize<JTestSuite>(filePath, serializerOptionsCache.Options)
+                ?? throw new ArgumentException($"Test suite at path '{filePath}' is not a valid JTestSuite");
+            testSuite.FilePath = filePath;
 
-            return testFiles.Select(filePath =>
-            {
-                var json = File.ReadAllText(filePath);
-                var testSuite = JsonSerializer.Deserialize<JTestSuite>(filePath, jsonSerializerOptions)
-                    ?? throw new ArgumentException($"Test suite at path '{filePath}' is not a valid JTestSuite");
-                testSuite.FilePath = filePath;
+            return testSuite;
+        });
+    }
 
-                return testSuite;
-            });            
-        }       
+    private void InitializeVariablesContext(RunCommandSettings settings)
+    {
+        var environmentVariables = settings.GetEnvironmentVariables();
+        var globalVariables = settings.GetGlobalVariables();
+        variablesContext.Initialize(environmentVariables, globalVariables);
+    }
+
+    private static string GetOutputDirectory(RunCommandSettings settings)
+    {
+        if (!string.IsNullOrWhiteSpace(settings.OutputDirectoryPath))
+            return settings.OutputDirectoryPath;
+
+        return Directory.GetCurrentDirectory();
     }
 }

@@ -1,86 +1,87 @@
 ﻿using Microsoft.Extensions.FileSystemGlobbing;
 using Microsoft.Extensions.FileSystemGlobbing.Abstractions;
-using System.ComponentModel.DataAnnotations;
 using System.Data;
 using System.Text.Json;
 
-namespace JTest.Core.Utilities
+namespace JTest.Core.Utilities;
+
+public static class TestFileSearcher
 {
-    public static class TestFileSearcher
+    public static string[] Search(IEnumerable<string> testFilePatterns, IEnumerable<string> categories)
     {
-        public static string[] Search(IEnumerable<string> testFilePatterns, IEnumerable<string> categories)
-        {
-            var files = Search(testFilePatterns);
-            var result = files.Where(filePath => DoesTestFileMatchCategories(filePath, categories));
+        var files = Search(testFilePatterns);
+        var result = files.Where(filePath => DoesTestFileMatchCategories(filePath, categories));
 
-            return [.. result];
+        return [.. result];
+    }
+
+    public static string[] Search(IEnumerable<string> testFilePatterns)
+    {
+        return [.. ExpandWildCardPatterns(testFilePatterns)];
+    }
+
+    /// <summary>
+    /// Expands DevOps-style include/exclude wildcard patterns into file paths.
+    /// Supports **, *, ?, and !exclude patterns.
+    /// </summary>
+    private static List<string> ExpandWildCardPatterns(IEnumerable<string> patterns)
+    {
+        var result = new List<string>();
+        var excludedPatterns = patterns.Where(p => p.StartsWith('!'));
+        var includedPatterns = patterns.Except(excludedPatterns);
+        foreach (var pattern in includedPatterns)
+        {
+            var expandedFiles = ExpandWildCardPattern(pattern, excludedPatterns);
+            result.AddRange(expandedFiles);
+        }
+        return result;
+    }
+
+    private static IEnumerable<string> ExpandWildCardPattern(string pattern, IEnumerable<string> excludedPatterns)
+    {
+        var matcher = new Matcher(StringComparison.OrdinalIgnoreCase);
+        foreach (var excludedPattern in excludedPatterns)
+        {
+            var trimmedExcludePattern = excludedPattern.TrimStart('!');
+            matcher.AddExclude(trimmedExcludePattern);
         }
 
-        public static string[] Search(IEnumerable<string> testFilePatterns) => [.. ExpandWildCardPatterns(testFilePatterns)];
+        matcher.AddInclude(pattern);
 
-        /// <summary>
-        /// Expands DevOps-style include/exclude wildcard patterns into file paths.
-        /// Supports **, *, ?, and !exclude patterns.
-        /// </summary>
-        static List<string> ExpandWildCardPatterns(IEnumerable<string> patterns)
+        // Use the working directory as base (adjust if needed)
+        var workingDirectory = Directory.GetCurrentDirectory();
+        var directoryWrapper = new DirectoryInfoWrapper(
+            new DirectoryInfo(workingDirectory)
+        );
+
+        var result = matcher.Execute(directoryWrapper);
+
+        return result.Files
+            .Select(f => Path.GetFullPath(f.Path))
+            .Where(f => f.EndsWith(".json"));
+    }
+
+    private static bool DoesTestFileMatchCategories(string filePath, IEnumerable<string> categories)
+    {
+        if (!categories.Any())
         {
-            var result = new List<string>();
-            var excludedPatterns = patterns.Where(p => p.StartsWith('!'));
-            var includedPatterns = patterns.Except(excludedPatterns);
-            foreach (var pattern in includedPatterns)
-            {
-                var expandedFiles = ExpandWildCardPattern(pattern, excludedPatterns);
-                result.AddRange(expandedFiles);
-            }
-            return result;
+            return true;
         }
 
-        static IEnumerable<string> ExpandWildCardPattern(string pattern, IEnumerable<string> excludedPatterns)
+        var jsonDocument = JsonDocument.Parse(File.ReadAllText(filePath));
+        var jsonElement = jsonDocument.RootElement;
+        if (!jsonElement.TryGetProperty("categories", out JsonElement categoriesElement) || categoriesElement.ValueKind != JsonValueKind.Array)
         {
-            var matcher = new Matcher(StringComparison.OrdinalIgnoreCase);
-            foreach (var excludedPattern in excludedPatterns)
-            {
-                var trimmedExcludePattern = excludedPattern.TrimStart('!');
-                matcher.AddExclude(trimmedExcludePattern);
-            }
-
-            matcher.AddInclude(pattern);
-
-            // Use the working directory as base (adjust if needed)
-            var workingDirectory = Directory.GetCurrentDirectory();
-            var directoryWrapper = new DirectoryInfoWrapper(
-                new DirectoryInfo(workingDirectory)
-            );
-
-            var result = matcher.Execute(directoryWrapper);
-
-            return result.Files
-                .Select(f => Path.GetFullPath(f.Path))
-                .Where(f => f.EndsWith(".json"));
+            return false;
         }
 
-        static bool DoesTestFileMatchCategories(string filePath, IEnumerable<string> categories)
+        var testFileCategories = categoriesElement
+            .EnumerateArray()
+            .Select(x => x.GetString());
+
+        return testFileCategories.Any(testFileCategory =>
         {
-            if (!categories.Any())
-            {
-                return true;
-            }
-
-            var jsonDocument = JsonDocument.Parse(File.ReadAllText(filePath));
-            var jsonElement = jsonDocument.RootElement;
-            if (!jsonElement.TryGetProperty("categories", out JsonElement categoriesElement) || categoriesElement.ValueKind != JsonValueKind.Array)
-            {
-                return false;
-            }
-
-            var testFileCategories = categoriesElement
-                .EnumerateArray()
-                .Select(x => x.GetString());
-
-            return testFileCategories.Any(testFileCategory =>
-            {
-                return categories.Contains(testFileCategory, StringComparer.OrdinalIgnoreCase);
-            });
-        }
+            return categories.Contains(testFileCategory, StringComparer.OrdinalIgnoreCase);
+        });
     }
 }

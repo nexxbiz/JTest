@@ -1,0 +1,146 @@
+﻿using JTest.Core.Execution;
+using JTest.Core.Utilities;
+using System.Collections;
+using System.Text.Json;
+
+namespace JTest.Core.Assertions;
+
+public abstract class AssertionOperationBase(object? actualValue, object? expectedValue, string? description, bool? mask)
+    : IAssertionOperation
+{
+    public object? ActualValue { get; } = actualValue;
+    public object? ExpectedValue { get; } = expectedValue;
+
+    public string? Description { get; } = description;
+    public bool? Mask { get; } = mask;
+
+    public abstract string OperationType { get; }
+
+    public AssertionResult Execute(IExecutionContext context)
+    {
+        object? resolvedActualValue = null;
+        object? resolvedExpectedValue = null;
+
+        if (ActualValue is not null)
+        {
+            resolvedActualValue = GetAssertionValue(ActualValue, context);
+        }
+        if (ExpectedValue is not null)
+        {
+            resolvedExpectedValue = GetAssertionValue(ExpectedValue, context);
+        }
+
+        if (!ValidateCardinality(resolvedActualValue, resolvedExpectedValue, out var errorMessage))
+        {
+            return new AssertionResult(false, errorMessage!)
+            {
+                ActualValue = resolvedActualValue,
+                ExpectedValue = resolvedExpectedValue,
+                Operation = OperationType
+            };
+        }
+
+        var result = Execute(resolvedActualValue, resolvedExpectedValue);
+        var error = result ? GetErrorMessage(resolvedActualValue, resolvedExpectedValue) : string.Empty;
+
+        return new AssertionResult(result, error)
+        {
+            ActualValue = resolvedExpectedValue,
+            ExpectedValue = resolvedActualValue,
+            Operation = OperationType
+        };
+    }
+
+    internal abstract bool Execute(object? actualValue, object? expectedValue);
+
+    protected abstract string GetErrorMessage(object? resolvedActualValue, object? resolvedExpectedValue);
+
+    private static object? GetAssertionValue(object value, IExecutionContext context)
+    {
+        if (value is string stringValue)
+        {
+            // Enhanced validation for JSONPath expressions
+            if (stringValue.StartsWith("{{") && stringValue.EndsWith("}}"))
+            {
+                var pathError = ValidateJsonPath(stringValue, context);
+                if (!string.IsNullOrEmpty(pathError))
+                {
+                    context.Log.Add($"JSONPath validation warning: {pathError}");
+                }
+            }
+
+            return VariableInterpolator.ResolveVariableTokens(stringValue, context);
+        }
+
+        return value;
+    }
+
+    private static string ValidateJsonPath(string pathExpression, IExecutionContext context)
+    {
+        var path = pathExpression.Trim('{', '}').Trim();
+
+        // Check for reserved keys that shouldn't be modified        
+        var pathParts = path.Split('.');
+
+        if (pathParts.Length > 1)
+        {
+            var rootKey = pathParts[1]; // Skip the '$' part
+
+            // Check for potential step references
+            if (pathParts.Length > 2 && !context.Variables.ContainsKey(rootKey))
+            {
+                return $"Step reference '{rootKey}' not found. Available variables: {string.Join(", ", context.Variables.Keys.Take(10))}";
+            }
+        }
+
+        return "";
+    }
+
+    protected bool ValidateCardinality(object? resolvedActualValue, object? resolvedExpectedValue, out string? errorMessage)
+    {
+        errorMessage = null;
+
+        var collectionOperators = new[] { "length", "empty", "notempty", "in" };
+
+        if (collectionOperators.Contains(OperationType) && resolvedActualValue != null && !IsCollectionLike(resolvedActualValue))
+        {
+            errorMessage =
+                $"Operator '{OperationType}' expects a collection or string, but got {GetValueTypeDescription(resolvedActualValue)}. " +
+                "Consider using a scalar operator like 'equals' or 'type' instead.";
+        }
+
+        if (OperationType == "between" && resolvedExpectedValue != null && !(resolvedExpectedValue is JsonElement { ValueKind: JsonValueKind.Array }))
+        {
+            errorMessage = "Operator 'between' requires an array of [min, max] values as expectedValue.";
+        }
+
+        return string.IsNullOrWhiteSpace(errorMessage);
+    }
+
+    private static bool IsCollectionLike(object value)
+    {
+        return value switch
+        {
+            string => true,
+            IEnumerable => true,
+            JsonElement { ValueKind: JsonValueKind.Array } => true,
+            JsonElement { ValueKind: JsonValueKind.String } => true,
+            _ => false
+        };
+    }
+
+    private static string GetValueTypeDescription(object value)
+    {
+        return value switch
+        {
+            null => "null",
+            bool => "boolean",
+            int or long or short or byte or sbyte or uint or ulong or ushort => "integer",
+            float or double or decimal => "number",
+            string => "string",
+            JsonElement jsonElement => $"JSON {jsonElement.ValueKind.ToString().ToLowerInvariant()}",
+            IEnumerable => "collection",
+            _ => "object"
+        };
+    }
+}

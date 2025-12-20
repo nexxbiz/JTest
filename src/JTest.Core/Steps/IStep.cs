@@ -1,5 +1,5 @@
 using JTest.Core.Execution;
-using System.Text.Json;
+using JTest.Core.Steps.Configuration;
 
 namespace JTest.Core.Steps;
 
@@ -29,12 +29,17 @@ public interface IStep
     string? Description { get; }
 
     /// <summary>
-    /// Executes the step with the provided context
+    /// The input this step needs to perform its execution
     /// </summary>
-    Task<StepResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default);
+    StepConfiguration? Configuration { get; }
 
     /// <summary>
-    /// Validates the step configuration from JSON
+    /// Executes the step with the provided context
     /// </summary>
-    bool ValidateConfiguration(List<string> validationErrors);
+    Task<object?> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Validates the step configuration
+    /// </summary>
+    bool ValidateConfiguration(IServiceProvider serviceProvider, IExecutionContext context, List<string> validationErrors);
 }

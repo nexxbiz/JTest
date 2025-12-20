@@ -13,7 +13,7 @@ public interface ITemplateContext
     /// </summary>
     /// <param name="name">The template name</param>
     /// <returns>The template definition or null if not found</returns>
-    Template? GetTemplate(string name);
+    Template GetTemplate(string name);
 
     Task Load(JTestSuite testSuite, IExecutionContext executionContext);
 }

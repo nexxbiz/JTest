@@ -1,19 +1,18 @@
 using JTest.Core.Assertions;
 using JTest.Core.Debugging;
-using System.Runtime.CompilerServices;
 
 namespace JTest.Core.Steps;
 
 /// <summary>
 /// Represents the result of step execution
 /// </summary>
-public class StepResult(int stepNumber)
+public sealed class StepResult(int stepNumber)
 {
     /// <summary>
     ///  Stores the step that produced this result
     /// </summary>
     public required IStep Step { get; set; }
-    
+
     /// <summary>
     /// Gets or sets whether the step execution was successful
     /// </summary>
@@ -22,59 +21,69 @@ public class StepResult(int stepNumber)
     /// <summary>
     /// Gets or sets detailed description 
     /// </summary>
-    public string DetailedDescription { get; set; } = string.Empty;
+    public string DetailedDescription { get; init; } = string.Empty;
 
     /// <summary>
     /// Gets or sets the error message if execution failed
     /// </summary>
-    public string? ErrorMessage { get; set; }
+    public string? ErrorMessage { get; init; }
 
     /// <summary>
     /// Gets or sets the step execution data to be stored in context
     /// </summary>
-    public object? Data { get; set; }
+    public object? Data { get; init; }
 
     /// <summary>
     /// Gets or sets the execution duration in milliseconds
     /// </summary>
-    public long DurationMs { get; set; }
+    public long DurationMs { get; init; }
 
     /// <summary>
     /// Gets or sets the assertion results from step execution
     /// </summary>
-    public List<AssertionResult> AssertionResults { get; set; } = new();
+    public IEnumerable<AssertionResult> AssertionResults { get; init; } = [];
 
     /// <summary>
     /// Gets or sets the context changes from step execution (saved values)
     /// </summary>
-    public ContextChanges? ContextChanges { get; set; }
+    public ContextChanges? ContextChanges { get; init; }
 
     /// <summary>
     /// Creates a successful step result
     /// </summary>
-    public static StepResult CreateSuccess(int stepNumber, IStep step,object? data = null, long durationMs = 0)
+    public static StepResult CreateSuccess(int stepNumber, IStep step, IEnumerable<AssertionResult>? assertionResults, object? data = null, long durationMs = 0)
     {
-        return new StepResult(stepNumber) { Step = step, Success = true, Data = data, DurationMs = durationMs };
+        return new StepResult(stepNumber)
+        {
+            Step = step,
+            Success = true,
+            Data = data,
+            DurationMs = durationMs,
+            AssertionResults = assertionResults ?? []
+        };
     }
 
     /// <summary>
     /// Creates a failed step result
     /// </summary>
-    public static StepResult CreateFailure(int stepNumber, IStep step, string errorMessage, long durationMs = 0)
+    public static StepResult CreateFailure(int stepNumber, IStep step, IEnumerable<AssertionResult>? assertionResults, string errorMessage, long durationMs = 0)
     {
-        return new StepResult(stepNumber) { Step = step, Success = false, ErrorMessage = errorMessage, DurationMs = durationMs };
+        return new StepResult(stepNumber)
+        {
+            Step = step,
+            Success = false,
+            ErrorMessage = errorMessage,
+            DurationMs = durationMs,
+            AssertionResults = assertionResults ?? []
+        };
     }
 
-    public string DetailedAssertionFailures
-    {
-        get
-        {
-            return String.Join('-', AssertionResults.Where(a => a.Success == false).Select(a => a.ErrorMessage));
-        }
-    }
+    public string DetailedAssertionFailures => string.Join('-', AssertionResults.Where(a => a.Success == false).Select(a => a.ErrorMessage));
+
     /// <summary>
     /// List of inner step results if this step contains nested steps (e.g., a template step)
     /// </summary>
-    public List<StepResult> InnerResults { get; internal set; } = new();
+    public IEnumerable<StepResult> InnerResults { get; init; } = [];
+
     public int StepNumber { get; } = stepNumber;
 }

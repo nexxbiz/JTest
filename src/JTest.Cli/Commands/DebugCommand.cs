@@ -1,12 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using JTest.Core.Execution;
+using JTest.Core.Utilities;
+using JTest.Core.Variables;
+using Spectre.Console;
 
-namespace JTest.Cli.Commands
+namespace JTest.Cli.Commands;
+
+public sealed class DebugCommand(IAnsiConsole ansiConsole, IJTestSuiteExecutionResultProcessor resultsProcessor, IJTestSuiteExecutor testSuiteExecutor, IVariablesContext variablesContext, JsonSerializerOptionsCache jsonSerializerOptionsCache)
+    : RunCommand(ansiConsole, resultsProcessor, testSuiteExecutor, variablesContext, jsonSerializerOptionsCache)
 {
-    internal class DebugCommand
-    {
-    }
+    protected override bool IsDebug => true;
 }
