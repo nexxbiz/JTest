@@ -11,11 +11,6 @@
 
   <ItemGroup>
     <Compile Remove="ResultsToMarkdownConverterTests.cs" />
-    <Compile Remove="TestRunnerTests.cs" />
-    <Compile Remove="UsingStatementTests.cs" />
-    <Compile Remove="VariableInterpolatorTests.cs" />
-    <Compile Remove="WaitStepTests.cs" />
-    <Compile Remove="WildcardSupportTests.cs" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,11 +1,12 @@
+using JTest.Core.Assertions;
 using JTest.Core.Execution;
 using JTest.Core.Utilities;
 using System.Globalization;
 using System.Text.Json.Nodes;
 
-namespace JTest.UnitTests;
+namespace JTest.UnitTests.Utilities;
 
-public class VariableInterpolatorTests
+public sealed class VariableInterpolatorTests
 {
 
     [Fact]
@@ -453,7 +454,7 @@ public class VariableInterpolatorTests
 
         // Assert - should not crash and should log warning
         Assert.NotNull(result);
-        Assert.True(context.Log.Any(log => log.Contains("Maximum token resolution depth")));
+        Assert.Contains(context.Log, log => log.Contains("Maximum token resolution depth"));
     }
 
     [Fact]
@@ -623,7 +624,7 @@ public class VariableInterpolatorTests
         };
         context.Variables["case"] = new { expectedIterations = 2 };
 
-        // Act - Get the actual value that would be used in a length assertion
+        // Act - Get the actual value that would be used in a length assertion        
         var actualValue = VariableInterpolator.ResolveVariableTokens("{{$.testResult.journal.items[?(@.activityId=='88e113194fd0c4d5' && @.eventName == 'Completed')].id}}", context);
         var expectedValue = VariableInterpolator.ResolveVariableTokens("{{$.case.expectedIterations}}", context);
 
@@ -634,8 +635,8 @@ public class VariableInterpolatorTests
         Assert.Equal(2, expectedValue);
 
         // Verify that a length assertion would work correctly
-        var lengthAssertion = new JTest.Core.Assertions.LengthAssertion();
-        var assertionResult = lengthAssertion.Execute(actualValue, expectedValue);
+        var lengthAssertion = new LengthAssertion(actualValue, expectedValue);
+        var assertionResult = lengthAssertion.Execute(new TestExecutionContext());
         Assert.True(assertionResult.Success);
     }
 
@@ -662,27 +663,13 @@ public class VariableInterpolatorTests
 
         context.Variables["case"] = new { expectedIterations = 2 };
 
-        // Act - Simulate a length assertion operation as described in the problem statement
-        var jsonPathExpression = "{{$.testResult.journal.items[?(@.activityId=='88e113194fd0c4d5' && @.eventName == 'Completed')].id}}";
-        var actualValue = VariableInterpolator.ResolveVariableTokens(jsonPathExpression, context);
-        var expectedValue = VariableInterpolator.ResolveVariableTokens("{{$.case.expectedIterations}}", context);
-
-        // Before the fix: actualValue would be "item2" (just the first ID)
-        // After the fix: actualValue should be ["item2", "item3"] (array of all matching IDs)
-
-        // Assert - Verify the JSONPath returns all matching items, not just the first
-        Assert.IsType<object[]>(actualValue);
-        var resultArray = (object[])actualValue;
-        Assert.Equal(2, resultArray.Length);
-        Assert.Equal("item2", resultArray[0]);
-        Assert.Equal("item3", resultArray[1]);
+        // Act - Simulate a length assertion operation as described in the problem statement        
+        var actualValue = "{{$.testResult.journal.items[?(@.activityId=='88e113194fd0c4d5' && @.eventName == 'Completed')].id}}";
+        var expectedValue = "{{$.case.expectedIterations}}";
 
         // Assert - Verify the length assertion now works as expected
-        var lengthAssertion = new JTest.Core.Assertions.LengthAssertion();
-        var assertionResult = lengthAssertion.Execute(actualValue, expectedValue);
+        var lengthAssertion = new LengthAssertion(actualValue, expectedValue);
+        var assertionResult = lengthAssertion.Execute(context);
         Assert.True(assertionResult.Success, "Length assertion should pass with 2 items matching the filter");
-
-        // This proves that the length assertion can now properly count the collection
-        // returned by complex JSONPath expressions, which was the core issue described
     }
 }

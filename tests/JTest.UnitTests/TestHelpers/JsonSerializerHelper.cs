@@ -19,7 +19,7 @@ internal static class JsonSerializerHelper
         serviceCollection
             .AddSingleton(new HttpClient())
             .AddSingleton(AnsiConsole.Console)            
-            .AddSingleton(Substitute.For<IStepProcessor>());
+            .AddSingleton(StepProcessor.Default);
 
         if (registryProvider is not null)
         {

@@ -11,15 +11,22 @@ public sealed class WaitStep(WaitStepConfiguration configuration) : BaseStep<Wai
 {
     protected override void Validate(IExecutionContext context, IList<string> validationErrors)
     {
-        var ms = ParseMs(context);
-        if (ms <= 0)
+        try
         {
-            validationErrors.Add("Milliseconds must be greater than 0");
+            var ms = ParseMs(context);
+            if (ms <= 0)
+            {
+                validationErrors.Add("Milliseconds must be greater than 0");
+            }
+        }
+        catch(Exception e)
+        {
+            validationErrors.Add($"Could not parse/resolve milliseconds '{Configuration.Ms}'. Error: {e.Message}");
         }
     }
 
     int ParseMs(IExecutionContext context)
-    {
+    {        
         var jsonElement = SerializeToJsonElement(Configuration.Ms);
         if(jsonElement.ValueKind == System.Text.Json.JsonValueKind.Number)
         {
@@ -45,6 +52,11 @@ public sealed class WaitStep(WaitStepConfiguration configuration) : BaseStep<Wai
         try
         {
             var ms = ParseMs(context);
+            if (ms <= 0)
+            {
+                throw new InvalidOperationException("Milliseconds to wait is less than or equal to zero");
+            }
+
             await Task.Delay(ms, cancellationToken);
         }
         catch (TaskCanceledException)
@@ -58,8 +70,8 @@ public sealed class WaitStep(WaitStepConfiguration configuration) : BaseStep<Wai
 
         var data = new Dictionary<string, object?>
         {
-            ["expectedMs"] = Configuration.Ms,
-            ["actualMs"] = stopWatch.ElapsedMilliseconds
+            ["ms"] = Configuration.Ms,
+            ["duration"] = stopWatch.ElapsedMilliseconds
         };
 
         return new(data);

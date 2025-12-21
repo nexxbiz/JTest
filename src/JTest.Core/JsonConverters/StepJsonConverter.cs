@@ -1,5 +1,4 @@
-﻿using JTest.Core.Assertions;
-using JTest.Core.Steps;
+﻿using JTest.Core.Steps;
 using JTest.Core.Steps.Configuration;
 using JTest.Core.TypeDescriptorRegistries;
 using JTest.Core.TypeDescriptors;

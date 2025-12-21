@@ -1,7 +1,7 @@
 ﻿using JTest.Core.Utilities;
 using System.Data;
 
-namespace JTest.UnitTests
+namespace JTest.UnitTests.Utilities
 {    
     public class TestFileSearcherTests
     {   
