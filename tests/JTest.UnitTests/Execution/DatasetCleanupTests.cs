@@ -1,24 +1,29 @@
+using JTest.Core.Assertions;
 using JTest.Core.Execution;
 using JTest.Core.Models;
+using JTest.Core.Steps;
+using System.Reflection;
+using Xunit;
 
-namespace JTest.UnitTests;
+namespace JTest.UnitTests.Execution;
 
 /// <summary>
 /// Tests to verify proper cleanup between dataset iterations
 /// </summary>
 public class DatasetCleanupTests
 {
+    private static readonly JTestCaseExecutor executor = new(StepProcessor.Default);
+
     [Fact]
     public async Task ExecuteAsync_WithMultipleDatasets_GlobalsAreSharedBetweenIterations()
     {
         // Arrange
-        var executor = new TestCaseExecutor();
         var testCase = new JTestCase
         {
             Name = "Globals sharing test",
-            Steps = new List<object>(), // Empty steps for this test
-            Datasets = new List<JTestDataset>
-            {
+            Steps = [], // Empty steps for this test
+            Datasets =
+            [
                 new()
                 {
                     Name = "dataset1",
@@ -29,7 +34,7 @@ public class DatasetCleanupTests
                     Name = "dataset2",
                     Case = new Dictionary<string, object> { ["iteration"] = 2 }
                 }
-            }
+            ]
         };
 
         var baseContext = new TestExecutionContext();
@@ -41,7 +46,7 @@ public class DatasetCleanupTests
         var results = await executor.ExecuteAsync(testCase, baseContext);
 
         // Assert
-        Assert.Equal(2, results.Count);
+        Assert.Equal(2, results.Count());
 
         // Verify that the base context is not modified during execution
         var originalGlobals = baseContext.Variables["globals"] as Dictionary<string, object>;
@@ -57,13 +62,25 @@ public class DatasetCleanupTests
     public async Task ExecuteAsync_WithMultipleDatasets_ContextVariablesAreResetBetweenIterations()
     {
         // Arrange
-        var executor = new TestExecutionContext_MockingExecutor(); // We'll need a mock that simulates variable changes
+         var baseContext = new TestExecutionContext();
+        baseContext.Variables["env"] = new { immutableValue = "never-changes" };
+        baseContext.Variables["globals"] = new Dictionary<string, object>
+        {
+            ["var"] = "initialValue"
+        };
+        baseContext.Variables["ctx"] = new Dictionary<string, object> { ["status"] = "ready" };
+        var saveVariableModification = new Dictionary<string, object?>
+        {
+            ["$.ctx.status"] = "finished"
+        };
         var testCase = new JTestCase
         {
             Name = "Context reset test",
-            Steps = new List<object> { new { type = "mock_step" } }, // Mock step that modifies variables
-            Datasets = new List<JTestDataset>
-            {
+            Steps = [
+                new WaitStep(new(1, Save: saveVariableModification)) // Mock step that modifies variables
+            ], 
+            Datasets =
+            [
                 new()
                 {
                     Name = "dataset1",
@@ -74,19 +91,14 @@ public class DatasetCleanupTests
                     Name = "dataset2",
                     Case = new Dictionary<string, object> { ["value"] = "second" }
                 }
-            }
+            ]
         };
-
-        var baseContext = new TestExecutionContext();
-        baseContext.Variables["env"] = new { immutableValue = "never-changes" };
-        baseContext.Variables["globals"] = new Dictionary<string, object>();
-        baseContext.Variables["ctx"] = new Dictionary<string, object> { ["status"] = "ready" };
 
         // Act
         var results = await executor.ExecuteAsync(testCase, baseContext);
 
         // Assert
-        Assert.Equal(2, results.Count);
+        Assert.Equal(2, results.Count());
 
         // Verify base context remains unchanged
         var baseEnv = baseContext.Variables["env"];
@@ -102,14 +114,13 @@ public class DatasetCleanupTests
     [Fact]
     public async Task ExecuteAsync_WithMultipleDatasets_EnvVariablesRemainImmutable()
     {
-        // Arrange
-        var executor = new TestCaseExecutor();
+        // Arrange        
         var testCase = new JTestCase
         {
             Name = "Env immutability test",
-            Steps = new List<object>(),
-            Datasets = new List<JTestDataset>
-            {
+            Steps = [],
+            Datasets =
+            [
                 new()
                 {
                     Name = "dataset1",
@@ -120,7 +131,7 @@ public class DatasetCleanupTests
                     Name = "dataset2",
                     Case = new Dictionary<string, object> { ["test"] = "value2" }
                 }
-            }
+            ]
         };
 
         var originalEnv = new { baseUrl = "https://api.test.com", apiKey = "secret123" };
@@ -131,7 +142,7 @@ public class DatasetCleanupTests
         var results = await executor.ExecuteAsync(testCase, baseContext);
 
         // Assert
-        Assert.Equal(2, results.Count);
+        Assert.Equal(2, results.Count());
 
         // Verify that env variables remain unchanged in the base context
         Assert.Equal(originalEnv, baseContext.Variables["env"]);
@@ -140,8 +151,7 @@ public class DatasetCleanupTests
     [Fact]
     public void TestCaseExecutor_VariableScopingRules_AreImplementedCorrectly()
     {
-        // Arrange - Test the helper methods directly to verify scoping logic
-        var executor = new TestCaseExecutor();
+        // Arrange - Test the helper methods directly to verify scoping logic        
         var baseContext = new TestExecutionContext();
 
         baseContext.Variables["env"] = new { url = "https://test.com" };
@@ -153,18 +163,17 @@ public class DatasetCleanupTests
         var updatedGlobals = new Dictionary<string, object> { ["token"] = "xyz789", ["newVar"] = "added" };
 
         // Use reflection to test private methods (for testing purposes only)
-        var captureMethod = typeof(TestCaseExecutor).GetMethod("CaptureOriginalVariables",
-            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-        var prepareMethod = typeof(TestCaseExecutor).GetMethod("PrepareIterationContext",
-            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        var captureMethod = typeof(JTestCaseExecutor).GetMethod("CaptureOriginalVariables",
+            BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
+        var prepareMethod = typeof(JTestCaseExecutor).GetMethod("PrepareIterationContext",
+            BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
 
         Assert.NotNull(captureMethod);
         Assert.NotNull(prepareMethod);
 
         // Act
-        var originalVariables = (Dictionary<string, object>)captureMethod.Invoke(executor, new object[] { baseContext })!;
-        var iterationContext = (TestExecutionContext)prepareMethod.Invoke(executor,
-            new object[] { baseContext, originalVariables, updatedGlobals })!;
+        var originalVariables = (Dictionary<string, object>)captureMethod.Invoke(executor, [baseContext])!;
+        var iterationContext = (TestExecutionContext)prepareMethod.Invoke(executor, [baseContext, originalVariables, updatedGlobals])!;
 
         // Assert - verify proper scoping
         Assert.Equal(baseContext.Variables["env"], iterationContext.Variables["env"]); // env unchanged
@@ -176,14 +185,4 @@ public class DatasetCleanupTests
         Assert.NotNull(iterationCtx);
         Assert.Equal(1, iterationCtx["step"]);
     }
-}
-
-/// <summary>
-/// Mock executor for testing variable modification scenarios
-/// This simulates what would happen when actual steps execute and modify context
-/// </summary>
-public class TestExecutionContext_MockingExecutor : TestCaseExecutor
-{
-    // For now, we'll use the base implementation
-    // In a real scenario, this would override execution to simulate variable changes
 }

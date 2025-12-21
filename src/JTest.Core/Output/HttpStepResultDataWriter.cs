@@ -8,7 +8,7 @@ public sealed class HttpStepResultDataWriter
 {
     private readonly SecurityMasker _securityMasker = new();
 
-    public void WriteData(TextWriter writer, StepResult httpStepResult)
+    public void WriteData(TextWriter writer, StepProcessedResult httpStepResult)
     {
         if (httpStepResult.Step is not HttpStep)
         {
@@ -22,7 +22,7 @@ public sealed class HttpStepResultDataWriter
         WriteHttpRequestDetails(writer, httpStepResult);
     }
 
-    private void WriteHttpRequestDetails(TextWriter writer, StepResult step)
+    private void WriteHttpRequestDetails(TextWriter writer, StepProcessedResult step)
     {
         // Only show HTTP request details for HTTP steps
         if (step.Step.TypeName != "http" || step.Data == null) return;

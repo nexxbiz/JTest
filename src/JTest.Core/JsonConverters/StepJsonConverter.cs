@@ -56,10 +56,10 @@ public sealed class StepJsonConverter(IServiceProvider serviceProvider) : JsonCo
     private static TypeDescriptorConstructorParameter GetStepConfigurationParameter(TypeDescriptor descriptor)
     {
         var errorMessage = $"Step does not have configuration constructor parameter. " +
-            $"Please make sure you define a constructor with a parameter of type '{typeof(StepConfiguration).FullName}', " +
-            $"or a parameter that derives from '{typeof(StepConfiguration).FullName}'";
+            $"Please make sure you define a constructor with a parameter that implements '{typeof(IStepConfiguration).FullName}'";
 
-        return descriptor.ConstructorParameters.FirstOrDefault(x => typeof(StepConfiguration).IsAssignableFrom(x.Type))
+        return descriptor.ConstructorParameters
+            .FirstOrDefault(x => x.Type.GetInterface(nameof(IStepConfiguration)) is not null)
             ?? throw new InvalidOperationException(errorMessage);
     }
 

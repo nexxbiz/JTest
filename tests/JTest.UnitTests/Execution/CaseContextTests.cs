@@ -1,9 +1,10 @@
 using JTest.Core.Execution;
 using JTest.Core.Utilities;
+using Xunit;
 
-namespace JTest.UnitTests;
+namespace JTest.UnitTests.Execution;
 
-public class CaseContextTests
+public sealed class CaseContextTests
 {
     [Fact]
     public void SetCase_ShouldAddCaseVariablesToContext()

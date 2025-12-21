@@ -30,7 +30,7 @@ public class Template
     /// Gets or sets the steps to execute within the template
     /// </summary>
     [JsonPropertyName("steps")]
-    public List<IStep> Steps { get; set; } = [];
+    public IEnumerable<IStep> Steps { get; set; } = [];
 
     /// <summary>
     /// Gets or sets the output mapping that defines what values are exposed to the parent context

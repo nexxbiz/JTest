@@ -1,7 +1,6 @@
 ﻿using JTest.Core.Exceptions;
 using JTest.Core.Models;
 using JTest.Core.Steps;
-using JTest.Core.Steps.Configuration;
 
 namespace JTest.Core.Execution;
 
@@ -15,7 +14,7 @@ public sealed class JTestCaseExecutor(IStepProcessor stepProcessor) : IJTestCase
     /// <param name="baseContext">The base execution context with environment and global variables</param>
     /// <param name="testNumber">The test number for debug logging</param>
     /// <returns>List of test case results (one per dataset, or one if no datasets)</returns>
-    public async Task<IEnumerable<JTestCaseResult>> ExecuteAsync(JTestCase testCase, TestExecutionContext baseContext, int testNumber, CancellationToken cancellationToken)
+    public async Task<IEnumerable<JTestCaseResult>> ExecuteAsync(JTestCase testCase, TestExecutionContext baseContext, int testNumber = 1, CancellationToken cancellationToken = default)
     {
         var results = new List<JTestCaseResult>();
 
@@ -107,25 +106,26 @@ public sealed class JTestCaseExecutor(IStepProcessor stepProcessor) : IJTestCase
                     // Create step instance from configuration
                     var stepResult = await stepProcessor.ProcessStep(
                         step,
-                        step.Configuration as StepConfiguration,
                         executionContext,
                         cancellationToken
                     );
-                    result.StepResults.Add(stepResult);
 
                     if (!stepResult.Success)
                     {
                         result.AddError(stepResult.ErrorMessage);
                     }
 
+                    result.AddStepResult(stepResult);
                     stepNumber++;
                 }
                 catch (StepConfigurationValidationException ex)
                 {
+                    result.AddStepResult(StepProcessedResult.CreateFailure(stepNumber, step, [], ex.Message, (long)(DateTime.UtcNow - startTime).TotalMilliseconds));
                     result.AddError(ex.Message);
                 }
                 catch (Exception ex)
                 {
+                    result.AddStepResult(StepProcessedResult.CreateFailure(stepNumber, step, [], ex.Message, (long)(DateTime.UtcNow - startTime).TotalMilliseconds));
                     result.AddError($"Unexpected exception thrown: {ex.Message}");
                 }
             }
@@ -254,10 +254,9 @@ public sealed class JTestCaseExecutor(IStepProcessor stepProcessor) : IJTestCase
             // This is safe for immutable objects like env
             return value;
         }
-        catch
+        catch(Exception e)
         {
-            // If serialization fails, return the original (not ideal but safe)
-            return value;
+            throw new InvalidProgramException($"Cloning variable value '{value}' failed: could not be serialized to a JsonElement. Error: {e.Message}");
         }
     }
 }

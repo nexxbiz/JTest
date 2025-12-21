@@ -10,30 +10,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="AssertStepTests.cs" />
-    <Compile Remove="CaseContextIntegrationTests.cs" />
-    <Compile Remove="CaseContextTests.cs" />
-    <Compile Remove="DatasetCleanupTests.cs" />
-    <Compile Remove="DatasetTests.cs" />
-    <Compile Remove="ExampleUsageTests.cs" />
-    <Compile Remove="GlobalConfigurationTemplatesResolutionTests.cs" />
-    <Compile Remove="GlobalUsings.cs" />
-    <Compile Remove="HttpRequestDetailsIntegrationTests.cs" />
-    <Compile Remove="HttpStepTests.cs" />
-    <Compile Remove="RelativePathResolutionTests.cs" />
     <Compile Remove="ResultsToMarkdownConverterTests.cs" />
-    <Compile Remove="SampleFileTests.cs" />
-    <Compile Remove="SaveIntegrationTests.cs" />
-    <Compile Remove="SecurityMaskerTests.cs" />
-    <Compile Remove="StepAssertionIntegrationTests.cs" />
-    <Compile Remove="StepCompletionRefactoringTest.cs" />
-    <Compile Remove="TemplateFromSampleFileTests.cs" />
-    <Compile Remove="TemplateIntegrationTests.cs" />
-    <Compile Remove="TestCaseExecutorTests.cs" />
-    <Compile Remove="TestFileSearcherTests.cs" />
     <Compile Remove="TestRunnerTests.cs" />
-    <Compile Remove="TestSuiteTests.cs" />
-    <Compile Remove="UseStepTests.cs" />
     <Compile Remove="UsingStatementTests.cs" />
     <Compile Remove="VariableInterpolatorTests.cs" />
     <Compile Remove="WaitStepTests.cs" />

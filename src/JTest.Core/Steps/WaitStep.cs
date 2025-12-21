@@ -9,7 +9,32 @@ namespace JTest.Core.Steps;
 /// </summary>
 public sealed class WaitStep(WaitStepConfiguration configuration) : BaseStep<WaitStepConfiguration>(configuration)
 {
-    public override async Task<object?> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
+    protected override void Validate(IExecutionContext context, IList<string> validationErrors)
+    {
+        var ms = ParseMs(context);
+        if (ms <= 0)
+        {
+            validationErrors.Add("Milliseconds must be greater than 0");
+        }
+    }
+
+    int ParseMs(IExecutionContext context)
+    {
+        var jsonElement = SerializeToJsonElement(Configuration.Ms);
+        if(jsonElement.ValueKind == System.Text.Json.JsonValueKind.Number)
+        {
+            return (int)jsonElement.GetDouble();
+        }
+        if(jsonElement.ValueKind == System.Text.Json.JsonValueKind.String)
+        {
+            var result = ResolveStringValue(jsonElement.GetString()!, context);
+            return int.Parse(result);
+        }
+
+        return Convert.ToInt32(Configuration.Ms);
+    }
+
+    public override async Task<StepExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(Description))
         {
@@ -19,7 +44,8 @@ public sealed class WaitStep(WaitStepConfiguration configuration) : BaseStep<Wai
         var stopWatch = Stopwatch.StartNew();
         try
         {
-            await Task.Delay(Configuration.Ms, cancellationToken);
+            var ms = ParseMs(context);
+            await Task.Delay(ms, cancellationToken);
         }
         catch (TaskCanceledException)
         {
@@ -30,11 +56,13 @@ public sealed class WaitStep(WaitStepConfiguration configuration) : BaseStep<Wai
             stopWatch.Stop();
         }
 
-        return new Dictionary<string, object>
+        var data = new Dictionary<string, object?>
         {
             ["expectedMs"] = Configuration.Ms,
             ["actualMs"] = stopWatch.ElapsedMilliseconds
         };
+
+        return new(data);
     }
 
 }

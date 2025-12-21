@@ -89,7 +89,7 @@ public sealed class StepTypeDescriptorRegistryTests
         typeof(AssertStep),
         new TypeDescriptorConstructorArgument[]
         {
-            new("configuration", new StepConfiguration($"{Guid.NewGuid()}", $"{Guid.NewGuid()}", $"{Guid.NewGuid()}", null,null))
+            new("configuration", new AssertStepConfiguration([new EqualsAssertion(1, 1)], $"{Guid.NewGuid()}", $"{Guid.NewGuid()}", $"{Guid.NewGuid()}"))
         }
     ];
 
@@ -99,7 +99,7 @@ public sealed class StepTypeDescriptorRegistryTests
         typeof(UseStep),
         new TypeDescriptorConstructorArgument[]
         {
-            new("configuration", new UseStepConfiguration($"{Guid.NewGuid()}", $"{Guid.NewGuid()}", $"{Guid.NewGuid()}", null,null, "template1", new Dictionary<string, object?>()))
+            new("configuration", new UseStepConfiguration("template1",new Dictionary<string, object?>(), $"{Guid.NewGuid()}", $"{Guid.NewGuid()}", $"{Guid.NewGuid()}"))
         }
     ];
 
@@ -109,7 +109,7 @@ public sealed class StepTypeDescriptorRegistryTests
         typeof(WaitStep),
         new TypeDescriptorConstructorArgument[]
         {
-            new("configuration", new WaitStepConfiguration($"{Guid.NewGuid()}", $"{Guid.NewGuid()}", $"{Guid.NewGuid()}", null,null, 500))
+            new("configuration", new WaitStepConfiguration(500, $"{Guid.NewGuid()}", $"{Guid.NewGuid()}", $"{Guid.NewGuid()}"))
         }
     ];
 
@@ -119,7 +119,7 @@ public sealed class StepTypeDescriptorRegistryTests
         typeof(HttpStep),
         new TypeDescriptorConstructorArgument[]
         {
-            new("configuration", new HttpStepConfiguration($"{Guid.NewGuid()}", $"{Guid.NewGuid()}", $"{Guid.NewGuid()}", null,null, "GET", "https://url.com", null, null, null, null, null, null))
+            new("configuration", new HttpStepConfiguration("GET", "https://url.com", Id:$"{Guid.NewGuid()}", Name:$"{Guid.NewGuid()}", Description:$"{Guid.NewGuid()}"))
         }
    ];
 }

@@ -1,7 +1,7 @@
 using JTest.Core.Debugging;
 using Xunit;
 
-namespace JTest.UnitTests;
+namespace JTest.UnitTests.Debugging;
 
 public class SecurityMaskerTests
 {
@@ -96,7 +96,7 @@ public class SecurityMaskerTests
         var masker = new SecurityMasker();
 
         // Act & Assert
-        Assert.Equal("null", masker.RegisterForMasking("password", (string?)null));
+        Assert.Equal("null", masker.RegisterForMasking("password", (string?)null!));
         Assert.Equal("masked", masker.RegisterForMasking("password", ""));
         Assert.Equal("masked", masker.RegisterForMasking("password", "   "));
     }

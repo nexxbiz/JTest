@@ -1,19 +1,20 @@
 using JTest.Core.Execution;
 using JTest.Core.Models;
+using JTest.Core.Steps;
 
-namespace JTest.UnitTests;
+namespace JTest.UnitTests.Execution;
 
-public class TestCaseExecutorTests
+public sealed class JTestCaseExecutorTests
 {
     [Fact]
-    public async Task ExecuteAsync_WithoutDatasets_ExecutesOnce()
+    public async Task When_ExecuteAsync_WithoutDatasets_ExecutesOnce()
     {
         // Arrange
-        var executor = new TestCaseExecutor();
+        var executor = GetSut();
         var testCase = new JTestCase
         {
             Name = "Simple test",
-            Steps = new List<object> { new { type = "wait", ms = 1 } },
+            Steps = [new WaitStep(new(Ms: 1))],
             Datasets = null
         };
         var baseContext = new TestExecutionContext();
@@ -23,21 +24,21 @@ public class TestCaseExecutorTests
 
         // Assert
         Assert.Single(results);
-        Assert.Equal("Simple test", results[0].TestCaseName);
-        Assert.Null(results[0].Dataset);
-        Assert.True(results[0].Success);
+        Assert.Equal("Simple test", results.First().TestCaseName);
+        Assert.Null(results.First().Dataset);
+        Assert.True(results.First().Success);
     }
 
     [Fact]
-    public async Task ExecuteAsync_WithEmptyDatasets_ExecutesOnce()
+    public async Task When_ExecuteAsync_WithEmptyDatasets_ExecutesOnce()
     {
         // Arrange
-        var executor = new TestCaseExecutor();
+        var executor = GetSut();
         var testCase = new JTestCase
         {
             Name = "Test with empty datasets",
-            Steps = new List<object> { new { type = "wait", ms = 1 } },
-            Datasets = new List<JTestDataset>()
+            Steps = [new WaitStep(new(Ms: 1))],
+            Datasets = []
         };
         var baseContext = new TestExecutionContext();
 
@@ -46,21 +47,21 @@ public class TestCaseExecutorTests
 
         // Assert
         Assert.Single(results);
-        Assert.Equal("Test with empty datasets", results[0].TestCaseName);
-        Assert.Null(results[0].Dataset);
+        Assert.Equal("Test with empty datasets", results.First().TestCaseName);
+        Assert.Null(results.First().Dataset);
     }
 
     [Fact]
-    public async Task ExecuteAsync_WithDatasets_ExecutesMultipleTimes()
+    public async Task When_ExecuteAsync_WithDatasets_ExecutesMultipleTimes()
     {
         // Arrange
-        var executor = new TestCaseExecutor();
+        var executor = GetSut();
         var testCase = new JTestCase
         {
             Name = "Data-driven test",
-            Steps = new List<object> { new { type = "wait", ms = 1 } },
-            Datasets = new List<JTestDataset>
-            {
+            Steps = [new WaitStep(new(Ms: 1))],
+            Datasets =
+            [
                 new()
                 {
                     Name = "dataset1",
@@ -71,7 +72,7 @@ public class TestCaseExecutorTests
                     Name = "dataset2",
                     Case = new Dictionary<string, object> { ["userId"] = "user2" }
                 }
-            }
+            ]
         };
         var baseContext = new TestExecutionContext();
 
@@ -79,30 +80,30 @@ public class TestCaseExecutorTests
         var results = await executor.ExecuteAsync(testCase, baseContext);
 
         // Assert
-        Assert.Equal(2, results.Count);
+        Assert.Equal(2, results.Count());
 
-        Assert.Equal("Data-driven test", results[0].TestCaseName);
-        Assert.NotNull(results[0].Dataset);
-        Assert.Equal("dataset1", results[0].Dataset.Name);
-        Assert.Equal("user1", results[0].Dataset.Case["userId"]);
+        Assert.Equal("Data-driven test", results.First().TestCaseName);
+        Assert.NotNull(results.First().Dataset);
+        Assert.Equal("dataset1", results.First().Dataset!.Name);
+        Assert.Equal("user1", results.First().Dataset!.Case["userId"]);
 
-        Assert.Equal("Data-driven test", results[1].TestCaseName);
-        Assert.NotNull(results[1].Dataset);
-        Assert.Equal("dataset2", results[1].Dataset.Name);
-        Assert.Equal("user2", results[1].Dataset.Case["userId"]);
+        Assert.Equal("Data-driven test", results.Last().TestCaseName);
+        Assert.NotNull(results.Last().Dataset);
+        Assert.Equal("dataset2", results.Last().Dataset!.Name);
+        Assert.Equal("user2", results.Last().Dataset!.Case["userId"]);
     }
 
     [Fact]
-    public async Task ExecuteAsync_WithDatasets_SetsCaseContextCorrectly()
+    public async Task When_ExecuteAsync_WithDatasets_SetsCaseContextCorrectly()
     {
         // Arrange
-        var executor = new TestCaseExecutor();
+        var executor = GetSut();
         var testCase = new JTestCase
         {
             Name = "Case context test",
-            Steps = new List<object>(), // Empty steps for this test
-            Datasets = new List<JTestDataset>
-            {
+            Steps = [], // Empty steps for this test
+            Datasets =
+            [
                 new()
                 {
                     Name = "test-dataset",
@@ -112,7 +113,7 @@ public class TestCaseExecutorTests
                         ["expectedTotal"] = 20.0
                     }
                 }
-            }
+            ]
         };
 
         // Create a mock context to verify case setting
@@ -124,23 +125,24 @@ public class TestCaseExecutorTests
 
         // Assert
         Assert.Single(results);
-        Assert.Equal("test-dataset", results[0].Dataset!.Name);
+        Assert.Equal("test-dataset", results.First().Dataset!.Name);
 
         // Verify that the case context would have been set correctly
-        var dataset = results[0].Dataset;
+        var dataset = results.First().Dataset;
+        Assert.NotNull(dataset);
         Assert.Equal("acct-1001", dataset.Case["accountId"]);
         Assert.Equal(20.0, dataset.Case["expectedTotal"]);
     }
 
     [Fact]
-    public async Task ExecuteAsync_WithoutDatasets_ClearsCaseContext()
+    public async Task When_ExecuteAsync_WithoutDatasets_ClearsCaseContext()
     {
         // Arrange
-        var executor = new TestCaseExecutor();
+        var executor = GetSut();
         var testCase = new JTestCase
         {
             Name = "No dataset test",
-            Steps = new List<object>(),
+            Steps = [],
             Datasets = null
         };
 
@@ -153,25 +155,22 @@ public class TestCaseExecutorTests
 
         // Assert
         Assert.Single(results);
-        Assert.Null(results[0].Dataset);
-
-        // For tests without datasets, case should be cleared
-        // This is verified by the absence of dataset in the result
+        Assert.Null(results.First().Dataset);
     }
 
     [Fact]
-    public async Task ExecuteAsync_PreservesBaseContextVariables()
+    public async Task When_ExecuteAsync_PreservesBaseContextVariables()
     {
         // Arrange
-        var executor = new TestCaseExecutor();
+        var executor = GetSut();
         var testCase = new JTestCase
         {
             Name = "Context preservation test",
-            Steps = new List<object>(),
-            Datasets = new List<JTestDataset>
-            {
+            Steps = [],
+            Datasets =
+            [
                 new() { Name = "test", Case = new Dictionary<string, object> { ["caseVar"] = "caseValue" } }
-            }
+            ]
         };
 
         var baseContext = new TestExecutionContext();
@@ -189,11 +188,45 @@ public class TestCaseExecutorTests
         Assert.Contains("globals", baseContext.Variables.Keys);
 
         // Case should not be set in base context (execution uses cloned context)
-        if (baseContext.Variables.ContainsKey("case"))
+        if (baseContext.Variables.TryGetValue("case", out object? value))
         {
-            var caseContext = baseContext.Variables["case"] as Dictionary<string, object>;
+            var caseContext = value as Dictionary<string, object>;
             Assert.NotNull(caseContext);
             Assert.DoesNotContain("caseVar", caseContext.Keys);
         }
     }
+
+
+    [Fact]
+    public async Task When_ExecuteAsync_And_StepFails_Then_AddsError()
+    {
+        // Arrange
+        var executor = GetSut();
+        var testCase = new JTestCase
+        {
+            Name = "Test with failing step",
+            Steps = 
+            [
+                new WaitStep(new(Ms: "not-a-number")),
+                new WaitStep(new(Ms: 1))
+            ],
+            Datasets = []
+        };
+        var baseContext = new TestExecutionContext();
+
+        // Act
+        var results = await executor.ExecuteAsync(testCase, baseContext);
+
+        // Assert
+        Assert.Single(results);
+        Assert.NotNull(results.First().ErrorMessage);
+        Assert.NotEmpty(results.First().ErrorMessage!);
+
+        var stepResults = results.First().StepResults;
+        Assert.Equal(2, stepResults.Count());
+        Assert.False(stepResults.First().Success);
+        Assert.True(stepResults.Last().Success);
+    }
+
+    static JTestCaseExecutor GetSut() => new(StepProcessor.Default);
 }

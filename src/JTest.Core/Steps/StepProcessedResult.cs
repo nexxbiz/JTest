@@ -1,12 +1,13 @@
-using JTest.Core.Assertions;
+﻿using JTest.Core.Assertions;
 using JTest.Core.Debugging;
 
 namespace JTest.Core.Steps;
 
 /// <summary>
-/// Represents the result of step execution
+/// Represents the result of a step that is completely processed by the engine
 /// </summary>
-public sealed class StepResult(int stepNumber)
+/// <param name="stepNumber"></param>
+public sealed class StepProcessedResult(int stepNumber)
 {
     /// <summary>
     ///  Stores the step that produced this result
@@ -51,9 +52,9 @@ public sealed class StepResult(int stepNumber)
     /// <summary>
     /// Creates a successful step result
     /// </summary>
-    public static StepResult CreateSuccess(int stepNumber, IStep step, IEnumerable<AssertionResult>? assertionResults, object? data = null, long durationMs = 0)
+    public static StepProcessedResult CreateSuccess(int stepNumber, IStep step, IEnumerable<AssertionResult>? assertionResults, object? data = null, long durationMs = 0)
     {
-        return new StepResult(stepNumber)
+        return new StepProcessedResult(stepNumber)
         {
             Step = step,
             Success = true,
@@ -66,9 +67,9 @@ public sealed class StepResult(int stepNumber)
     /// <summary>
     /// Creates a failed step result
     /// </summary>
-    public static StepResult CreateFailure(int stepNumber, IStep step, IEnumerable<AssertionResult>? assertionResults, string errorMessage, long durationMs = 0)
+    public static StepProcessedResult CreateFailure(int stepNumber, IStep step, IEnumerable<AssertionResult>? assertionResults, string errorMessage, long durationMs = 0)
     {
-        return new StepResult(stepNumber)
+        return new StepProcessedResult(stepNumber)
         {
             Step = step,
             Success = false,
@@ -83,7 +84,7 @@ public sealed class StepResult(int stepNumber)
     /// <summary>
     /// List of inner step results if this step contains nested steps (e.g., a template step)
     /// </summary>
-    public IEnumerable<StepResult> InnerResults { get; init; } = [];
+    public IEnumerable<StepProcessedResult> InnerResults { get; init; } = [];
 
     public int StepNumber { get; } = stepNumber;
 }

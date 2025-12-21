@@ -1,29 +1,18 @@
 ﻿using JTest.Core.Assertions;
-using JTest.Core.JsonConverters;
-using JTest.Core.Steps;
-using JTest.Core.Templates;
 using JTest.Core.TypeDescriptorRegistries;
 using JTest.Core.TypeDescriptors;
-using JTest.Core.Utilities;
-using Microsoft.Extensions.DependencyInjection;
+using JTest.UnitTests.TestHelpers;
 using NSubstitute;
-using NSubstitute.Exceptions;
-using NuGet.Frameworks;
-using Spectre.Console;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using System.Threading.Tasks;
 using Xunit;
 
 namespace JTest.UnitTests.JsonConverters;
 
+[Collection(GlobalCultureCollection.DefinitionName)]
 public sealed class AssertionJsonConverterTests
 {
-    private static readonly JsonSerializerOptions options = GetSerializerOptions();    
+    private static readonly JsonSerializerOptions options = JsonSerializerHelper.Options;
 
     [Theory]
     [InlineData(typeAssertionJson, "{{ $.variable }}", "object", typeof(TypeAssertion))]
@@ -53,6 +42,9 @@ public sealed class AssertionJsonConverterTests
         // Arrange
         Assert.NotNull(result);
         Assert.IsType(expectedType, result);
+
+        var exp = $"{expectedValue}";
+        var otherExp = $"{result.ExpectedValue}";
         Assert.Equal($"{expectedValue}", $"{result.ExpectedValue}");
         Assert.Equal($"{actualValue}", $"{result.ActualValue}");
         Assert.Equal("test", result.Description);
@@ -84,7 +76,9 @@ public sealed class AssertionJsonConverterTests
     public void When_Deserialize_And_InvalidJson_Then_ThrowsException()
     {
         // Arrange
+#pragma warning disable JSON001 // Invalid JSON pattern
         const string invalidJson = "{\"op\": \"equals\" { }]";
+#pragma warning restore JSON001 // Invalid JSON pattern
 
         // Act & Assert
         Assert.Throws<JsonException>(
@@ -152,7 +146,7 @@ public sealed class AssertionJsonConverterTests
         var registryProvider = Substitute.For<ITypeDescriptorRegistryProvider>();
         registryProvider.AssertionTypeRegistry.Returns(brokenDescriptorRegistry);
 
-        var serializerOptions = GetSerializerOptions(registryProvider);
+        var serializerOptions = JsonSerializerHelper.GetSerializerOptions(registryProvider);
 
         // Act & Assert
         Assert.Throws<InvalidOperationException>(
@@ -424,33 +418,4 @@ public sealed class AssertionJsonConverterTests
         [lengthAssertion, lengthAssertionJson],
         [matchAssertion, matchAssertionJson]
     ];
-
-    private static JsonSerializerOptions GetSerializerOptions(ITypeDescriptorRegistryProvider? registryProvider = null)
-    {
-        var serviceCollection = new ServiceCollection();
-
-        if (registryProvider is not null)
-        {
-            serviceCollection.AddSingleton(registryProvider);
-        }
-        else
-        {
-            serviceCollection.AddSingleton<ITypeDescriptorRegistryProvider, TypeDescriptorRegistryProvider>();
-        }
-
-        var serviceProvider = serviceCollection.BuildServiceProvider();
-
-        var options = new JsonSerializerOptions()
-        {
-            PropertyNameCaseInsensitive = true,
-            WriteIndented = true,
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-        };
-
-        options.Converters.Add(
-            new AssertionOperationJsonConverter(serviceProvider)
-        );
-
-        return options;
-    }
 }

@@ -1,36 +1,26 @@
 ﻿using JTest.Core.Assertions;
+using JTest.Core.Execution;
 using System.Text.Json.Serialization;
 
 namespace JTest.Core.Steps.Configuration;
 
 
-[method: JsonConstructor]
-public sealed class HttpStepConfiguration(
-    string? id,
-    string? name,
-    string? description,
-    IEnumerable<IAssertionOperation>? assert,
-    IReadOnlyDictionary<string, object?>? save,
-    string method,
-    string url,
-    IReadOnlyDictionary<string, string>? query,
-    string? file,
-    object? body,
-    string? contentType,
-    IEnumerable<HttpStepRequestHeaderConfiguration>? headers,
-    IEnumerable<HttpStepFormFileConfiguration>? formFiles
+public sealed record HttpStepConfiguration(
+    [property: JsonRequired] string Method,
+    [property: JsonRequired] string Url,
+    string? File = null,
+    object? Body = null,
+    string? ContentType = null,
+    IEnumerable<HttpStepRequestHeaderConfiguration>? Headers = null,
+    IEnumerable<HttpStepFormFileConfiguration>? FormFiles = null,
+    IReadOnlyDictionary<string, string>? Query = null,
+    string? Id = null,
+    string? Name = null,
+    string? Description = null,
+    IEnumerable<IAssertionOperation>? Assert = null,
+    IReadOnlyDictionary<string, object?>? Save = null
 )
-    : StepConfiguration(id, name, description, assert, save)
-{
-    public string Method { get; } = method;
-    public string Url { get; } = url;
-    public IReadOnlyDictionary<string, string>? Query { get; } = query;
-    public string? File { get; } = file;
-    public object? Body { get; } = body;
-    public string? ContentType { get; } = contentType;
-    public IEnumerable<HttpStepRequestHeaderConfiguration>? Headers { get; } = headers;
-    public IEnumerable<HttpStepFormFileConfiguration>? FormFiles { get; } = formFiles;
-}
+    : StepConfigurationBase;
 
 public sealed record HttpStepRequestHeaderConfiguration(
     [property: JsonRequired] string Name,

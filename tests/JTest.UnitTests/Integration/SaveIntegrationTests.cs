@@ -1,19 +1,20 @@
 using JTest.Core.Execution;
+using JTest.Core.Models;
 using JTest.Core.Steps;
+using JTest.Core.Steps.Configuration;
 using JTest.Core.Templates;
+using JTest.UnitTests.TestHelpers;
+using NSubstitute;
 using System.Text.Json;
 
-namespace JTest.UnitTests;
+namespace JTest.UnitTests.Integration;
 
 public class SaveIntegrationTests
 {
     [Fact]
     public async Task UseStep_SaveFunctionality_MatchesRequirementsExample()
     {
-        // Arrange - create template matching the auth example from docs
-        var templateProvider = new TemplateCollection();
-        var stepFactory = new StepFactory(templateProvider);
-
+        // Arrange - create template matching the auth example from docs        
         var templateJson = """
         {
             "version": "1.0",
@@ -37,11 +38,14 @@ public class SaveIntegrationTests
             }
         }
         """;
-        templateProvider.LoadTemplatesFromJson(templateJson);
-
+        var template = JsonSerializer.Deserialize<TemplateCollection>(templateJson, JsonSerializerHelper.Options)!;
+        var templateContext = Substitute.For<ITemplateContext>();
+        templateContext
+            .GetTemplate(Arg.Any<string>())
+            .Returns(template.Components!.Templates.First());
 
         // Configure UseStep exactly as shown in the problem statement
-        var config = JsonSerializer.Deserialize<JsonElement>("""
+        var useStepJson = """
         {
             "name": "getToken",
             "type": "use",
@@ -56,8 +60,9 @@ public class SaveIntegrationTests
                 "$.globals.authHeader": "{{$.this.authHeader}}"
             }
         }
-        """);
-        var useStep = new UseStep(templateProvider, stepFactory, config);
+        """;
+        var serializerOptions = JsonSerializerHelper.GetSerializerOptions(templateContext: templateContext);
+        var useStep = JsonSerializer.Deserialize<IStep>(useStepJson, serializerOptions)!;
 
         var context = new TestExecutionContext();
         context.Variables["env"] = new Dictionary<string, object>
@@ -68,8 +73,10 @@ public class SaveIntegrationTests
         };
         context.Variables["globals"] = new Dictionary<string, object>();
 
+        var stepProcessor = StepProcessor.Default;
+
         // Act
-        var result = await useStep.ExecuteAsync(context);
+        var result = await stepProcessor.ProcessStep(useStep, context, default);
 
         // Assert
         Assert.True(result.Success, $"UseStep execution should succeed. Error: {result.ErrorMessage}");
@@ -97,20 +104,21 @@ public class SaveIntegrationTests
     public void HttpStep_SaveFunctionality_WorksCorrectly()
     {
         // Arrange
-
-        var config = JsonSerializer.Deserialize<JsonElement>("""
-        {
-            "type": "http",
-            "method": "GET",
-            "url": "https://httpbin.org/json",
-            "save": {
-                "$.globals.responseStatus": "{{$.this.status}}",
-                "simpleVar": "{{$.this.contentType}}"
+        var httpStep = JsonSerializer.Deserialize<IStep>(
+            """
+            {
+                "type": "http",
+                "method": "GET",
+                "url": "https://httpbin.org/json",
+                "save": {
+                    "$.globals.responseStatus": "{{$.this.status}}",
+                    "simpleVar": "{{$.this.contentType}}"
+                }
             }
-        }
-        """);
-        using var httpClient = new HttpClient();
-        var httpStep = new HttpStep(httpClient, config);
+            """,
+            JsonSerializerHelper.Options
+        );
+        var stepProcessor = StepProcessor.Default;
 
         var context = new TestExecutionContext();
         context.Variables["globals"] = new Dictionary<string, object>();
@@ -124,9 +132,9 @@ public class SaveIntegrationTests
         };
 
         // Use reflection to call the protected ProcessSaveOperations method
-        var processMethod = typeof(BaseStep).GetMethod("ProcessSaveOperations",
+        var processMethod = typeof(StepProcessor).GetMethod("ProcessSaveOperations",
             System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-        processMethod?.Invoke(httpStep, new object[] { context });
+        processMethod?.Invoke(stepProcessor, [httpStep!.Configuration, context]);
 
         // Assert
         var globals = Assert.IsType<Dictionary<string, object>>(context.Variables["globals"]);

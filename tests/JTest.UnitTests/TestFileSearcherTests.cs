@@ -18,7 +18,7 @@ namespace JTest.UnitTests
             ];
 
             // Act
-            var result = TestFileSearcher.Search([pattern]);
+            var result = JsonFileSearcher.Search([pattern]);
 
             // Assert
             var resultFileNames = result.Select(Path.GetFileName);
@@ -41,7 +41,7 @@ namespace JTest.UnitTests
             const string expectedJsonFileName = "test-file.json";
 
             // Act
-            var result = TestFileSearcher.Search(patterns);
+            var result = JsonFileSearcher.Search(patterns);
 
             // Assert
             var resultFileNames = result
@@ -60,7 +60,7 @@ namespace JTest.UnitTests
             const string expectedFileNotReturned = "TestFile.txt";
 
             // Act
-            var result = TestFileSearcher.Search([pattern]);
+            var result = JsonFileSearcher.Search([pattern]);
 
             // Assert
             var resultFileNames = result.Select(Path.GetFileName);                        
@@ -75,7 +75,7 @@ namespace JTest.UnitTests
             const string pattern2 = "TestFiles/TestSuites/test-file-with-categories.json";            
 
             // Act
-            var result = TestFileSearcher.Search([pattern1, pattern2]);
+            var result = JsonFileSearcher.Search([pattern1, pattern2]);
 
             // Assert
             var resultFileNames = result.Select(Path.GetFileName);
@@ -99,7 +99,7 @@ namespace JTest.UnitTests
             const string category = "testCategory1";
 
             // Act
-            var result = TestFileSearcher.Search([pattern], [category]);
+            var result = JsonFileSearcher.Search([pattern], [category]);
 
             // Assert
             var resultFileNames = result.Select(Path.GetFileName);

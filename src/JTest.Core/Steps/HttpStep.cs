@@ -11,10 +11,55 @@ namespace JTest.Core.Steps;
 /// HTTP step implementation for making HTTP requests
 /// </summary>
 public sealed class HttpStep(HttpClient httpClient, HttpStepConfiguration configuration) : BaseStep<HttpStepConfiguration>(configuration)
-{    
+{
     private const string jsonContentType = "application/json";
 
-    public override async Task<object?> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
+    protected override void Validate(IExecutionContext context, IList<string> validationErrors)
+    {
+        if (OnlyOneBodyTypeDefined() == false)
+        {
+            validationErrors.Add("You can only specify 1 body type. Choose only of the following: 'body', 'file', or 'formFiles'.");
+        }
+
+        var file = ResolveStringValue(Configuration.File, context);
+        if (!string.IsNullOrWhiteSpace(file) && !File.Exists(file))
+        {
+            validationErrors.Add($"No file found at path '{file}'.");
+        }
+        if (Configuration.FormFiles?.Any() == true)
+        {
+            foreach (var formFile in Configuration.FormFiles)
+            {
+                var path = ResolveStringValue(formFile.Path, context);
+                if (!File.Exists(path))
+                {
+                    validationErrors.Add($"No file found at path '{path}'.");
+                }
+            }
+        }
+
+        var method = ResolveStringValue(Configuration.Method, context);
+        try
+        {
+            _ = new HttpMethod(method);
+        }
+        catch (Exception)
+        {
+            validationErrors.Add($"Invalid HTTP Method '{method}'");
+        }
+
+        var uri = ResolveStringValue(Configuration.Url, context);
+        try
+        {
+            _ = new Uri(uri);
+        }
+        catch (Exception)
+        {
+            validationErrors.Add($"Invalid url '{uri}'");
+        }
+    }  
+
+    public override async Task<StepExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {
         var responseData = await PerformHttpRequest(context);
 
@@ -23,10 +68,10 @@ public sealed class HttpStep(HttpClient httpClient, HttpStepConfiguration config
             Description = $"HTTP {ResolveStringValue(Configuration.Method, context)} {ResolveStringValue(Configuration.Url, context)}";
         }
 
-        return responseData;
+        return new(responseData);
     }
 
-    private async Task<object> PerformHttpRequest(IExecutionContext context)
+    private async Task<Dictionary<string, object?>> PerformHttpRequest(IExecutionContext context)
     {
         var request = BuildHttpRequest(context);
         var requestDetails = await CaptureRequestDetails(request, context);
@@ -36,9 +81,10 @@ public sealed class HttpStep(HttpClient httpClient, HttpStepConfiguration config
 
     private HttpRequestMessage BuildHttpRequest(IExecutionContext context)
     {
-        var method = ResolveStringValue(Configuration.Method, context);
         var url = ResolveStringValue(Configuration.Url, context);
         var finalUrl = AddQueryParameters(url, context);
+
+        var method = ResolveStringValue(Configuration.Method, context);
         var request = new HttpRequestMessage(new HttpMethod(method), finalUrl)
         {
             Content = GetRequestBodyContent(context)
@@ -147,11 +193,18 @@ public sealed class HttpStep(HttpClient httpClient, HttpStepConfiguration config
 
         foreach (var formFile in Configuration.FormFiles!)
         {
+            var path = ResolveStringValue(formFile.Path, context);
             var streamContent = new StreamContent(
-                File.OpenRead(formFile.Path)
+                File.OpenRead(path)
             );
-            streamContent.Headers.ContentType = new MediaTypeHeaderValue(formFile.ContentType);
-            result.Add(streamContent, formFile.Name, formFile.FileName);
+            streamContent.Headers.ContentType = new MediaTypeHeaderValue(
+                ResolveStringValue(formFile.ContentType, context)
+            );
+            result.Add(
+                streamContent,
+                ResolveStringValue(formFile.Name, context),
+                ResolveStringValue(formFile.FileName, context)
+            );
         }
 
         return result;
@@ -225,25 +278,25 @@ public sealed class HttpStep(HttpClient httpClient, HttpStepConfiguration config
             ? await bodyContent.ReadAsStringAsync()
             : null;
 
-        return new
+        return new Dictionary<string, object?>
         {
-            url = request.RequestUri?.ToString() ?? string.Empty,
-            method = request.Method.Method,
-            headers,
-            body
+            ["url"] = request.RequestUri?.ToString() ?? string.Empty,
+            ["method"] = request.Method.Method,
+            ["headers"] = headers,
+            ["body"] = body
         };
     }
 
-    private static async Task<object> CreateResponseData(HttpResponseMessage response, object requestDetails)
+    private static async Task<Dictionary<string, object?>> CreateResponseData(HttpResponseMessage response, object requestDetails)
     {
         var body = await GetResponseBody(response);
         var headers = GetResponseHeaders(response);
-        return new
+        return new Dictionary<string, object?>
         {
-            status = (int)response.StatusCode,
-            headers,
-            body,
-            request = requestDetails
+            ["status"] = (int)response.StatusCode,
+            ["headers"] = headers,
+            ["body"] = body,
+            ["request"] = requestDetails
         };
     }
 
@@ -278,5 +331,25 @@ public sealed class HttpStep(HttpClient httpClient, HttpStepConfiguration config
             .Select(h => new { name = h.Key, value = string.Join(", ", h.Value) });
 
         return [.. result];
+    }
+
+    private bool? OnlyOneBodyTypeDefined()
+    {
+        if (!string.IsNullOrWhiteSpace(Configuration.File))
+        {
+            return Configuration.Body is null && Configuration.FormFiles?.Any() != true;
+        }
+
+        if (Configuration.Body is not null)
+        {
+            return string.IsNullOrWhiteSpace(Configuration.File) && Configuration.FormFiles?.Any() != true;
+        }
+
+        if (Configuration.FormFiles?.Any() == true)
+        {
+            return Configuration.Body is null && string.IsNullOrWhiteSpace(Configuration.File);
+        }
+
+        return null;
     }
 }

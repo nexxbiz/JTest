@@ -4,9 +4,10 @@ using System.Globalization;
 using System.Text.Json;
 using Xunit;
 
-namespace JTest.UnitTests;
+namespace JTest.UnitTests.Assertions;
 
-public class AssertionTests
+[Collection(GlobalCultureCollection.DefinitionName)]
+public sealed class AssertionTests
 {
 
     [Fact]

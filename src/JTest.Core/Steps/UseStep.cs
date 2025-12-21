@@ -3,6 +3,7 @@ using JTest.Core.Models;
 using JTest.Core.Steps.Configuration;
 using JTest.Core.Templates;
 using JTest.Core.Utilities;
+using Microsoft.Extensions.DependencyInjection;
 using Spectre.Console;
 using System.Diagnostics;
 using System.Text.Json;
@@ -12,10 +13,35 @@ namespace JTest.Core.Steps;
 /// <summary>
 /// Step that executes a template with provided parameters in an isolated context
 /// </summary>
-public sealed class UseStep(IAnsiConsole ansiConsole, ITemplateContext templateContext, IStepProcessor stepProcessor, UseStepConfiguration configuration)
+public sealed class UseStep(IAnsiConsole ansiConsole, ITemplateContext templateContext, IStepProcessor stepProcessor, IServiceProvider serviceProvider, UseStepConfiguration configuration)
     : BaseStep<UseStepConfiguration>(configuration)
 {
-    public override async Task<object?> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
+    protected override void Validate(IExecutionContext context, IList<string> validationErrors)
+    {
+        Template? template = null;
+        try
+        {
+            var templateContext = serviceProvider.GetRequiredService<ITemplateContext>();
+            template = templateContext.GetTemplate(Configuration.Template);
+        }
+        catch (Exception e)
+        {
+            validationErrors.Add(e.Message);
+        }
+
+        if (template?.Params is null)
+            return;
+
+        var contextIncludingParameters = CreateIsolatedTemplateContext(context, template);
+        template.Params
+            .Where(x => !IsRequiredParametersSet(x, context))
+            .Select(x => $"Required template parameter '{x.Key}' not provided")
+            .ToList()
+            .ForEach(validationErrors.Add);
+        
+    } 
+
+    public override async Task<StepExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {
         var stopWatch = Stopwatch.StartNew();
 
@@ -28,26 +54,19 @@ public sealed class UseStep(IAnsiConsole ansiConsole, ITemplateContext templateC
         // Create isolated execution context for template
         var isolatedContext = CreateIsolatedTemplateContext(context, template);
 
-        // Capture input parameters for debugging
-        var inputParameters = new Dictionary<string, object>();
-        if (Configuration.With?.Any() == true)
+        if (!AreAllRequiredParametersSet(template, isolatedContext))
         {
-            foreach (var param in Configuration.With)
-            {
-                var resolvedValue = ResolveParameterValue(param.Value, context);
-                inputParameters[param.Key] = resolvedValue;
-            }
+            throw new InvalidOperationException("Not all required parameters are given a value");
         }
 
         // Execute template steps
         var templateResults = new List<object>();
-        var innerStepResults = new List<StepResult>();
+        var innerStepResults = new List<StepProcessedResult>();
 
         foreach (var step in template.Steps)
         {
             var stepResult = await stepProcessor.ProcessStep(
                 step,
-                step.Configuration as StepConfiguration,
                 isolatedContext,
                 cancellationToken
             );
@@ -71,27 +90,27 @@ public sealed class UseStep(IAnsiConsole ansiConsole, ITemplateContext templateC
         var outputs = MapTemplateOutputs(template, isolatedContext);
 
         // Return step result data that will be stored by StoreResultInContext()
-        var resultData = new Dictionary<string, object>(outputs)
+        var isSuccess = innerStepResults.All(x => x.Success);
+
+        var resultData = new Dictionary<string, object?>(outputs)
         {
             ["type"] = "template",
             ["templateName"] = templateName,
-            ["steps"] = templateResults.Count
+            ["stepsCount"] = templateResults.Count,
+            ["success"] = isSuccess,
+            ["innerSteps"] = innerStepResults
         };
 
-        var isSuccess = innerStepResults.All(x => x.Success);
         var errorMessage = !isSuccess
             ? "Template execution failed"
             : string.Empty;
 
-        return new StepResult(context.StepNumber)
+        if(!isSuccess)
         {
-            Step = this,
-            Success = isSuccess,
-            Data = resultData,
-            DurationMs = stopWatch.ElapsedMilliseconds,
-            ErrorMessage = errorMessage,
-            InnerResults = innerStepResults
-        };
+            resultData["errorMessage"] = errorMessage;
+        }
+
+        return new(resultData, innerStepResults);
     }
 
 
@@ -158,9 +177,9 @@ public sealed class UseStep(IAnsiConsole ansiConsole, ITemplateContext templateC
         }
     }
 
-    private Dictionary<string, object> MapTemplateOutputs(Template template, TestExecutionContext templateContext)
+    private Dictionary<string, object?> MapTemplateOutputs(Template template, TestExecutionContext templateContext)
     {
-        var outputs = new Dictionary<string, object>();
+        var outputs = new Dictionary<string, object?>();
 
         if (template.Output == null) return outputs;
 
@@ -206,5 +225,23 @@ public sealed class UseStep(IAnsiConsole ansiConsole, ITemplateContext templateC
             JsonValueKind.Object => element.EnumerateObject().ToDictionary(p => p.Name, p => GetJsonElementValue(p.Value)),
             _ => element.GetRawText()
         };
+    }
+
+    static bool AreAllRequiredParametersSet(Template template, IExecutionContext context)
+    {
+        foreach (var param in template.Params ?? [])
+        {
+            if (IsRequiredParametersSet(param, context))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    static bool IsRequiredParametersSet(KeyValuePair<string, TemplateParameter> param, IExecutionContext context)
+    {
+        return param.Value.Required && !context.Variables.ContainsKey(param.Key);
     }
 }

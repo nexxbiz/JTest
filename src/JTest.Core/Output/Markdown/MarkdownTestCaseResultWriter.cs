@@ -51,7 +51,7 @@ public sealed class MarkdownTestCaseResultWriter : ITestCaseResultWriter
         writer.WriteLine();
     }
 
-    private void WriteStepResult(TextWriter writer, StepResult stepResult, bool isDebug, string? templateName)
+    private void WriteStepResult(TextWriter writer, StepProcessedResult stepResult, bool isDebug, string? templateName)
     {
         var showStepNumber = string.IsNullOrWhiteSpace(templateName);
         if (!string.IsNullOrWhiteSpace(stepResult.Step.Configuration.Name))

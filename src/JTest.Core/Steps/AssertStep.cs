@@ -6,16 +6,25 @@ namespace JTest.Core.Steps;
 /// <summary>
 /// Assert step implementation that does not perform any extra action than what is done in the <see cref="BaseStep{TConfiguration}"/>
 /// </summary>
-public sealed class AssertStep(StepConfiguration configuration) : BaseStep<StepConfiguration>(configuration)
+public sealed class AssertStep(AssertStepConfiguration configuration) : BaseStep<AssertStepConfiguration>(configuration)
 {
-    public override Task<object?> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
+
+    protected override void Validate(IExecutionContext context, IList<string> validationErrors)
     {
-        object result = new Dictionary<string, object>
+        if (Configuration.Assert?.Any() != true)
+        {
+            validationErrors.Add("Assert step must have at least 1 assertion");
+        }
+    }
+
+    public override Task<StepExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
+    {
+        var result = new Dictionary<string, object?>
         {
             ["type"] = "assert",
-            ["executed"] = true
+            ["assertions"] = Configuration.Assert ?? []
         };
 
-        return Task.FromResult(result)!;
+        return Task.FromResult(new StepExecutionResult(result));
     }
 }

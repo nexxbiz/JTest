@@ -1,3 +1,4 @@
+using JTest.Core.Assertions;
 using JTest.Core.Execution;
 using JTest.Core.Steps.Configuration;
 
@@ -7,19 +8,21 @@ namespace JTest.Core.Steps;
 /// Interface for step implementations in the JTest execution engine
 /// </summary>
 public interface IStep
-{
-    /// <summary>
-    /// Gets the step type name
-    /// </summary>
+{  
     string TypeName { get; }
 
-    /// <summary>
-    /// The input this step needs to perform its execution
-    /// </summary>
-    StepConfiguration Configuration { get; }
+    IStepConfiguration Configuration { get; }
 
     /// <summary>
     /// Executes the step with the provided context
     /// </summary>
-    Task<object?> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default);
+    Task<StepExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Validates the configuration of this step
+    /// </summary>
+    /// <param name="context"></param>
+    /// <param name="validationErrors"></param>
+    /// <returns></returns>
+    bool Validate(IExecutionContext context, out IEnumerable<string> validationErrors);
 }

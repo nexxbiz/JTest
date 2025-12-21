@@ -9,7 +9,7 @@ namespace JTest.Core.Steps;
 /// Base class for step implementations providing common functionality
 /// </summary>
 public abstract class BaseStep<TConfiguration>(TConfiguration configuration) : IStep
-    where TConfiguration : StepConfiguration
+    where TConfiguration : StepConfigurationBase
 {
     /// <summary>
     /// Gets the step type identifier
@@ -38,15 +38,31 @@ public abstract class BaseStep<TConfiguration>(TConfiguration configuration) : I
     /// </summary>
     public string? Description { get; protected set; } = configuration?.Description ?? string.Empty;
 
-    StepConfiguration IStep.Configuration => Configuration;
+    IStepConfiguration IStep.Configuration => Configuration;
 
     /// <summary>
     /// Executes the step with the provided context. Returns output data of the step; or null if the step does not return output
     /// </summary>
-    public abstract Task<object?> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken);
+    public abstract Task<StepExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken);
 
-    protected static string ResolveStringValue(string value, IExecutionContext context)
+    public bool Validate(IExecutionContext context, out IEnumerable<string> validationErrors)
     {
+        var validationErrorsList = new List<string>();
+        Validate(context, validationErrorsList);
+        validationErrors = validationErrorsList;
+
+        return !validationErrors.Any();
+    }
+
+    protected virtual void Validate(IExecutionContext context, IList<string> validationErrors) { }
+
+    protected static string ResolveStringValue(string? value, IExecutionContext context)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return string.Empty;
+        }
+
         return VariableInterpolator.ResolveVariableTokens(value, context).ToString() ?? string.Empty;
     }
 

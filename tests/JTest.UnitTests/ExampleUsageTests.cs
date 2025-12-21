@@ -1,8 +1,13 @@
+using JTest.Core.Assertions;
 using JTest.Core.Execution;
 using JTest.Core.Models;
 using JTest.Core.Steps;
+using JTest.Core.Steps.Configuration;
+using JTest.Core.TypeDescriptors;
 using JTest.Core.Utilities;
+using JTest.UnitTests.TestHelpers;
 using System.Text.Json;
+using Xunit;
 
 namespace JTest.UnitTests;
 
@@ -65,30 +70,29 @@ public class ExampleUsageTests
         """;
 
         // 2. Parse the test case
-        var testCase = JsonSerializer.Deserialize<JTestCase>(testCaseJson);
+        var testCase = JsonSerializer.Deserialize<JTestCase>(testCaseJson, JsonSerializerHelper.Options);
         Assert.NotNull(testCase);
 
         // 3. Set up the execution context with environment variables
         var baseContext = new TestExecutionContext();
         baseContext.Variables["env"] = new { baseUrl = "https://api.example.com" };
 
-        // 4. Execute the test case with datasets using a mock step factory
-        var mockStepFactory = new MockStepFactory();
-        var executor = new TestCaseExecutor(mockStepFactory);
+        // 4. Execute the test case with datasets using a mock step factory        
+        var executor = new JTestCaseExecutor(StepProcessor.Default);
         var results = await executor.ExecuteAsync(testCase, baseContext);
 
         // 5. Verify execution results
-        Assert.Equal(2, results.Count); // One result per dataset
+        Assert.Equal(2, results.Count()); // One result per dataset
 
         // Verify basic dataset execution
-        var basicResult = results[0];
+        var basicResult = results.First();
         Assert.Equal("Order processing", basicResult.TestCaseName);
         Assert.Equal("basic", basicResult.Dataset!.Name);
         // Note: Success may be false because this test now actually executes HTTP steps
         // Assert.True(basicResult.Success);
 
         // Verify discounted dataset execution
-        var discountedResult = results[1];
+        var discountedResult = results.Last();
         Assert.Equal("Order processing", discountedResult.TestCaseName);
         Assert.Equal("discounted", discountedResult.Dataset!.Name);
         // Note: Success may be false because this test now actually executes HTTP steps
@@ -99,7 +103,7 @@ public class ExampleUsageTests
         await DemonstrateVariableResolution(discountedResult.Dataset, baseContext);
     }
 
-    private async Task DemonstrateVariableResolution(JTestDataset dataset, TestExecutionContext baseContext)
+    private static async Task DemonstrateVariableResolution(JTestDataset dataset, TestExecutionContext baseContext)
     {
         // Create execution context for this dataset
         var context = new TestExecutionContext();
@@ -193,57 +197,30 @@ public class ExampleUsageTests
     }
 }
 
-/// <summary>
-/// Mock step factory that returns successful mock steps for testing
-/// </summary>
-public class MockStepFactory : StepFactory
-{
-    public new IStep CreateStep(object stepConfig)
-    {
-        var json = JsonSerializer.Serialize(stepConfig);
-        var jsonElement = JsonSerializer.Deserialize<JsonElement>(json);
-
-        if (!jsonElement.TryGetProperty("type", out var typeElement))
-        {
-            throw new ArgumentException("Step configuration must have a 'type' property");
-        }
-
-        var stepType = typeElement.GetString();
-
-        IStep step = stepType?.ToLowerInvariant() switch
-        {
-            "http" => new MockHttpStep(),
-            "wait" => new MockWaitStep(),
-            _ => throw new ArgumentException($"Unknown step type: {stepType}")
-        };
-
-        return step;
-    }
-}
+public sealed record MockStepConfiguration(
+    IEnumerable<IAssertionOperation>? Assert,
+    string? Id = null,
+    string? Name = null,
+    string? Description = null,
+    IReadOnlyDictionary<string, object?>? Save = null
+) 
+: StepConfigurationBase;
 
 /// <summary>
 /// Mock HTTP step that always succeeds
 /// </summary>
-public class MockHttpStep : IStep
+[TypeIdentifier("http")]
+public class MockHttpStep(MockStepConfiguration configuration) : BaseStep<MockStepConfiguration>(configuration)
 {
-    public string Type => "http";
-    public string? Id { get; set; }
-
-    public string? Name { get; set; }
-
-    public string? Description { get; set; }
-
-    public bool ValidateConfiguration(List<string> validationErrors) => true;
-
-    public Task<StepResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
+    public override Task<StepExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {
         // Simulate successful HTTP response
-        var responseData = new
+        var responseData = new Dictionary<string, object?>
         {
-            status = 201,
-            body = new { id = "ORDER123", total = 20 },
-            headers = new Dictionary<string, string>(),
-            duration = 100
+            ["status"] = 201,
+            ["body"] = new { id = "ORDER123", total = 20 },
+            ["headers"] = new Dictionary<string, string>(),
+            ["duration"] = 100
         };
 
         // Store result in context if ID is set
@@ -261,30 +238,19 @@ public class MockHttpStep : IStep
             context.Variables["orderId"] = "ORDER123";
         }
 
-        return Task.FromResult(StepResult.CreateSuccess(context.StepNumber, this,responseData, 100));
+        return Task.FromResult(new StepExecutionResult(responseData))!;
     }
-
 }
 
 /// <summary>
 /// Mock wait step that always succeeds
 /// </summary>
-public class MockWaitStep : IStep
+[TypeIdentifier("wait")]
+public class MockWaitStep(MockStepConfiguration configuration) : BaseStep<MockStepConfiguration>(configuration)
 {
-    public string Type => "wait";
-
-    public string? Id { get; }
-
-
-    public string? Name { get; set; }
-
-    public string? Description { get; set; }
-
-    public bool ValidateConfiguration(List<string> validationErrors) => true;
-
-    public Task<StepResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
+    public override Task<StepExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {
-        var resultData = new { delayMs = 1, executedAt = DateTime.UtcNow };
-        return Task.FromResult(StepResult.CreateSuccess(context.StepNumber, this, resultData, 1));
+        var resultData = new Dictionary<string, object?> { ["delayMs"] = 1, ["executedAt"] = DateTime.UtcNow };
+        return Task.FromResult(new StepExecutionResult(resultData))!;
     }
 }

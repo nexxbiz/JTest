@@ -4,18 +4,21 @@ using JTest.Core.Exceptions;
 using JTest.Core.Execution;
 using JTest.Core.Steps.Configuration;
 using JTest.Core.Utilities;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Text.Json;
 
 namespace JTest.Core.Steps;
 
-public sealed class StepProcessor(IAssertionProcessor assertionProcessor, IServiceProvider serviceProvider) : IStepProcessor
+public sealed class StepProcessor(IAssertionProcessor assertionProcessor) : IStepProcessor
 {
-    public async Task<StepResult> ProcessStep(IStep step, StepConfiguration? stepConfiguration, IExecutionContext executionContext, CancellationToken cancellationToken)
+    public static readonly IStepProcessor Default = new StepProcessor(new AssertionProcessor());
+
+    public async Task<StepProcessedResult> ProcessStep(IStep step, IExecutionContext executionContext, CancellationToken cancellationToken = default)
     {
         var contextBefore = CloneContext(executionContext);
 
-        if(!step.Configuration.Validate(serviceProvider, executionContext, out var validationErrors))
+        if (!step.Validate(executionContext, out var validationErrors))
         {
             throw new StepConfigurationValidationException(step.TypeName, validationErrors);
         }
@@ -26,7 +29,6 @@ public sealed class StepProcessor(IAssertionProcessor assertionProcessor, IServi
 
         return await ProcessStepCompletionAsync(
             step,
-            stepConfiguration,
             executionContext,
             contextBefore,
             stopWatch,
@@ -37,9 +39,9 @@ public sealed class StepProcessor(IAssertionProcessor assertionProcessor, IServi
     /// <summary>
     /// Processes assertions if present in step configuration
     /// </summary>
-    private async Task<IEnumerable<AssertionResult>> ProcessAssertionsAsync(StepConfiguration? stepConfiguration, IExecutionContext context)
+    private async Task<IEnumerable<AssertionResult>> ProcessAssertionsAsync(IStepConfiguration? stepConfiguration, IExecutionContext context)
     {
-        if (stepConfiguration is null || !stepConfiguration.Assert.Any())
+        if (stepConfiguration is null || stepConfiguration.Assert?.Any() != true)
         {
             return [];
         }
@@ -50,7 +52,7 @@ public sealed class StepProcessor(IAssertionProcessor assertionProcessor, IServi
     /// <summary>
     /// Stores step result data in execution context
     /// </summary>
-    private void StoreResultInContext(IStep step, StepConfiguration? stepConfiguration, IExecutionContext context, object? data)
+    private void StoreResultInContext(IStep step, IExecutionContext context, object? data)
     {
         context.Variables["this"] = data;
 
@@ -59,15 +61,15 @@ public sealed class StepProcessor(IAssertionProcessor assertionProcessor, IServi
             context.Variables[step.Configuration.Id] = data;
         }
 
-        ProcessSaveOperations(stepConfiguration, context);
+        ProcessSaveOperations(step.Configuration, context);
     }
 
     /// <summary>
     /// Processes save operations from step configuration
     /// </summary>
-    private void ProcessSaveOperations(StepConfiguration? stepConfiguration, IExecutionContext context)
+    private void ProcessSaveOperations(IStepConfiguration? stepConfiguration, IExecutionContext context)
     {
-        if (stepConfiguration is null || stepConfiguration.Save.Count == 0)
+        if (stepConfiguration is null || !(stepConfiguration.Save?.Count > 0))
         {
             return;
         }
@@ -184,48 +186,36 @@ public sealed class StepProcessor(IAssertionProcessor assertionProcessor, IServi
     /// Processes the common step completion logic including storing results, processing assertions, 
     /// logging debug info, and creating the final step result
     /// </summary>
-    private async Task<StepResult> ProcessStepCompletionAsync(
+    private async Task<StepProcessedResult> ProcessStepCompletionAsync(
         IStep step,
-        StepConfiguration? stepConfiguration,
         IExecutionContext context,
         Dictionary<string, object?> contextBefore,
         Stopwatch stopwatch,
-        object? resultData)
+        StepExecutionResult stepExecutionResult)
     {
         // Store result in context and process save operations
-        StoreResultInContext(step, stepConfiguration, context, resultData);
+        StoreResultInContext(step, context, stepExecutionResult.Data);
 
         // Detect context changes after save operations
         var contextChanges = DetectContextChanges(contextBefore, context.Variables);
 
         // Process assertions after storing result data
-        var assertionResults = await ProcessAssertionsAsync(stepConfiguration, context);
+        var assertionResults = await ProcessAssertionsAsync(step.Configuration, context);
 
         // Determine if step should be marked as failed based on assertion results
         var hasFailedAssertions = assertionResults.Any(r => !r.Success);
 
-        // If result data is StepResult, then we can immediately return it
-        if (resultData is StepResult stepResult)
-        {
-            if (stepResult.Success && hasFailedAssertions)
-            {
-                throw new InvalidProgramException($"Step '{step.TypeName}' returns a StepResult directly, but the success outcome contradicts the processed assertion results.");
-            }
-
-            return stepResult;
-        }
-
         // Create result - fail if any assertions failed
-        stepResult = new StepResult(context.StepNumber)
+        var stepResult = new StepProcessedResult(context.StepNumber)
         {
             Step = step,
             Success = !hasFailedAssertions,
             ErrorMessage = hasFailedAssertions ? "One or more assertions failed" : null,
             DurationMs = stopwatch.ElapsedMilliseconds,
             AssertionResults = assertionResults ?? [],
-            Data = resultData,
+            Data = stepExecutionResult.Data,
             ContextChanges = contextChanges,
-            InnerResults = resultData as IEnumerable<StepResult> ?? []
+            InnerResults = stepExecutionResult.InnerProcessedResults ?? []
         };
 
         return stepResult;

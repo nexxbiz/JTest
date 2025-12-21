@@ -74,7 +74,7 @@ internal class Program
             .Register<IAssertionProcessor, AssertionProcessor>()
             .Register<IStepProcessor, StepProcessor>()
             .Register<IVariablesContext, VariablesContext>()
-            .Register<GlobalConfigurationAccessor>()
+            .Register<IGlobalConfigurationAccessor, GlobalConfigurationAccessor>()
             .Register<IJTestCaseExecutor, JTestCaseExecutor>()
             .Register<IJTestSuiteExecutionResultProcessor, JTestSuiteExecutionResultProcessor>()
             .Register<IJTestSuiteExecutor, JTestSuiteExecutor>()

@@ -1,137 +1,38 @@
 using JTest.Core.Execution;
 using JTest.Core.Models;
 using JTest.Core.Steps;
+using JTest.Core.Steps.Configuration;
 using JTest.Core.Templates;
-using Moq;
-using Moq.Protected;
-using System.Net;
-using System.Text;
+using JTest.UnitTests.TestHelpers;
+using NSubstitute;
+using Spectre.Console;
 using System.Text.Json;
 
-namespace JTest.UnitTests;
-
-/// <summary>
-/// Test step factory that creates mocked HttpStep with debug logging for testing
-/// </summary>
-public class TestStepFactory : StepFactory
-{
-    public TestStepFactory(ITemplateContext templateProvider)
-        : base(templateProvider)
-    {
-
-    }
-
-    public override IStep CreateStep(object stepConfig)
-    {
-        var json = JsonSerializer.Serialize(stepConfig);
-        var jsonElement = JsonSerializer.Deserialize<JsonElement>(json);
-
-        if (!jsonElement.TryGetProperty("type", out var typeElement))
-        {
-            throw new ArgumentException("Step configuration must have a 'type' property");
-        }
-
-        var stepType = typeElement.GetString();
-
-        IStep step = stepType?.ToLowerInvariant() switch
-        {
-            "http" => CreateMockedHttpStep(jsonElement),
-            "wait" => new WaitStep(jsonElement),
-            "use" => new TestUseStep(TemplateProvider, this, jsonElement),
-            _ => throw new ArgumentException($"Unknown step type: {stepType}")
-        };
-
-        // Validate configuration
-        var validationErrors = new List<string>();
-        if (!step.ValidateConfiguration(validationErrors))
-        {
-            throw new StepConfigurationValidationException(stepType, validationErrors);
-        }
-
-        return step;
-    }
-
-    private HttpStep CreateMockedHttpStep(JsonElement configuration)
-    {
-        var mockHandler = new Mock<HttpMessageHandler>();
-        var response = new HttpResponseMessage(HttpStatusCode.OK)
-        {
-            Content = new StringContent("{\"result\":\"success\",\"statusCode\":200}", Encoding.UTF8, "application/json")
-        };
-
-        mockHandler.Protected()
-            .Setup<Task<HttpResponseMessage>>("SendAsync",
-                ItExpr.IsAny<HttpRequestMessage>(),
-                ItExpr.IsAny<CancellationToken>())
-            .ReturnsAsync(response);
-
-        var httpClient = new HttpClient(mockHandler.Object);
-        return new HttpStep(httpClient, configuration);
-    }
-}
-
-/// <summary>
-/// Test UseStep that can use a custom step factory for template execution
-/// </summary>
-public class TestUseStep : UseStep
-{
-    private readonly StepFactory _testStepFactory;
-
-    public TestUseStep(ITemplateContext templateProvider, StepFactory stepFactory, JsonElement configuration)
-        : base(templateProvider, stepFactory, configuration)
-    {
-        _testStepFactory = stepFactory;
-    }
-
-
-}
+namespace JTest.UnitTests.Steps;
 
 public class UseStepTests
 {
     [Fact]
-    public void UseStep_ValidateConfiguration_RequiresTemplateProperty()
+    public void When_Validate_WithInvalidConfig_ReturnsFalse()
     {
         // Arrange
-        var templateProvider = new Core.Templates.TemplateCollection();
-        var stepFactory = new StepFactory(templateProvider);
-
-        var configWithoutTemplate = JsonSerializer.Deserialize<JsonElement>("{}");
-        var configWithTemplate = JsonSerializer.Deserialize<JsonElement>("{\"template\": \"test\"}");
-        IStep useStepWithTemplate = new UseStep(templateProvider, stepFactory, configWithTemplate);
-        IStep useStepWithoutTemplate = new UseStep(templateProvider, stepFactory, configWithoutTemplate);
-
-        // Act & Assert
-        Assert.False(useStepWithoutTemplate.ValidateConfiguration([]));
-        Assert.True(useStepWithTemplate.ValidateConfiguration([]));
-    }
-
-    [Fact]
-    public async Task UseStep_ExecuteAsync_ThrowsWhenTemplateNotFound()
-    {
-        // Arrange
-        var templateProvider = new Core.Templates.TemplateCollection();
-        var stepFactory = new StepFactory(templateProvider);
-
-        var config = JsonSerializer.Deserialize<JsonElement>("{\"template\": \"nonexistent\"}");
-        var useStep = new UseStep(templateProvider, stepFactory, config);
-
+        const string unknownTemplateName = "unknown-template";
         var context = new TestExecutionContext();
+        var step = GetSut(unknownTemplateName);
 
-        // Act & Assert
-        var result = await useStep.ExecuteAsync(context);
-        Assert.False(result.Success);
-        Assert.Contains("Template 'nonexistent' not found", result.ErrorMessage);
-    }
+        // Act
+        var result = step.Validate(context, out var errors);
+
+        // Assert
+        Assert.False(result);
+        Assert.NotEmpty(errors);
+    } 
 
     [Fact]
     public async Task UseStep_ExecuteAsync_ExecutesTemplateWithParameters()
     {
         // Arrange
-        var templateProvider = new Core.Templates.TemplateCollection();
-        var stepFactory = new StepFactory(templateProvider);
-
-        // Load test template
-        var templateJson = """
+        const string templateJson = """
         {
             "version": "1.0",
             "components": {
@@ -150,49 +51,42 @@ public class UseStepTests
             }
         }
         """;
-        templateProvider.LoadTemplatesFromJson(templateJson);
+        var template = JsonSerializer.Deserialize<Template>(templateJson, JsonSerializerHelper.Options);
+        var templateContext = Substitute.For<ITemplateContext>();
+        templateContext
+            .GetTemplate(Arg.Any<string>())
+            .Returns(template);        
 
-
-        var config = JsonSerializer.Deserialize<JsonElement>("""
-        {
-            "template": "test-template",
-            "with": {
-                "testParam": "hello world"
+        var useStep = JsonSerializer.Deserialize<IStep>(
+            """
+            {
+                "type": "use",
+                "template": "test-template",
+                "with": {
+                    "testParam": "hello world"
+                }
             }
-        }
-        """);
-        var useStep = new UseStep(templateProvider, stepFactory, config);
-
+            """,
+            JsonSerializerHelper.Options
+        )!;
+        
         var context = new TestExecutionContext();
 
         // Act
         var result = await useStep.ExecuteAsync(context);
 
         // Assert
-        Assert.True(result.Success);
-
-        // Template outputs should be accessible via {{$.this.outputKey}} pattern
-        Assert.Contains("this", context.Variables.Keys);
-        var thisResult = Assert.IsType<Dictionary<string, object>>(context.Variables["this"]);
-        Assert.Equal("Template executed with hello world", thisResult["result"]);
-        Assert.Equal("template", thisResult["type"]);
-
-        // Direct output access should NOT be available
-        Assert.DoesNotContain("result", context.Variables.Keys);
-
-        // Old output prefix access should NOT be available
-        Assert.DoesNotContain("output", context.Variables.Keys);
+        Assert.NotNull(result.Data);
+        Assert.True(result.Data.ContainsKey("result"));
+        Assert.NotNull(result.Data["result"]);
+        Assert.Equal("Template executed with hello world", result.Data["result"]);
     }
 
     [Fact]
-    public async Task UseStep_ExecuteAsync_ValidatesRequiredParameters()
+    public async Task When_ExecuteAsync_And_RequiredParametersMissingValue_Then_ThrowsException()
     {
         // Arrange
-        var templateProvider = new Core.Templates.TemplateCollection();
-        var stepFactory = new StepFactory(templateProvider);
-
-        // Load template with required parameter
-        var templateJson = """
+        const string templateJson = """
         {
             "version": "1.0",
             "components": {
@@ -209,25 +103,24 @@ public class UseStepTests
             }
         }
         """;
-        templateProvider.LoadTemplatesFromJson(templateJson);
-
-
-        var config = JsonSerializer.Deserialize<JsonElement>("""
-        {
-            "template": "test-template",
-            "with": {}
-        }
-        """);
-        var useStep = new UseStep(templateProvider, stepFactory, config);
-
+        var template = JsonSerializer.Deserialize<Template>(templateJson, JsonSerializerHelper.Options);
+        var useStep = JsonSerializer.Deserialize<IStep>(
+            """
+            {
+                "type": "use",
+                "template": "test-template",
+                "with": {}
+            }
+            """,
+            JsonSerializerHelper.Options
+        )!;
+        
         var context = new TestExecutionContext();
 
-        // Act
-        var result = await useStep.ExecuteAsync(context);
-
-        // Assert
-        Assert.False(result.Success);
-        Assert.Contains("Required template parameter 'requiredParam' not provided", result.ErrorMessage);
+        // Act & Assert
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            async () =>_ = await useStep.ExecuteAsync(context)
+        );
     }
 
     [Fact]
@@ -406,94 +299,16 @@ public class UseStepTests
     }
 
 
-}
-
-public class TemplateProviderTests
-{
-    [Fact]
-    public void TemplateProvider_LoadTemplatesFromJson_LoadsValidTemplates()
+    static UseStep GetSut(string templateName, IReadOnlyDictionary<string, object?>? with = null, ITemplateContext? context = null, IServiceProvider? serviceProvider = null)
     {
-        // Arrange
-        var provider = new Core.Templates.TemplateCollection();
-        var templateJson = """
-        {
-            "version": "1.0",
-            "components": {
-                "templates": [
-                    {
-                        "name": "template1",
-                        "steps": [],
-                        "output": {}
-                    },
-                    {
-                        "name": "template2",
-                        "steps": [],
-                        "output": {}
-                    }
-                ]
-            }
-        }
-        """;
-
-        // Act
-        provider.LoadTemplatesFromJson(templateJson);
-
-        // Assert
-        Assert.Equal(2, provider.Count);
-        Assert.NotNull(provider.GetTemplate("template1"));
-        Assert.NotNull(provider.GetTemplate("template2"));
-        Assert.Null(provider.GetTemplate("nonexistent"));
+        return new UseStep(
+            Substitute.For<IAnsiConsole>(),
+            context ?? Substitute.For<ITemplateContext>(),
+            StepProcessor.Default,
+            serviceProvider ?? Substitute.For<IServiceProvider>(),
+            new UseStepConfiguration(Template: templateName, With: with)
+        );
     }
-
-    [Fact]
-    public void TemplateProvider_RegisterTemplateCollection_RegistersTemplates()
-    {
-        // Arrange
-        var provider = new Core.Templates.TemplateCollection();
-        var collection = new Core.Models.TemplateCollection
-        {
-            Components = new TemplateComponents
-            {
-                Templates = new List<Template>
-                {
-                    new Template { Name = "test-template" }
-                }
-            }
-        };
-
-        // Act
-        provider.RegisterTemplateCollection(collection);
-
-        // Assert
-        Assert.Equal(1, provider.Count);
-        Assert.NotNull(provider.GetTemplate("test-template"));
-    }
-
-    [Fact]
-    public void TemplateProvider_Clear_RemovesAllTemplates()
-    {
-        // Arrange
-        var provider = new Core.Templates.TemplateCollection();
-        var collection = new Core.Models.TemplateCollection
-        {
-            Components = new TemplateComponents
-            {
-                Templates = new List<Template>
-                {
-                    new Template { Name = "test-template" }
-                }
-            }
-        };
-        provider.RegisterTemplateCollection(collection);
-
-        // Act
-        provider.Clear();
-
-        // Assert
-        Assert.Equal(0, provider.Count);
-        Assert.Null(provider.GetTemplate("test-template"));
-    }
-
 
 
     /// <summary>
@@ -691,6 +506,7 @@ public class TemplateProviderTests
             // Verify both template parameters and case data are accessible
             Assert.Equal("https://api.example.com/users/user456", resultDict["fullUrl"]);
             Assert.Equal("user456", resultDict["userInfo"]);
-        }
+        }        
+
     }
 }

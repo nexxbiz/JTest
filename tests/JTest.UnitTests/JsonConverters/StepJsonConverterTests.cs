@@ -1,11 +1,10 @@
 ﻿using JTest.Core.Assertions;
-using JTest.Core.JsonConverters;
 using JTest.Core.Steps;
 using JTest.Core.Steps.Configuration;
 using JTest.Core.Templates;
 using JTest.Core.TypeDescriptorRegistries;
 using JTest.Core.TypeDescriptors;
-using Microsoft.Extensions.DependencyInjection;
+using JTest.UnitTests.TestHelpers;
 using NSubstitute;
 using Spectre.Console;
 using System.Text.Json;
@@ -16,7 +15,7 @@ namespace JTest.UnitTests.JsonConverters;
 
 public sealed class StepJsonConverterTests
 {
-    private static readonly JsonSerializerOptions options = GetSerializerOptions();
+    private static readonly JsonSerializerOptions options = JsonSerializerHelper.Options;
 
     [Fact]
     public void When_DeserializeHttpStep_Then_Returns_HttpStep()
@@ -74,6 +73,15 @@ public sealed class StepJsonConverterTests
     }
 
     [Fact]
+    public void When_DeserializeHttpStep_AndJsonMissesRequiredProperties_Then_ThrowsException()
+    {
+        // Act & Assert
+        Assert.Throws<JsonException>(
+            () => JsonSerializer.Deserialize<IStep>(httpStepJson_WithMissingRequiredProperties, options)
+        );
+    }
+
+    [Fact]
     public void When_SerializeHttpStep_Then_Returns_HttpStepJson()
     {
         // Arrange
@@ -83,19 +91,19 @@ public sealed class StepJsonConverterTests
         var formFile = new HttpStepFormFileConfiguration("name1","fileName1", "path1.json", "application/xml");
         var assert = new EqualsAssertion(null, null, "test", null);
         var httpStepConfiguration = new HttpStepConfiguration(
-            $"{Guid.NewGuid()}",
-            $"{Guid.NewGuid()}",
-            $"{Guid.NewGuid()}",
-            [assert],
-            new Dictionary<string, object?>([save]),
             "GET",
             "https://url.com",
-            new Dictionary<string, string>([query]),
             "some-path.json",
             "{{ $.globals.body }}",
             "application/json",
             [header],
-            [formFile]
+            [formFile],
+            new Dictionary<string, string>([query]),
+            $"{Guid.NewGuid()}",
+            $"{Guid.NewGuid()}",
+            $"{Guid.NewGuid()}",
+            [assert],
+            new Dictionary<string, object?>([save])
         );
         IStep httpStep = new HttpStep(Substitute.For<HttpClient>(), httpStepConfiguration);
 
@@ -188,6 +196,15 @@ public sealed class StepJsonConverterTests
     }
 
     [Fact]
+    public void When_DeserializeUseStep_AndJsonMissesRequiredProperties_Then_ThrowsException()
+    {
+        // Act & Assert
+        Assert.Throws<JsonException>(
+            () => JsonSerializer.Deserialize<IStep>(useStepJson_WithMissingRequiredProperties, options)
+        );
+    }
+
+    [Fact]
     public void When_SerializeUseStep_Then_Returns_UseStepJson()
     {
         // Arrange
@@ -196,14 +213,14 @@ public sealed class StepJsonConverterTests
         var assert = new EqualsAssertion(null, null, "test", null);
         var useStepConfiguration = new UseStepConfiguration(
             $"{Guid.NewGuid()}",
+            new Dictionary<string, object?>([with]),
+            $"{Guid.NewGuid()}",
             $"{Guid.NewGuid()}",
             $"{Guid.NewGuid()}",
             [assert],
-            new Dictionary<string, object?>([save]),
-            $"{Guid.NewGuid()}",
-            new Dictionary<string, object?>([with])
+            new Dictionary<string, object?>([save])
         );
-        IStep step = new UseStep(Substitute.For<IAnsiConsole>(),Substitute.For<ITemplateContext>(), Substitute.For<IStepProcessor>(), useStepConfiguration);
+        IStep step = new UseStep(Substitute.For<IAnsiConsole>(),Substitute.For<ITemplateContext>(), Substitute.For<IStepProcessor>(), Substitute.For<IServiceProvider>(), useStepConfiguration);
 
         // Act
         var result = JsonSerializer.Serialize(step, options);
@@ -253,7 +270,7 @@ public sealed class StepJsonConverterTests
         Assert.Equal("wait-id", configuration.Id);
         Assert.Equal("Execute wait", configuration.Name);
         Assert.Equal("test", configuration.Description);
-        Assert.Equal(500, configuration.Ms);
+        Assert.Equal("500", $"{configuration.Ms}");
 
         Assert.NotNull(configuration.Assert);
         Assert.Single(configuration.Assert);
@@ -270,6 +287,58 @@ public sealed class StepJsonConverterTests
     }
 
     [Fact]
+    public void When_DeserializeWaitStep_AndJsonMissesRequiredProperties_Then_ThrowsException()
+    {
+        // Act & Assert
+        Assert.Throws<JsonException>(
+            () => JsonSerializer.Deserialize<IStep>(waitStepJson_WithMissingRequiredProperties, options)
+        );
+    }
+
+    [Fact]
+    public void When_SerializeWaitStep_Then_Returns_WaitStepJson()
+    {
+        // Arrange
+        var save = new KeyValuePair<string, object?>("$.globals.var", "{{ $.this.value }}");
+        var assert = new EqualsAssertion(null, null, "test", null);
+        var stepConfiguration = new WaitStepConfiguration(
+            100,
+            $"{Guid.NewGuid()}",            
+            $"{Guid.NewGuid()}",
+            $"{Guid.NewGuid()}",            
+            [assert],
+            new Dictionary<string, object?>([save])
+        );
+        IStep step = new WaitStep(stepConfiguration);
+
+        // Act
+        var result = JsonSerializer.Serialize(step, options);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.NotEmpty(result);
+
+        var resultObject = JsonNode.Parse(result)!.AsObject();
+
+        Assert.Equal(stepConfiguration.Id, $"{resultObject["id"]}");
+        Assert.Equal(stepConfiguration.Name, $"{resultObject["name"]}");
+        Assert.Equal(stepConfiguration.Description, $"{resultObject["description"]}");
+        Assert.Equal($"{stepConfiguration.Ms}", $"{resultObject["ms"]}");
+
+        Assert.NotNull(resultObject["assert"]?.AsArray());
+        Assert.Single(resultObject["assert"]!.AsArray());
+        var assertObject = resultObject["assert"]![0]!;
+        Assert.Equal("equals", $"{assertObject["op"]}");
+        Assert.Equal(assert.Description, $"{assertObject["description"]}");
+
+        Assert.NotNull(resultObject["save"]?.AsObject());
+        Assert.Single(resultObject["save"]!.AsObject());
+        var saveObject = resultObject["save"]!.AsObject();
+        Assert.True(saveObject.ContainsKey(save.Key));
+        Assert.Equal($"{save.Value}", $"{saveObject[save.Key]}");
+    }
+
+    [Fact]
     public void When_DeserializeAssertStep_Then_Returns_AssertStep()
     {
         // Act
@@ -279,7 +348,7 @@ public sealed class StepJsonConverterTests
         Assert.NotNull(result);
         Assert.IsType<AssertStep>(result);
 
-        var configuration = result.Configuration as StepConfiguration;
+        var configuration = result.Configuration as StepConfigurationBase;
         Assert.NotNull(configuration);
         Assert.Equal("assert-id", configuration.Id);
         Assert.Equal("Execute assert", configuration.Name);
@@ -299,12 +368,64 @@ public sealed class StepJsonConverterTests
         Assert.Equal("{{ $.this.value }}", $"{save.Value}");
     }
 
+    [Fact]
+    public void When_DeserializeAsserttStep_AndJsonMissesRequiredProperties_Then_ThrowsException()
+    {
+        // Act & Assert
+        Assert.Throws<JsonException>(
+            () => JsonSerializer.Deserialize<IStep>(assertStepJson_WithMissinRequiredProperties, options)
+        );
+    }
+
+    [Fact]
+    public void When_SerializeAssertStep_Then_Returns_AssertStepJson()
+    {
+        // Arrange
+        var save = new KeyValuePair<string, object?>("$.globals.var", "{{ $.this.value }}");
+        var assert = new EqualsAssertion(null, null, "test", null);
+        var stepConfiguration = new AssertStepConfiguration(
+            [assert],
+            $"{Guid.NewGuid()}",
+            $"{Guid.NewGuid()}",
+            $"{Guid.NewGuid()}",
+            new Dictionary<string, object?>([save])
+        );
+        IStep step = new AssertStep(stepConfiguration);
+
+        // Act
+        var result = JsonSerializer.Serialize(step, options);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.NotEmpty(result);
+
+        var resultObject = JsonNode.Parse(result)!.AsObject();
+
+        Assert.Equal(stepConfiguration.Id, $"{resultObject["id"]}");
+        Assert.Equal(stepConfiguration.Name, $"{resultObject["name"]}");
+        Assert.Equal(stepConfiguration.Description, $"{resultObject["description"]}");        
+
+        Assert.NotNull(resultObject["assert"]?.AsArray());
+        Assert.Single(resultObject["assert"]!.AsArray());
+        var assertObject = resultObject["assert"]![0]!;
+        Assert.Equal("equals", $"{assertObject["op"]}");
+        Assert.Equal(assert.Description, $"{assertObject["description"]}");
+
+        Assert.NotNull(resultObject["save"]?.AsObject());
+        Assert.Single(resultObject["save"]!.AsObject());
+        var saveObject = resultObject["save"]!.AsObject();
+        Assert.True(saveObject.ContainsKey(save.Key));
+        Assert.Equal($"{save.Value}", $"{saveObject[save.Key]}");
+    }
+
 
     [Fact]
     public void When_Deserialize_And_InvalidJson_Then_ThrowsException()
     {
         // Arrange
+#pragma warning disable JSON001 // Invalid JSON pattern
         const string invalidJson = "{\"op\": \"equals\" { }]";
+#pragma warning restore JSON001 // Invalid JSON pattern
 
         // Act & Assert
         Assert.Throws<JsonException>(
@@ -372,7 +493,7 @@ public sealed class StepJsonConverterTests
         var registryProvider = Substitute.For<ITypeDescriptorRegistryProvider>();
         registryProvider.StepTypeRegistry.Returns(brokenDescriptorRegistry);
 
-        var serializerOptions = GetSerializerOptions(registryProvider);
+        var serializerOptions = JsonSerializerHelper.GetSerializerOptions(registryProvider);
 
         // Act & Assert
         Assert.Throws<InvalidOperationException>(
@@ -389,17 +510,25 @@ public sealed class StepJsonConverterTests
         var brokenDescriptorRegistry = Substitute.For<ITypeDescriptorRegistry>();
         brokenDescriptorRegistry
             .GetDescriptor("test")
-            .Returns(new TypeDescriptor(args => new object(), "test", typeof(object), [new("config", typeof(StepConfiguration))]));
+            .Returns(new TypeDescriptor(args => new object(), "test", typeof(object), [new("config", typeof(MockStepConfiguration))]));
         var registryProvider = Substitute.For<ITypeDescriptorRegistryProvider>();
         registryProvider.StepTypeRegistry.Returns(brokenDescriptorRegistry);
 
-        var serializerOptions = GetSerializerOptions(registryProvider);
+        var serializerOptions = JsonSerializerHelper.GetSerializerOptions(registryProvider);
 
         // Act & Assert
         Assert.Throws<InvalidOperationException>(
             () => JsonSerializer.Deserialize<IStep>(json, serializerOptions)
         );
     }
+
+    private sealed record MockStepConfiguration(
+        IEnumerable<IAssertionOperation>? Assert = null,
+        string? Id = null,
+        string? Name = null,
+        string? Description = null,
+        IReadOnlyDictionary<string, object?>? Save = null
+    ) : StepConfigurationBase;
 
     private const string assertStepJson =
     """
@@ -418,6 +547,16 @@ public sealed class StepJsonConverterTests
         "save":{
             "$.globals.var": "{{ $.this.value }}"
         }
+    }
+    """;
+
+    private const string assertStepJson_WithMissinRequiredProperties =
+   """
+    {
+        "type": "assert",
+        "id": "assert-id",
+        "name": "Execute assert",
+        "description": "test"
     }
     """;
 
@@ -442,6 +581,16 @@ public sealed class StepJsonConverterTests
     }
     """;
 
+    private const string waitStepJson_WithMissingRequiredProperties =
+   """
+    {
+        "type": "wait",
+        "id": "wait-id",
+        "name": "Execute wait",
+        "description": "test"
+    }
+    """;
+
     private const string useStepJson =
     """
     {
@@ -463,6 +612,16 @@ public sealed class StepJsonConverterTests
         "save":{
             "$.globals.var": "{{ $.this.value }}"
         }
+    }
+    """;
+
+    private const string useStepJson_WithMissingRequiredProperties =
+    """
+    {
+        "type": "use",
+        "id": "use-id",
+        "name": "Execute template",
+        "description": "test"
     }
     """;
 
@@ -508,41 +667,14 @@ public sealed class StepJsonConverterTests
     }    
     """;
 
-
-    private static JsonSerializerOptions GetSerializerOptions(ITypeDescriptorRegistryProvider? registryProvider = null)
+    private const string httpStepJson_WithMissingRequiredProperties =
+    """
     {
-        var serviceCollection = new ServiceCollection();
-        serviceCollection
-            .AddSingleton(new HttpClient())
-            .AddSingleton(AnsiConsole.Console)
-            .AddSingleton(Substitute.For<ITemplateContext>())
-            .AddSingleton(Substitute.For<IStepProcessor>());
-
-        if (registryProvider is not null)
-        {
-            serviceCollection.AddSingleton(registryProvider);
-        }
-        else
-        {
-            serviceCollection.AddSingleton<ITypeDescriptorRegistryProvider, TypeDescriptorRegistryProvider>();
-        }
-
-        var serviceProvider = serviceCollection.BuildServiceProvider();
-
-        var options = new JsonSerializerOptions()
-        {
-            PropertyNameCaseInsensitive = true,
-            WriteIndented = true,
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-        };
-
-        options.Converters.Add(
-            new AssertionOperationJsonConverter(serviceProvider)
-        );
-        options.Converters.Add(
-            new StepJsonConverter(serviceProvider)
-        );
-
-        return options;
-    }
+      "type": "http",
+      "id": "http-id",
+      "name": "Execute endpoint",
+      "description": "test",
+      "contentType": "application/json"
+    }    
+    """;    
 }

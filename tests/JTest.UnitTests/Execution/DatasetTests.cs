@@ -1,7 +1,10 @@
 using JTest.Core.Models;
+using JTest.Core.Steps;
+using JTest.UnitTests.TestHelpers;
 using System.Text.Json;
+using Xunit;
 
-namespace JTest.UnitTests;
+namespace JTest.UnitTests.Execution;
 
 public class DatasetTests
 {
@@ -38,19 +41,19 @@ public class DatasetTests
         var testCaseWithoutDatasets = new JTestCase
         {
             Name = "Simple test",
-            Steps = new List<object> { new { type = "http", method = "GET" } }
+            Steps = [new WaitStep(new(1))]
         };
 
         // Test case with datasets
         var testCaseWithDatasets = new JTestCase
         {
             Name = "Data-driven test",
-            Steps = new List<object> { new { type = "http", method = "POST" } },
-            Datasets = new List<JTestDataset>
-            {
+            Steps = [new WaitStep(new(1))],
+            Datasets =
+            [
                 new() { Name = "dataset1", Case = new Dictionary<string, object> { ["value"] = 1 } },
                 new() { Name = "dataset2", Case = new Dictionary<string, object> { ["value"] = 2 } }
-            }
+            ]
         };
 
         // Assert
@@ -119,7 +122,7 @@ public class DatasetTests
         """;
 
         // Act
-        var testCase = JsonSerializer.Deserialize<JTestCase>(json);
+        var testCase = JsonSerializer.Deserialize<JTestCase>(json, JsonSerializerHelper.Options);
 
         // Assert
         Assert.NotNull(testCase);

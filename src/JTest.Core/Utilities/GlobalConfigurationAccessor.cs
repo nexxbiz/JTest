@@ -4,7 +4,7 @@ using System.Text.Json;
 
 namespace JTest.Core.Utilities;
 
-public sealed class GlobalConfigurationAccessor
+public sealed class GlobalConfigurationAccessor : IGlobalConfigurationAccessor
 {
     private const string globalConfigFileEnvVar = "JTEST_CONFIG_FILE"; // Environment variable name for global config file path        
 
