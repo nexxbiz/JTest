@@ -38,23 +38,12 @@ public abstract class BaseStep<TConfiguration>(TConfiguration configuration) : I
     /// </summary>
     public string? Description { get; protected set; } = configuration?.Description ?? string.Empty;
 
-    StepConfiguration? IStep.Configuration => Configuration;
+    StepConfiguration IStep.Configuration => Configuration;
 
     /// <summary>
     /// Executes the step with the provided context. Returns output data of the step; or null if the step does not return output
     /// </summary>
     public abstract Task<object?> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken);
-
-    /// <summary>
-    /// Validates the configuration of this step
-    /// </summary>
-    /// <param name="validationErrors"></param>
-    /// <returns></returns>
-    public bool ValidateConfiguration(IServiceProvider serviceProvider, IExecutionContext context, List<string> validationErrors)
-    {
-        Configuration.ValidateConfiguration(serviceProvider, context, validationErrors);
-        return validationErrors.Count == 0;
-    }
 
     protected static string ResolveStringValue(string value, IExecutionContext context)
     {

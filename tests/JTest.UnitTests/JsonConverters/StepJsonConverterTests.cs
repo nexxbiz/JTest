@@ -9,6 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
 using Spectre.Console;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Xunit;
 
 namespace JTest.UnitTests.JsonConverters;
@@ -26,9 +27,6 @@ public sealed class StepJsonConverterTests
         // Assert
         Assert.NotNull(result);
         Assert.IsType<HttpStep>(result);
-        Assert.Equal("http-id", result.Id);
-        Assert.Equal("Execute endpoint", result.Name);
-        Assert.Equal("test", result.Description);
 
         var configuration = result.Configuration as HttpStepConfiguration;
         Assert.NotNull(configuration);
@@ -46,6 +44,12 @@ public sealed class StepJsonConverterTests
         var header = configuration.Headers.First();
         Assert.Equal("request-id", header.Name);
         Assert.Equal("{{ $.env.requestId }}", header.Value);
+
+        Assert.NotNull(configuration.Query);
+        Assert.Single(configuration.Query);
+        var query = configuration.Query.First();
+        Assert.Equal("param1", query.Key);
+        Assert.Equal("value1", query.Value);
 
         Assert.NotNull(configuration.FormFiles);
         Assert.Single(configuration.FormFiles);
@@ -70,6 +74,83 @@ public sealed class StepJsonConverterTests
     }
 
     [Fact]
+    public void When_SerializeHttpStep_Then_Returns_HttpStepJson()
+    {
+        // Arrange
+        var save = new KeyValuePair<string, object?>("$.globals.var","{{ $.this.value }}");
+        var query = new KeyValuePair<string, string>("param1", "value1");
+        var header = new HttpStepRequestHeaderConfiguration("header1", "value1");
+        var formFile = new HttpStepFormFileConfiguration("name1","fileName1", "path1.json", "application/xml");
+        var assert = new EqualsAssertion(null, null, "test", null);
+        var httpStepConfiguration = new HttpStepConfiguration(
+            $"{Guid.NewGuid()}",
+            $"{Guid.NewGuid()}",
+            $"{Guid.NewGuid()}",
+            [assert],
+            new Dictionary<string, object?>([save]),
+            "GET",
+            "https://url.com",
+            new Dictionary<string, string>([query]),
+            "some-path.json",
+            "{{ $.globals.body }}",
+            "application/json",
+            [header],
+            [formFile]
+        );
+        IStep httpStep = new HttpStep(Substitute.For<HttpClient>(), httpStepConfiguration);
+
+        // Act
+        var result = JsonSerializer.Serialize(httpStep, options);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.NotEmpty(result);
+
+        var resultObject = JsonNode.Parse(result)!.AsObject();
+                
+        Assert.Equal(httpStepConfiguration.Id, $"{resultObject["id"]}");
+        Assert.Equal(httpStepConfiguration.Name, $"{resultObject["name"]}");
+        Assert.Equal(httpStepConfiguration.Description, $"{resultObject["description"]}");
+        Assert.Equal(httpStepConfiguration.Url, $"{resultObject["url"]}");
+        Assert.Equal(httpStepConfiguration.Method, $"{resultObject["method"]}");
+        Assert.Equal(httpStepConfiguration.File, $"{resultObject["file"]}");
+        Assert.Equal(httpStepConfiguration.Body, $"{resultObject["body"]}");
+        Assert.Equal(httpStepConfiguration.ContentType, $"{resultObject["contentType"]}");
+
+        Assert.NotNull(resultObject["headers"]?.AsArray());
+        Assert.Single(resultObject["headers"]!.AsArray());
+        var headerObject = resultObject["headers"]![0]!;
+        Assert.Equal(header.Name, $"{headerObject["name"]}");
+        Assert.Equal(header.Value, $"{headerObject["value"]}");
+
+        Assert.NotNull(resultObject["formFiles"]?.AsArray());
+        Assert.Single(resultObject["formFiles"]!.AsArray());
+        var formFileObject = resultObject["formFiles"]![0]!;
+        Assert.Equal(formFile.Name, $"{formFileObject["name"]}");
+        Assert.Equal(formFile.FileName, $"{formFileObject["fileName"]}");
+        Assert.Equal(formFile.Path, $"{formFileObject["path"]}");
+        Assert.Equal(formFile.ContentType, $"{formFileObject["contentType"]}");
+
+        Assert.NotNull(resultObject["assert"]?.AsArray());
+        Assert.Single(resultObject["assert"]!.AsArray());
+        var assertObject = resultObject["assert"]![0]!;
+        Assert.Equal("equals", $"{assertObject["op"]}");
+        Assert.Equal(assert.Description, $"{assertObject["description"]}");
+
+        Assert.NotNull(resultObject["save"]?.AsObject());
+        Assert.Single(resultObject["save"]!.AsObject());
+        var saveObject = resultObject["save"]!.AsObject();
+        Assert.True(saveObject.ContainsKey(save.Key));
+        Assert.Equal($"{save.Value}", $"{saveObject[save.Key]}");
+
+        Assert.NotNull(resultObject["query"]?.AsObject());
+        Assert.Single(resultObject["query"]!.AsObject());
+        var queryObject = resultObject["query"]!.AsObject();
+        Assert.True(queryObject.ContainsKey(query.Key));
+        Assert.Equal(query.Value, $"{queryObject[query.Key]}");
+    }
+
+    [Fact]
     public void When_DeserializeUseStep_Then_Returns_UseStep()
     {
         // Act
@@ -78,9 +159,6 @@ public sealed class StepJsonConverterTests
         // Assert
         Assert.NotNull(result);
         Assert.IsType<UseStep>(result);
-        Assert.Equal("use-id", result.Id);
-        Assert.Equal("Execute template", result.Name);
-        Assert.Equal("test", result.Description);
 
         var configuration = result.Configuration as UseStepConfiguration;
         Assert.NotNull(configuration);
@@ -110,6 +188,57 @@ public sealed class StepJsonConverterTests
     }
 
     [Fact]
+    public void When_SerializeUseStep_Then_Returns_UseStepJson()
+    {
+        // Arrange
+        var with = new KeyValuePair<string, object?>("param1", "value1");
+        var save = new KeyValuePair<string, object?>("$.globals.var", "{{ $.this.value }}");     
+        var assert = new EqualsAssertion(null, null, "test", null);
+        var useStepConfiguration = new UseStepConfiguration(
+            $"{Guid.NewGuid()}",
+            $"{Guid.NewGuid()}",
+            $"{Guid.NewGuid()}",
+            [assert],
+            new Dictionary<string, object?>([save]),
+            $"{Guid.NewGuid()}",
+            new Dictionary<string, object?>([with])
+        );
+        IStep step = new UseStep(Substitute.For<IAnsiConsole>(),Substitute.For<ITemplateContext>(), Substitute.For<IStepProcessor>(), useStepConfiguration);
+
+        // Act
+        var result = JsonSerializer.Serialize(step, options);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.NotEmpty(result);
+
+        var resultObject = JsonNode.Parse(result)!.AsObject();
+
+        Assert.Equal(useStepConfiguration.Id, $"{resultObject["id"]}");
+        Assert.Equal(useStepConfiguration.Name, $"{resultObject["name"]}");
+        Assert.Equal(useStepConfiguration.Description, $"{resultObject["description"]}");        
+        Assert.Equal(useStepConfiguration.Template, $"{resultObject["template"]}");
+
+        Assert.NotNull(resultObject["assert"]?.AsArray());
+        Assert.Single(resultObject["assert"]!.AsArray());
+        var assertObject = resultObject["assert"]![0]!;
+        Assert.Equal("equals", $"{assertObject["op"]}");
+        Assert.Equal(assert.Description, $"{assertObject["description"]}");
+
+        Assert.NotNull(resultObject["save"]?.AsObject());
+        Assert.Single(resultObject["save"]!.AsObject());
+        var saveObject = resultObject["save"]!.AsObject();
+        Assert.True(saveObject.ContainsKey(save.Key));
+        Assert.Equal($"{save.Value}", $"{saveObject[save.Key]}");
+
+        Assert.NotNull(resultObject["with"]?.AsObject());
+        Assert.Single(resultObject["with"]!.AsObject());
+        var withObject = resultObject["with"]!.AsObject();
+        Assert.True(withObject.ContainsKey(with.Key));
+        Assert.Equal(with.Value, $"{withObject[with.Key]}");
+    }
+
+    [Fact]
     public void When_DeserializeWaitStep_Then_Returns_WaitStep()
     {
         // Act
@@ -118,9 +247,6 @@ public sealed class StepJsonConverterTests
         // Assert
         Assert.NotNull(result);
         Assert.IsType<WaitStep>(result);
-        Assert.Equal("wait-id", result.Id);
-        Assert.Equal("Execute wait", result.Name);
-        Assert.Equal("test", result.Description);
 
         var configuration = result.Configuration as WaitStepConfiguration;
         Assert.NotNull(configuration);
@@ -152,9 +278,6 @@ public sealed class StepJsonConverterTests
         // Assert
         Assert.NotNull(result);
         Assert.IsType<AssertStep>(result);
-        Assert.Equal("assert-id", result.Id);
-        Assert.Equal("Execute assert", result.Name);
-        Assert.Equal("test", result.Description);
 
         var configuration = result.Configuration as StepConfiguration;
         Assert.NotNull(configuration);
@@ -237,7 +360,7 @@ public sealed class StepJsonConverterTests
     }
 
     [Fact]
-    public void When_Deserialize_And_Registry_Returns_InvalidDescriptorConstructor_Then_ThrowsException()
+    public void When_Deserialize_And_Registry_Returns_DescriptorConstructor_WithoutRequiredStepConfigurationParameter_Then_ThrowsException()
     {
         // Arrange
         const string json = "{\"type\": \"test\"}";
@@ -245,7 +368,28 @@ public sealed class StepJsonConverterTests
         var brokenDescriptorRegistry = Substitute.For<ITypeDescriptorRegistry>();
         brokenDescriptorRegistry
             .GetDescriptor("test")
-            .Returns(new TypeDescriptor(args => new object(), "test", typeof(object)));
+            .Returns(new TypeDescriptor(args => Substitute.For<IStep>(), "test", typeof(IStep), []));
+        var registryProvider = Substitute.For<ITypeDescriptorRegistryProvider>();
+        registryProvider.StepTypeRegistry.Returns(brokenDescriptorRegistry);
+
+        var serializerOptions = GetSerializerOptions(registryProvider);
+
+        // Act & Assert
+        Assert.Throws<InvalidOperationException>(
+            () => JsonSerializer.Deserialize<IStep>(json, serializerOptions)
+        );
+    }
+
+    [Fact]
+    public void When_Deserialize_And_Registry_Returns_Descriptor_ThatConstructsWrongType_Then_ThrowsException()
+    {
+        // Arrange
+        const string json = "{\"type\": \"test\"}";
+
+        var brokenDescriptorRegistry = Substitute.For<ITypeDescriptorRegistry>();
+        brokenDescriptorRegistry
+            .GetDescriptor("test")
+            .Returns(new TypeDescriptor(args => new object(), "test", typeof(object), [new("config", typeof(StepConfiguration))]));
         var registryProvider = Substitute.For<ITypeDescriptorRegistryProvider>();
         registryProvider.StepTypeRegistry.Returns(brokenDescriptorRegistry);
 
@@ -338,6 +482,9 @@ public sealed class StepJsonConverterTests
           "value": "{{ $.env.requestId }}"
         }
       ],
+      "query":{
+        "param1": "value1"
+      },
       "file": "some-path.json",
       "formFiles":[
         {
@@ -385,7 +532,8 @@ public sealed class StepJsonConverterTests
         var options = new JsonSerializerOptions()
         {
             PropertyNameCaseInsensitive = true,
-            WriteIndented = true
+            WriteIndented = true,
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
         };
 
         options.Converters.Add(

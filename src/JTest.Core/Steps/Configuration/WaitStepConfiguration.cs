@@ -10,7 +10,7 @@ public sealed class WaitStepConfiguration(string? id, string? name, string? desc
 {
     public int Ms { get; } = ms;
 
-    public override void ValidateConfiguration(IServiceProvider serviceProvider, IExecutionContext context, List<string> validationErrors)
+    protected override void Validate(IServiceProvider serviceProvider, IExecutionContext context, IList<string> validationErrors)
     {
         if (Ms <= 0)
         {

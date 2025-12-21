@@ -3,5 +3,6 @@
 public sealed record TypeDescriptor(
     Func<IEnumerable<TypeDescriptorConstructorArgument>, object> Constructor, 
     string TypeIdentifier, 
-    Type Type
+    Type Type,
+    IEnumerable<TypeDescriptorConstructorParameter> ConstructorParameters
 );

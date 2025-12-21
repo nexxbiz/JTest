@@ -125,7 +125,7 @@ public sealed class UseStep(IAnsiConsole ansiConsole, ITemplateContext templateC
         return templateContext;
     }
 
-    private object ResolveParameterValue(object param, IExecutionContext parentContext)
+    private object ResolveParameterValue(object? param, IExecutionContext parentContext)
     {
         var paramValue = SerializeToJsonElement(param);
 

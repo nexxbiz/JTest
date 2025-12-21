@@ -87,7 +87,8 @@ public sealed class TypeDescriptorRegistry<TInterfaceMarker> : ITypeDescriptorRe
         return new TypeDescriptor(
             CreateConstructor(constructor),
             typeIdentifier,
-            type
+            type,
+            constructor.GetParameters().Select(x => new TypeDescriptorConstructorParameter(x.Name!, x.ParameterType))
         );
     }
 

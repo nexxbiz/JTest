@@ -44,9 +44,9 @@ public sealed class StepTypeDescriptorRegistryTests
 
         var step = (IStep)instance;
         Assert.NotNull(step.Configuration);
-        Assert.NotNull(step.Name);
-        Assert.NotNull(step.Description);
-        Assert.NotNull(step.Id);        
+        Assert.NotNull(step.Configuration.Name);
+        Assert.NotNull(step.Configuration.Description);
+        Assert.NotNull(step.Configuration.Id);        
     }
 
     private static Type[] GetKnownStepTypes()
@@ -99,7 +99,7 @@ public sealed class StepTypeDescriptorRegistryTests
         typeof(UseStep),
         new TypeDescriptorConstructorArgument[]
         {
-            new("configuration", new UseStepConfiguration($"{Guid.NewGuid()}", $"{Guid.NewGuid()}", $"{Guid.NewGuid()}", null,null, "template1", new Dictionary<string, object>()))
+            new("configuration", new UseStepConfiguration($"{Guid.NewGuid()}", $"{Guid.NewGuid()}", $"{Guid.NewGuid()}", null,null, "template1", new Dictionary<string, object?>()))
         }
     ];
 

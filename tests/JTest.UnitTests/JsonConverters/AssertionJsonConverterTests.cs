@@ -148,7 +148,7 @@ public sealed class AssertionJsonConverterTests
         var brokenDescriptorRegistry = Substitute.For<ITypeDescriptorRegistry>();
         brokenDescriptorRegistry
             .GetDescriptor("test")
-            .Returns(new TypeDescriptor(args => new object(), "test", typeof(object)));
+            .Returns(new TypeDescriptor(args => new object(), "test", typeof(object), []));
         var registryProvider = Substitute.For<ITypeDescriptorRegistryProvider>();
         registryProvider.AssertionTypeRegistry.Returns(brokenDescriptorRegistry);
 
@@ -443,7 +443,8 @@ public sealed class AssertionJsonConverterTests
         var options = new JsonSerializerOptions()
         {
             PropertyNameCaseInsensitive = true,
-            WriteIndented = true
+            WriteIndented = true,
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
         };
 
         options.Converters.Add(

@@ -13,7 +13,16 @@ public class StepConfiguration(string? id, string? name, string? description, IE
 
     public IEnumerable<IAssertionOperation> Assert { get; } = assert ?? [];
 
-    public virtual void ValidateConfiguration(IServiceProvider serviceProvider, IExecutionContext context, List<string> validationErrors) { }
+    protected virtual void Validate(IServiceProvider serviceProvider, IExecutionContext context, IList<string> validationErrors) { }
+
+    public bool Validate(IServiceProvider serviceProvider, IExecutionContext context, out IEnumerable<string> validationErrors)
+    {
+        var validationErrorsList = new List<string>();
+        Validate(serviceProvider, context, validationErrorsList);
+        validationErrors = validationErrorsList;
+
+        return validationErrors.Any();
+    }
 
     public IReadOnlyDictionary<string, object?> Save { get; } = save ?? new Dictionary<string, object?>();
 }

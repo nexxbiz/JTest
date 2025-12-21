@@ -25,7 +25,7 @@ public sealed class AssertionOperationJsonConverter(IServiceProvider serviceProv
         {
             writer.WritePropertyName("actualValue");
             writer.WriteRawValue(
-                JsonSerializer.SerializeToElement(value.ActualValue).GetRawText()
+                JsonSerializer.SerializeToElement(value.ActualValue, options).GetRawText()
             );
         }
 
@@ -33,7 +33,7 @@ public sealed class AssertionOperationJsonConverter(IServiceProvider serviceProv
         {
             writer.WritePropertyName("expectedValue");
             writer.WriteRawValue(
-                JsonSerializer.SerializeToElement(value.ExpectedValue).GetRawText()
+                JsonSerializer.SerializeToElement(value.ExpectedValue, options).GetRawText()
             );
         }
 

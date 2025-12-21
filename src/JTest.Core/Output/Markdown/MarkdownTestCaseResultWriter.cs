@@ -54,16 +54,16 @@ public sealed class MarkdownTestCaseResultWriter : ITestCaseResultWriter
     private void WriteStepResult(TextWriter writer, StepResult stepResult, bool isDebug, string? templateName)
     {
         var showStepNumber = string.IsNullOrWhiteSpace(templateName);
-        if (!string.IsNullOrWhiteSpace(stepResult.Step.Name))
+        if (!string.IsNullOrWhiteSpace(stepResult.Step.Configuration.Name))
         {
             if (showStepNumber)
             {
-                writer.WriteLine($"**Step {stepResult.StepNumber}**: {stepResult.Step.Name} <br/>");
+                writer.WriteLine($"**Step {stepResult.StepNumber}**: {stepResult.Step.Configuration.Name} <br/>");
                 writer.WriteLine($"**Step type:** {stepResult.Step.TypeName} <br/>");
             }
             else
             {
-                writer.WriteLine($"**Step for template {templateName}:** {stepResult.Step.Name} <br/>");
+                writer.WriteLine($"**Step for template {templateName}:** {stepResult.Step.Configuration.Name} <br/>");
                 writer.WriteLine($"**Step type:** {stepResult.Step.TypeName} <br/>");
             }
         }
@@ -82,9 +82,9 @@ public sealed class MarkdownTestCaseResultWriter : ITestCaseResultWriter
             writer.WriteLine($"**Template**: {useStepConfig.Template}  <br/>");
         }
 
-        if (!string.IsNullOrWhiteSpace(stepResult.Step.Description))
+        if (!string.IsNullOrWhiteSpace(stepResult.Step.Configuration.Description))
         {
-            writer.WriteLine($"**Description**: {stepResult.Step.Description} <br/>");
+            writer.WriteLine($"**Description**: {stepResult.Step.Configuration.Description} <br/>");
         }
 
 

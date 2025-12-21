@@ -7,13 +7,13 @@ using System.Text.Json.Serialization;
 namespace JTest.Core.Steps.Configuration;
 
 [method: JsonConstructor]
-public sealed class UseStepConfiguration(string? id, string? name, string? description, IEnumerable<IAssertionOperation>? assert, IReadOnlyDictionary<string, object?>? save, string template, IReadOnlyDictionary<string, object> with)
+public sealed class UseStepConfiguration(string? id, string? name, string? description, IEnumerable<IAssertionOperation>? assert, IReadOnlyDictionary<string, object?>? save, string template, IReadOnlyDictionary<string, object?> with)
     : StepConfiguration(id, name, description, assert, save)
 {
     public string Template { get; } = template;
-    public IReadOnlyDictionary<string, object> With { get; } = with;
+    public IReadOnlyDictionary<string, object?> With { get; } = with;
 
-    public override void ValidateConfiguration(IServiceProvider serviceProvider, IExecutionContext context, List<string> validationErrors)
+    protected override void Validate(IServiceProvider serviceProvider, IExecutionContext context, IList<string> validationErrors)
     {
         var templateContext = serviceProvider.GetRequiredService<ITemplateContext>();
 

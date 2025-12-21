@@ -15,8 +15,7 @@ public sealed class StepProcessor(IAssertionProcessor assertionProcessor, IServi
     {
         var contextBefore = CloneContext(executionContext);
 
-        var validationErrors = new List<string>();
-        if(!step.ValidateConfiguration(serviceProvider, executionContext, validationErrors))
+        if(!step.Configuration.Validate(serviceProvider, executionContext, out var validationErrors))
         {
             throw new StepConfigurationValidationException(step.TypeName, validationErrors);
         }
@@ -55,9 +54,9 @@ public sealed class StepProcessor(IAssertionProcessor assertionProcessor, IServi
     {
         context.Variables["this"] = data;
 
-        if (!string.IsNullOrEmpty(step.Id))
+        if (!string.IsNullOrEmpty(step.Configuration.Id))
         {
-            context.Variables[step.Id] = data;
+            context.Variables[step.Configuration.Id] = data;
         }
 
         ProcessSaveOperations(stepConfiguration, context);

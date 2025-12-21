@@ -24,7 +24,8 @@ public sealed class JsonSerializerOptionsCache
         var result = new JsonSerializerOptions()
         {
             PropertyNameCaseInsensitive = true,
-            WriteIndented = true
+            WriteIndented = true,
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
         };
 
         result.Converters.Add(

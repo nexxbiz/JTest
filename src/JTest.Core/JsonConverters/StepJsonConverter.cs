@@ -1,24 +1,26 @@
 ﻿using JTest.Core.Assertions;
 using JTest.Core.Steps;
+using JTest.Core.Steps.Configuration;
 using JTest.Core.TypeDescriptorRegistries;
 using JTest.Core.TypeDescriptors;
 using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Text.Json.Serialization.Metadata;
 
 namespace JTest.Core.JsonConverters;
 
 public sealed class StepJsonConverter(IServiceProvider serviceProvider) : JsonConverter<IStep>
 {
+    private const string typePropertyName = "type";
+
     public override IStep? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         if (!JsonDocument.TryParseValue(ref reader, out var doc))
         {
             throw new JsonException("Failed to parse JsonDocument");
         }
-        if(doc.RootElement.ValueKind != JsonValueKind.Object)
+        if (doc.RootElement.ValueKind != JsonValueKind.Object)
         {
             throw new JsonException($"Expected json object but got '{doc.RootElement.ValueKind}'");
         }
@@ -30,58 +32,55 @@ public sealed class StepJsonConverter(IServiceProvider serviceProvider) : JsonCo
             .StepTypeRegistry;
 
         var descriptor = typeRegistry.GetDescriptor(stepType);
-
-        var configurationType = GetConfigurationType(descriptor.Type);
-        var configurationJson = doc.RootElement.GetRawText();        
-        var configuration = JsonSerializer.Deserialize(configurationJson, configurationType, options);
-
-        var constructorArguments = new TypeDescriptorConstructorArgument[]
-        {
-            new("configuration", configuration)
-        };
-        var result = descriptor.Constructor.Invoke(constructorArguments);
+        var result = ConstructStepInstance(doc.RootElement, descriptor, options);
 
         if (result is not IStep step)
         {
-            throw new InvalidOperationException($"Step for type {stepType} cannot be constructed");
+            throw new InvalidOperationException("Could not construct instance of step");
         }
 
         return step;
+    }
+
+    private static object ConstructStepInstance(JsonElement root, TypeDescriptor descriptor, JsonSerializerOptions options)
+    {
+        var configurationTypeParameter = GetStepConfigurationParameter(descriptor);
+        var configurationJson = root.GetRawText();
+        var configuration = JsonSerializer.Deserialize(configurationJson, configurationTypeParameter.Type, options);
+
+        return descriptor.Constructor.Invoke(
+            [new(configurationTypeParameter.Name, configuration)]
+        );
+    }
+
+    private static TypeDescriptorConstructorParameter GetStepConfigurationParameter(TypeDescriptor descriptor)
+    {
+        var errorMessage = $"Step does not have configuration constructor parameter. " +
+            $"Please make sure you define a constructor with a parameter of type '{typeof(StepConfiguration).FullName}', " +
+            $"or a parameter that derives from '{typeof(StepConfiguration).FullName}'";
+
+        return descriptor.ConstructorParameters.FirstOrDefault(x => typeof(StepConfiguration).IsAssignableFrom(x.Type))
+            ?? throw new InvalidOperationException(errorMessage);
     }
 
     private static string GetStepType(JsonElement json)
     {
         var stepTypeProperty = json
             .EnumerateObject()
-            .FirstOrDefault(x => x.Name.Equals("type", StringComparison.OrdinalIgnoreCase));
+            .FirstOrDefault(x => x.Name.Equals(typePropertyName, StringComparison.OrdinalIgnoreCase));
 
-        if(stepTypeProperty.Value.ValueKind != JsonValueKind.String)
+        if (stepTypeProperty.Value.ValueKind != JsonValueKind.String)
         {
-            throw new JsonException("Step is missing required string property 'type'");
+            throw new JsonException($"Step is missing required string property '{typePropertyName}'");
         }
 
         var result = stepTypeProperty.Value.GetString();
-        if(string.IsNullOrWhiteSpace(result))
+        if (string.IsNullOrWhiteSpace(result))
         {
-            throw new JsonException("Required property 'type' is null or empty");
+            throw new JsonException($"Required property '{typePropertyName}' is null or empty");
         }
 
         return result;
-    }
-
-    private static Type GetConfigurationType(Type type)
-    {
-        if (type.BaseType is null)
-        {
-            throw new InvalidProgramException($"Base type of '{type.FullName}' is null");
-        }
-
-        if (type.BaseType.IsGenericType && type.BaseType.GetGenericTypeDefinition() == typeof(BaseStep<>))
-        {
-            return type.BaseType.GetGenericArguments()[0];
-        }
-
-        return GetConfigurationType(type.BaseType);
     }
 
     public override void Write(Utf8JsonWriter writer, IStep value, JsonSerializerOptions options)
@@ -93,12 +92,12 @@ public sealed class StepJsonConverter(IServiceProvider serviceProvider) : JsonCo
             .StepTypeRegistry;
 
         var typeIdentifier = typeRegistry.Identification.Identify(value.GetType());
-        writer.WritePropertyName("type");
+        writer.WritePropertyName(typePropertyName);
         writer.WriteStringValue(typeIdentifier);
 
         var properties = value.Configuration?
             .GetType()
-            .GetProperties(BindingFlags.Public)
+            .GetProperties(BindingFlags.Public | BindingFlags.Instance)
             ?? [];
 
         foreach (var property in properties)
@@ -108,7 +107,7 @@ public sealed class StepJsonConverter(IServiceProvider serviceProvider) : JsonCo
             );
             var propertyValue = property.GetValue(value.Configuration);
             writer.WriteRawValue(
-                JsonSerializer.SerializeToElement(propertyValue).GetRawText()
+                JsonSerializer.SerializeToElement(propertyValue, options).GetRawText()
             );
         }
 
