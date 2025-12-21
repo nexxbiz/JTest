@@ -25,6 +25,6 @@ public static class TemplateBuilder
             }
         };
 
-        return JsonSerializer.Serialize(template, JsonSerializerOptionsCache.Default);
+        return JsonSerializer.Serialize(template, JsonSerializerOptionsAccessor.Default);
     }
 }

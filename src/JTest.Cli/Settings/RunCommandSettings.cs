@@ -101,7 +101,7 @@ public sealed class RunCommandSettings : CommandSettings
         var json = File.ReadAllText(filePath);
         return JsonSerializer.Deserialize<Dictionary<string, object?>>(
             json,
-            JsonSerializerOptionsCache.Default
+            JsonSerializerOptionsAccessor.Default
         );
     }
 

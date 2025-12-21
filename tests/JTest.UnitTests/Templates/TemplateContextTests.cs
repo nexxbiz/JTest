@@ -132,7 +132,7 @@ namespace JTest.UnitTests.Templates
                 Substitute.For<IAnsiConsole>(),
                 Substitute.For<HttpClient>(),
                 globalConfigAccessor,
-                new JsonSerializerOptionsCache(serviceProvider) 
+                new JsonSerializerOptionsAccessor(serviceProvider) 
             );
         }
 

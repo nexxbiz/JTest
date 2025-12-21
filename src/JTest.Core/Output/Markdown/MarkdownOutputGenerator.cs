@@ -74,7 +74,7 @@ public sealed class MarkdownOutputGenerator(IVariablesContext variablesContext) 
 
     private static void WriteVariables(TextWriter writer, IReadOnlyDictionary<string, object?> variables)
     {
-        var json = JsonSerializer.Serialize(variables, JsonSerializerOptionsCache.Default);
+        var json = JsonSerializer.Serialize(variables, JsonSerializerOptionsAccessor.Default);
         writer.WriteLine("```json");
         writer.Write(json);
         writer.WriteLine();

@@ -258,7 +258,7 @@ public sealed class HttpStep(HttpClient httpClient, HttpStepConfiguration config
 
     private static string SerializeBodyToJson(object body)
     {
-        return body is string str ? str : JsonSerializer.Serialize(body, JsonSerializerOptionsCache.Default);
+        return body is string str ? str : JsonSerializer.Serialize(body, JsonSerializerOptionsAccessor.Default);
     }
 
     private static StringContent CreateStringContent(string content)
@@ -316,7 +316,7 @@ public sealed class HttpStep(HttpClient httpClient, HttpStepConfiguration config
     {
         try
         {
-            return JsonSerializer.Deserialize<object>(content, JsonSerializerOptionsCache.Default) ?? content;
+            return JsonSerializer.Deserialize<object>(content, JsonSerializerOptionsAccessor.Default) ?? content;
         }
         catch
         {

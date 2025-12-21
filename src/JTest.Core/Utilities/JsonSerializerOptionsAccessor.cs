@@ -3,14 +3,14 @@ using System.Text.Json;
 
 namespace JTest.Core.Utilities;
 
-public sealed class JsonSerializerOptionsCache
+public sealed class JsonSerializerOptionsAccessor
 {
     public static readonly JsonSerializerOptions Default = GetDefaultOptions();
 
     private readonly Lazy<JsonSerializerOptions> options;
     private readonly IServiceProvider serviceProvider;
 
-    public JsonSerializerOptionsCache(IServiceProvider serviceProvider)
+    public JsonSerializerOptionsAccessor(IServiceProvider serviceProvider)
     {
         this.serviceProvider = serviceProvider;
         options = new(Build);

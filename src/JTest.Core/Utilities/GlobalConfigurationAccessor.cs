@@ -42,7 +42,7 @@ public sealed class GlobalConfigurationAccessor : IGlobalConfigurationAccessor
 
         return JsonSerializer.Deserialize<GlobalConfiguration>(
             File.ReadAllText(globalConfigFilePath),
-            options: JsonSerializerOptionsCache.Default
+            options: JsonSerializerOptionsAccessor.Default
         );
     }
 }

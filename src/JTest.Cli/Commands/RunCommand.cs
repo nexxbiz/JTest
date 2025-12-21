@@ -9,7 +9,7 @@ using System.Text.Json;
 
 namespace JTest.Cli.Commands;
 
-public class RunCommand(IAnsiConsole ansiConsole, IJTestSuiteExecutionResultProcessor testExecutionResultsProcessor, IJTestSuiteExecutor testSuiteExecutor, IVariablesContext variablesContext, JsonSerializerOptionsCache serializerOptionsCache)
+public class RunCommand(IAnsiConsole ansiConsole, IJTestSuiteExecutionResultProcessor testExecutionResultsProcessor, IJTestSuiteExecutor testSuiteExecutor, IVariablesContext variablesContext, JsonSerializerOptionsAccessor serializerOptionsCache)
     : CommandBase<RunCommandSettings>(ansiConsole)
 {
     public const string CommandName = "run";

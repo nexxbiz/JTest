@@ -11,7 +11,7 @@ public sealed class TemplateContext(
     IAnsiConsole console,
     HttpClient httpClient,
     IGlobalConfigurationAccessor globalConfigurationAccessor,
-    JsonSerializerOptionsCache jsonSerializerOptionsCache
+    JsonSerializerOptionsAccessor jsonSerializerOptionsCache
 )
 : ITemplateContext
 {

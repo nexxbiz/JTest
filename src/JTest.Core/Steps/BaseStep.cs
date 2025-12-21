@@ -71,6 +71,6 @@ public abstract class BaseStep<TConfiguration>(TConfiguration configuration) : I
         if (value is JsonElement jsonElement)
             return jsonElement;
 
-        return JsonSerializer.SerializeToElement(value, JsonSerializerOptionsCache.Default);
+        return JsonSerializer.SerializeToElement(value, JsonSerializerOptionsAccessor.Default);
     }
 }

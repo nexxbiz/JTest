@@ -5,7 +5,7 @@ using Spectre.Console;
 
 namespace JTest.Cli.Commands;
 
-public sealed class DebugCommand(IAnsiConsole ansiConsole, IJTestSuiteExecutionResultProcessor resultsProcessor, IJTestSuiteExecutor testSuiteExecutor, IVariablesContext variablesContext, JsonSerializerOptionsCache jsonSerializerOptionsCache)
+public sealed class DebugCommand(IAnsiConsole ansiConsole, IJTestSuiteExecutionResultProcessor resultsProcessor, IJTestSuiteExecutor testSuiteExecutor, IVariablesContext variablesContext, JsonSerializerOptionsAccessor jsonSerializerOptionsCache)
     : RunCommand(ansiConsole, resultsProcessor, testSuiteExecutor, variablesContext, jsonSerializerOptionsCache)
 {
     public new const string CommandName = "debug";
