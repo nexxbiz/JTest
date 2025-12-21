@@ -12,6 +12,8 @@ namespace JTest.Cli.Commands;
 public class RunCommand(IAnsiConsole ansiConsole, IJTestSuiteExecutionResultProcessor testExecutionResultsProcessor, IJTestSuiteExecutor testSuiteExecutor, IVariablesContext variablesContext, JsonSerializerOptionsCache serializerOptionsCache)
     : CommandBase<RunCommandSettings>(ansiConsole)
 {
+    public const string CommandName = "run";
+
     protected virtual bool IsDebug => false;
 
     public override sealed async Task<int> ExecuteAsync(CommandContext context, RunCommandSettings settings, CancellationToken cancellationToken)

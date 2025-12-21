@@ -29,6 +29,10 @@ internal class Program
 
         app.Configure(config =>
         {
+            config.Settings.ApplicationName = "jtest";
+            
+            config.SetHelpProvider(new EnvironmentVariablesHelpProvider(config.Settings));
+
             config
                 .AddCommand<RunCommand>("run")
                 .WithDescription("Run test file(s) - supports wildcards")
@@ -55,7 +59,7 @@ internal class Program
 
             config
                 .AddCommand<ValidateCommand>("validate")
-                .WithDescription("Create a new test template")
+                .WithDescription("Validate a test file")
                 .WithExample("my_api_tests");
         });
 

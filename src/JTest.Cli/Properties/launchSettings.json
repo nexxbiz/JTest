@@ -36,6 +36,10 @@
       "environmentVariables": {
         "JTEST_CONFIG_FILE": "global-configuration.json"
       }
+    },
+    "help": {
+      "commandName": "Project",
+      "commandLineArgs": "--help"
     }
   }
 }
