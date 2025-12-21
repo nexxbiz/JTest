@@ -4,7 +4,7 @@ using JTest.Core.TypeDescriptors;
 using NSubstitute;
 using Xunit;
 
-namespace JTest.UnitTests;
+namespace JTest.UnitTests.TypeDescriptors;
 
 public sealed class TypeDescriptorRegistryTests
 {
@@ -65,14 +65,14 @@ public sealed class TypeDescriptorRegistryTests
         Assert.Equal(instance.Value, validArgument.Value);
         Assert.Same(instance.Dependency, dependency);
     }
-    
+
     private static TypeDescriptorRegistry<IMarkerInterface> GetSut(IServiceProvider? serviceProvider = null)
     {
         return new TypeDescriptorRegistry<IMarkerInterface>(
             types: [],
             serviceProvider ?? Substitute.For<IServiceProvider>(),
             new MockDescriptorIdentification()
-        );        
+        );
     }
 
     private class MockDescriptorIdentification : ITypeDescriptorIdentification
@@ -96,7 +96,7 @@ public sealed class TypeDescriptorRegistryTests
     }
 
     private class MockImplementationWithoutValidConstructor() : IMarkerInterface
-    {        
+    {
     }
 
     private interface IMarkerInterface

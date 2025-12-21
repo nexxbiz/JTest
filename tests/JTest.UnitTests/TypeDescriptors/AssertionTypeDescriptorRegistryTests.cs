@@ -11,7 +11,7 @@ using NSubstitute;
 using Spectre.Console;
 using Xunit;
 
-namespace JTest.UnitTests;
+namespace JTest.UnitTests.TypeDescriptors;
 
 public sealed class AssertionTypeDescriptorRegistryTests
 {
@@ -45,7 +45,7 @@ public sealed class AssertionTypeDescriptorRegistryTests
         Assert.IsType(expectedType, instance);
 
         var assertion = (IAssertionOperation)instance;
-        Assert.NotNull(assertion.Mask);        
+        Assert.NotNull(assertion.Mask);
         Assert.NotNull(assertion.Description);
         Assert.NotNull(assertion.OperationName);
     }
@@ -58,7 +58,7 @@ public sealed class AssertionTypeDescriptorRegistryTests
         serviceCollection
             .AddSingleton<TypeDescriptorRegistryProvider>();
 
-        if(registerStepDependencies)
+        if (registerStepDependencies)
         {
             serviceCollection
                 .AddSingleton(new HttpClient())
@@ -85,7 +85,7 @@ public sealed class AssertionTypeDescriptorRegistryTests
         return types;
     }
 
-    public static IEnumerable<object[]> CreateAllAssertionsInput => 
+    public static IEnumerable<object[]> CreateAllAssertionsInput =>
     [
         CreateInAssertionStepInput,
         CreateTypeAssertionStepInput,

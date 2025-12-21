@@ -9,7 +9,7 @@ using NSubstitute;
 using Spectre.Console;
 using Xunit;
 
-namespace JTest.UnitTests;
+namespace JTest.UnitTests.TypeDescriptors;
 
 public sealed class StepTypeDescriptorRegistryTests
 {
@@ -46,7 +46,7 @@ public sealed class StepTypeDescriptorRegistryTests
         Assert.NotNull(step.Configuration);
         Assert.NotNull(step.Configuration.Name);
         Assert.NotNull(step.Configuration.Description);
-        Assert.NotNull(step.Configuration.Id);        
+        Assert.NotNull(step.Configuration.Id);
     }
 
     private static Type[] GetKnownStepTypes()
@@ -65,7 +65,7 @@ public sealed class StepTypeDescriptorRegistryTests
         var serviceCollection = new ServiceCollection();
         serviceCollection.AddSingleton<TypeDescriptorRegistryProvider>();
 
-        if(registerStepDependencies)
+        if (registerStepDependencies)
         {
             serviceCollection
                 .AddSingleton(new HttpClient())

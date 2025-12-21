@@ -6,7 +6,7 @@ namespace JTest.Core.Assertions;
 /// <summary>
 /// Type assertion to check the type of a value
 /// </summary>
-public sealed class TypeAssertion(object? actualValue, object? expectedValue, string? description, bool? mask)
+public sealed class TypeAssertion(object? actualValue, object? expectedValue, string? description = null, bool? mask = null)
     : AssertionOperationBase(actualValue, expectedValue, description, mask)
 {    
     protected override string GetErrorMessage(object? resolvedActualValue, object? resolvedExpectedValue)

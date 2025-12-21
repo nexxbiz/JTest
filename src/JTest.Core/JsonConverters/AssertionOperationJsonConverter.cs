@@ -9,6 +9,8 @@ namespace JTest.Core.JsonConverters;
 
 public sealed class AssertionOperationJsonConverter(IServiceProvider serviceProvider) : JsonConverter<IAssertionOperation>
 {
+    private const string operationTypePropertyName = "op";
+
     public override void Write(Utf8JsonWriter writer, IAssertionOperation value, JsonSerializerOptions options)
     {
         var typeRegistry = serviceProvider
@@ -18,12 +20,12 @@ public sealed class AssertionOperationJsonConverter(IServiceProvider serviceProv
         writer.WriteStartObject();
 
         var typeIdentifier = typeRegistry.Identification.Identify(value.GetType());
-        writer.WritePropertyName("op");
+        writer.WritePropertyName(operationTypePropertyName);
         writer.WriteStringValue(typeIdentifier);
 
         if(value.ActualValue is not null)
         {
-            writer.WritePropertyName("actualValue");
+            writer.WritePropertyName(GetPropertyName(nameof(value.ActualValue)));
             writer.WriteRawValue(
                 JsonSerializer.SerializeToElement(value.ActualValue, options).GetRawText()
             );
@@ -31,7 +33,7 @@ public sealed class AssertionOperationJsonConverter(IServiceProvider serviceProv
 
         if(value.ExpectedValue is not null)
         {
-            writer.WritePropertyName("expectedValue");
+            writer.WritePropertyName(GetPropertyName(nameof(value.ExpectedValue)));
             writer.WriteRawValue(
                 JsonSerializer.SerializeToElement(value.ExpectedValue, options).GetRawText()
             );
@@ -39,13 +41,13 @@ public sealed class AssertionOperationJsonConverter(IServiceProvider serviceProv
 
         if(!string.IsNullOrWhiteSpace(value.Description))
         {
-            writer.WritePropertyName("description");
+            writer.WritePropertyName(GetPropertyName(nameof(value.Description)));
             writer.WriteStringValue(value.Description);
         }
 
         if(value.Mask.HasValue)
         {
-            writer.WritePropertyName("mask");
+            writer.WritePropertyName(GetPropertyName(nameof(value.Mask)));
             writer.WriteBooleanValue(value.Mask == true);
         }
 
@@ -85,17 +87,17 @@ public sealed class AssertionOperationJsonConverter(IServiceProvider serviceProv
     {
         var operationTypeProperty = json
             .EnumerateObject()
-            .FirstOrDefault(x => x.Name.Equals("op", StringComparison.OrdinalIgnoreCase));
+            .FirstOrDefault(x => x.Name.Equals(operationTypePropertyName, StringComparison.OrdinalIgnoreCase));
 
         if (operationTypeProperty.Value.ValueKind != JsonValueKind.String)
         {
-            throw new JsonException("Assertion is missing required string property 'op'");
+            throw new JsonException($"Assertion is missing required string property '{operationTypePropertyName}'");
         }
 
         var result = operationTypeProperty.Value.GetString();
         if (string.IsNullOrWhiteSpace(result))
         {
-            throw new JsonException("Required property 'op' is null or empty");
+            throw new JsonException($"Required property '{operationTypePropertyName}' is null or empty");
         }
 
         return result;
@@ -114,7 +116,7 @@ public sealed class AssertionOperationJsonConverter(IServiceProvider serviceProv
 
     private static object? GetArgumentValue(string name, JsonElement value)
     {
-        if (name.Equals("description", StringComparison.OrdinalIgnoreCase))
+        if (name.Equals(nameof(IAssertionOperation.Description), StringComparison.OrdinalIgnoreCase))
         {
             if (value.ValueKind == JsonValueKind.String)
                 return value.GetString() ?? string.Empty;
@@ -122,7 +124,7 @@ public sealed class AssertionOperationJsonConverter(IServiceProvider serviceProv
             return string.Empty;
         }
 
-        if (name.Equals("mask", StringComparison.OrdinalIgnoreCase))
+        if (name.Equals(nameof(IAssertionOperation.Mask), StringComparison.OrdinalIgnoreCase))
         {
             if (value.ValueKind is JsonValueKind.True or JsonValueKind.False)
                 return value.GetBoolean();
@@ -133,5 +135,12 @@ public sealed class AssertionOperationJsonConverter(IServiceProvider serviceProv
         }
 
         return value;
+    }
+
+    private static string GetPropertyName(string name)
+    {
+        var result = name.ToCharArray();
+        result[0] = char.ToLower(result[0]);
+        return new(result);
     }
 }

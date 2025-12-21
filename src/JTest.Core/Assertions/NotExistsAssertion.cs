@@ -3,7 +3,7 @@
 /// <summary>
 /// Not equals assertion
 /// </summary>
-public sealed class NotExistsAssertion(object? actualValue, string? description, bool? mask)
+public sealed class NotExistsAssertion(object? actualValue, string? description = null, bool? mask = null)
     : AssertionOperationBase(actualValue, expectedValue: null, description, mask)
 {    
     protected override string GetErrorMessage(object? resolvedActualValue, object? resolvedExpectedValue)

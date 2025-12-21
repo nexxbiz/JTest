@@ -3,7 +3,7 @@
 /// <summary>
 /// Contains assertion for string values
 /// </summary>
-public sealed class ContainsAssertion(object? actualValue, object? expectedValue, string? description, bool? mask)
+public sealed class ContainsAssertion(object? actualValue, object? expectedValue, string? description = null, bool? mask = null)
     : AssertionOperationBase(actualValue, expectedValue, description, mask)
 {    
     internal override bool Execute(object? resolvedActualValue, object? resolvedExpectedValue)

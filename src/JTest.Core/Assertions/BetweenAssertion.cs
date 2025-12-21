@@ -6,7 +6,7 @@ namespace JTest.Core.Assertions;
 /// <summary>
 /// Between assertion for numeric values
 /// </summary>
-public sealed class BetweenAssertion(object? actualValue, object? expectedValue, string? description, bool? mask)
+public sealed class BetweenAssertion(object? actualValue, object? expectedValue, string? description = null, bool? mask = null)
     : AssertionOperationBase(actualValue, expectedValue, description, mask)
 {    
     private string errorMessage = string.Empty;

@@ -1,62 +1,67 @@
-﻿using JTest.Core.Execution;
-using JTest.Core.Models;
+﻿using JTest.Core.Models;
 using JTest.Core.Utilities;
+using Spectre.Console;
+using System.Collections.Concurrent;
 using System.Text.Json;
 
 namespace JTest.Core.Templates;
 
-public sealed class TemplateContext(HttpClient httpClient, GlobalConfigurationAccessor globalConfigurationAccessor, JsonSerializerOptionsCache jsonSerializerOptionsCache) : ITemplateContext
+public sealed class TemplateContext : ITemplateContext
 {
-    private readonly Dictionary<string, Template> _templates = [];
+    private readonly ConcurrentDictionary<string, Template> _templates = [];
+    private Dictionary<string, Template>? globalTemplates;
+    private readonly Lazy<Task> initializeGlobalTemplates;
+    private readonly IAnsiConsole console;
+    private readonly HttpClient httpClient;
+    private readonly GlobalConfigurationAccessor globalConfigurationAccessor;
+    private readonly JsonSerializerOptionsCache jsonSerializerOptionsCache;
 
-    public async Task Load(JTestSuite testSuite, IExecutionContext executionContext)
+    public TemplateContext(IAnsiConsole console, HttpClient httpClient, GlobalConfigurationAccessor globalConfigurationAccessor, JsonSerializerOptionsCache jsonSerializerOptionsCache)
+    {
+        this.console = console;
+        this.httpClient = httpClient;
+        this.globalConfigurationAccessor = globalConfigurationAccessor;
+        this.jsonSerializerOptionsCache = jsonSerializerOptionsCache;
+        initializeGlobalTemplates = new(LoadTemplatesFromGlobalUsingPathsAsync);
+    }
+
+    public async Task Load(JTestSuite testSuite)
     {
         _templates.Clear();
 
-        // Load templates from GlobalConfiguration
-        await LoadTemplatesFromGlobalUsingPathsAsync(executionContext);
-
+        if (globalTemplates is null)
+        {
+            await initializeGlobalTemplates.Value;
+        }
+        
         // Load templates from using statement before any test execution        
-        await LoadTemplatesFromUsingAsync(testSuite.Using, executionContext, testSuite.FilePath);
+        await LoadTemplatesFromUsingAsync(_templates, testSuite.Using, testSuite.FilePath);
     }
 
     /// <summary>
     /// Gets a template by name
     /// </summary>
     /// <param name="name">The template name</param>
-    /// <returns>The template definition or null if not found</returns>
+    /// <returns>The template definition</returns>
     public Template GetTemplate(string name)
+    {
+        return GetTestSuiteTemplate(name)
+            ?? GetGlobalTemplate(name)
+            ?? throw new InvalidOperationException($"Template '{name}' not found");
+    }
+
+    private Template? GetTestSuiteTemplate(string name)
     {
         return _templates.TryGetValue(name, out var template)
             ? template
-            : throw new InvalidOperationException($"Template '{name}' not found");
+            : null;
     }
 
-    /// <summary>
-    /// Registers a template collection
-    /// </summary>
-    /// <param name="templateCollection">The template collection to register</param>
-    private void RegisterTemplateCollection(TemplateCollection templateCollection)
+    private Template? GetGlobalTemplate(string name)
     {
-        if (templateCollection.Components?.Templates == null) return;
-
-        foreach (var template in templateCollection.Components.Templates)
-        {
-            _templates[template.Name] = template;
-        }
-    }
-
-    /// <summary>
-    /// Loads templates from JSON content
-    /// </summary>
-    /// <param name="jsonContent">The JSON content containing templates</param>
-    private void LoadTemplatesFromJson(string jsonContent)
-    {
-        var templateCollection = JsonSerializer.Deserialize<TemplateCollection>(jsonContent, jsonSerializerOptionsCache.Options);
-        if (templateCollection != null)
-        {
-            RegisterTemplateCollection(templateCollection);
-        }
+        return globalTemplates?.TryGetValue(name, out var template) == true
+            ? template
+            : null;
     }
 
     /// <summary>
@@ -65,7 +70,7 @@ public sealed class TemplateContext(HttpClient httpClient, GlobalConfigurationAc
     /// <param name="usingPaths">List of template file paths or URLs</param>
     /// <param name="context">Execution context for logging</param>
     /// <param name="testFilePath">Optional path to test file for resolving relative template paths</param>
-    private async Task LoadTemplatesFromUsingAsync(List<string>? usingPaths, IExecutionContext context, string? testFilePath = null)
+    private async Task LoadTemplatesFromUsingAsync(IDictionary<string, Template> dictionary, List<string>? usingPaths, string? testFilePath = null)
     {
         if (usingPaths == null || usingPaths.Count == 0)
             return;
@@ -78,7 +83,7 @@ public sealed class TemplateContext(HttpClient httpClient, GlobalConfigurationAc
             {
                 // Resolve relative paths relative to the test file directory, not the current working directory
                 var resolvedPath = ResolveTemplatePath(path, testFilePath);
-                context.Log.Add($"Loading templates from: {resolvedPath}");
+                console.WriteLine($"Loading templates from: {resolvedPath}");
 
                 string templateContent = await LoadContentFromPathAsync(resolvedPath);
 
@@ -90,27 +95,32 @@ public sealed class TemplateContext(HttpClient httpClient, GlobalConfigurationAc
                 {
                     if (loadedTemplateNames.Contains(templateName))
                     {
-                        context.Log.Add($"Warning: Template '{templateName}' from '{path}' overwrites previously loaded template");
+                        console.WriteLine(
+                            $"Warning: Template '{templateName}' from '{path}' overwrites previously loaded template", 
+                            new Style(foreground: Color.Yellow)
+                        );
                     }
                     loadedTemplateNames.Add(templateName);
                 }
 
-                LoadTemplatesFromJson(templateContent);
-                context.Log.Add($"Successfully loaded templates from: {path}");
+                RegisterTemplate(templateContent, dictionary);
+                console.WriteLine($"Successfully loaded templates from: {path}");
             }
             catch (Exception ex)
             {
-                context.Log.Add($"Error loading templates from '{path}': {ex.Message}");
+                console.WriteLine($"Error loading templates from '{path}': {ex.Message}", new Style(foreground: Color.Red));
                 throw new InvalidOperationException($"Failed to load templates from '{path}': {ex.Message}", ex);
             }
         }
     }
 
-    private Task LoadTemplatesFromGlobalUsingPathsAsync(IExecutionContext context)
+    private async Task LoadTemplatesFromGlobalUsingPathsAsync()
     {
+        globalTemplates = [];
+
         var globalConfiguration = globalConfigurationAccessor.Get();
         if (globalConfiguration.Templates is null)
-            return Task.CompletedTask;
+            return;
 
         var usingPaths = new List<string>();
 
@@ -125,8 +135,8 @@ public sealed class TemplateContext(HttpClient httpClient, GlobalConfigurationAc
         usingPaths.AddRange(
             resolvedTemplatePaths ?? []
         );
-
-        return LoadTemplatesFromUsingAsync(usingPaths, context);
+        
+        await LoadTemplatesFromUsingAsync(globalTemplates, usingPaths);
     }
 
     private static IEnumerable<string> FindTemplateJsonFilesInSearchPaths(IEnumerable<string>? searchPaths)
@@ -150,6 +160,23 @@ public sealed class TemplateContext(HttpClient httpClient, GlobalConfigurationAc
     }
 
 
+    /// <summary>
+    /// Registers a template collection
+    /// </summary>
+    /// <param name="templateCollection">The template collection to register</param>
+    private void RegisterTemplate(string templateContent, IDictionary<string, Template> dictionary)
+    {
+        var templateCollection = JsonSerializer.Deserialize<TemplateCollection>(templateContent, jsonSerializerOptionsCache.Options);
+        if (templateCollection is null || templateCollection.Components?.Templates is null)
+        {
+            return;
+        }
+
+        foreach (var template in templateCollection.Components.Templates)
+        {
+            dictionary[template.Name] = template;
+        }
+    }
 
     /// <summary>
     /// Resolves template paths relative to the test file directory when available,

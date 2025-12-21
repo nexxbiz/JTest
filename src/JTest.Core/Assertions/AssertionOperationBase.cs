@@ -5,7 +5,7 @@ using System.Text.Json;
 
 namespace JTest.Core.Assertions;
 
-public abstract class AssertionOperationBase(object? actualValue, object? expectedValue, string? description, bool? mask)
+public abstract class AssertionOperationBase(object? actualValue, object? expectedValue, string? description = null, bool? mask = null)
     : IAssertionOperation
 {
     public object? ActualValue { get; } = actualValue;
@@ -43,7 +43,9 @@ public abstract class AssertionOperationBase(object? actualValue, object? expect
         }
 
         var result = Execute(resolvedActualValue, resolvedExpectedValue);
-        var error = result ? GetErrorMessage(resolvedActualValue, resolvedExpectedValue) : string.Empty;
+        var error = result
+            ? string.Empty
+            : GetErrorMessage(resolvedActualValue, resolvedExpectedValue);
 
         return new AssertionResult(result, error)
         {

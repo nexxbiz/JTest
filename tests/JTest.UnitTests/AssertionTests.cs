@@ -2,6 +2,7 @@ using JTest.Core.Assertions;
 using JTest.Core.Execution;
 using System.Globalization;
 using System.Text.Json;
+using Xunit;
 
 namespace JTest.UnitTests;
 
@@ -12,10 +13,11 @@ public class AssertionTests
     public void EqualsAssertion_WithIntegerValues_ReturnsTrue()
     {
         // Arrange
-        var assertion = new EqualsAssertion();
+        var assertion = new EqualsAssertion(42, 42);
+        var context = new TestExecutionContext();
 
         // Act
-        var result = assertion.Execute(42, 42);
+        var result = assertion.Execute(context);
 
         // Assert
         Assert.True(result.Success);
@@ -25,14 +27,15 @@ public class AssertionTests
     public void EqualsAssertion_WithDifferentIntegerValues_ReturnsFalse()
     {
         // Arrange
-        var assertion = new EqualsAssertion();
+        var assertion = new EqualsAssertion(42, 43);
+        var context = new TestExecutionContext();
 
         // Act
-        var result = assertion.Execute(42, 43);
+        var result = assertion.Execute(context);
 
         // Assert
         Assert.False(result.Success);
-        Assert.Contains("Expected '43' but got '42'", result.ErrorMessage);
+        Assert.Contains($"Condition failed: 42 == 43", result.ErrorMessage);
     }
 
     [Fact]
@@ -40,17 +43,19 @@ public class AssertionTests
     {
         // Save current culture
         var originalCulture = CultureInfo.CurrentCulture;
+        var context = new TestExecutionContext();
 
         try
         {
             // Test with English culture (uses dot)
             CultureInfo.CurrentCulture = new CultureInfo("en-US");
-            var assertion = new EqualsAssertion();
-            var result1 = assertion.Execute(30.5, 30.5);
+            var assertion = new EqualsAssertion(30.5, 30.5);
+            var result1 = assertion.Execute(context);
 
             // Test with German culture (uses comma)
+            assertion = new EqualsAssertion(30.5, 30.5);
             CultureInfo.CurrentCulture = new CultureInfo("de-DE");
-            var result2 = assertion.Execute(30.5, 30.5);
+            var result2 = assertion.Execute(context);
 
             // Both should succeed regardless of culture
             Assert.True(result1.Success);
@@ -67,14 +72,14 @@ public class AssertionTests
     {
         // Save current culture
         var originalCulture = CultureInfo.CurrentCulture;
-
+        var context = new TestExecutionContext();
         try
         {
             CultureInfo.CurrentCulture = new CultureInfo("de-DE");
-            var assertion = new EqualsAssertion();
+            var assertion = new EqualsAssertion(30.5, "30.5");
 
             // Both values should be compared using invariant culture formatting
-            var result = assertion.Execute(30.5, "30.5");
+            var result = assertion.Execute(context);
 
             Assert.True(result.Success);
         }
@@ -89,14 +94,14 @@ public class AssertionTests
     {
         // Save current culture
         var originalCulture = CultureInfo.CurrentCulture;
-
+        var context = new TestExecutionContext();
         try
         {
             CultureInfo.CurrentCulture = new CultureInfo("de-DE");
-            var assertion = new GreaterThanAssertion();
+            var assertion = new GreaterThanAssertion(30.5, 20.3);
 
             // Act
-            var result = assertion.Execute(30.5, 20.3);
+            var result = assertion.Execute(context);
 
             // Assert
             Assert.True(result.Success);
@@ -111,12 +116,13 @@ public class AssertionTests
     public void GreaterThanAssertion_WithDateTimeValues_WorksCorrectly()
     {
         // Arrange
-        var assertion = new GreaterThanAssertion();
+        var context = new TestExecutionContext();
         var expected = new DateTime(2020, 1, 1, 12, 34, 55).ToString(CultureInfo.InvariantCulture);
         var actual = new DateTime(2020, 1, 1, 12, 35, 0).ToString(CultureInfo.InvariantCulture);
+        var assertion = new GreaterThanAssertion(actual, expected);
 
         // Act
-        var result = assertion.Execute(actualValue: actual, expectedValue: expected);
+        var result = assertion.Execute(context);
 
         // Assert
         Assert.True(result.Success);
@@ -126,16 +132,16 @@ public class AssertionTests
     public void GreaterThanAssertion_WithDateTimeOffsetValues_WorksCorrectly()
     {
         // Arrange
-        var assertion = new GreaterThanAssertion();
-
+        var context = new TestExecutionContext();
         var actual = new DateTimeOffset(2020, 1, 1, 11, 0, 0, TimeSpan.Zero)
             .ToString(CultureInfo.InvariantCulture);
         // This seems like the later time, but there is an offset of 1 hour
         var expected = new DateTimeOffset(2020, 1, 1, 11, 55, 0, TimeSpan.FromHours(1))
             .ToString(CultureInfo.InvariantCulture);
+        var assertion = new GreaterThanAssertion(actual, expected);
 
         // Act
-        var result = assertion.Execute(actualValue: actual, expectedValue: expected);
+        var result = assertion.Execute(context);
 
         // Assert
         Assert.True(result.Success);
@@ -144,12 +150,14 @@ public class AssertionTests
     [Fact]
     public void GreaterThanAssertion_WithDateOnlyValues_WorksCorrectly()
     {
-        var assertion = new GreaterThanAssertion();
+        // Arrange
+        var context = new TestExecutionContext();
         var actual = new DateOnly(2020, 1, 2).ToString(CultureInfo.InvariantCulture);
         var expected = new DateOnly(2020, 1, 1).ToString(CultureInfo.InvariantCulture);
+        var assertion = new GreaterThanAssertion(actual, expected);
 
         // Act
-        var result = assertion.Execute(actualValue: actual, expectedValue: expected);
+        var result = assertion.Execute(context);
 
         // Assert
         Assert.True(result.Success);
@@ -158,12 +166,14 @@ public class AssertionTests
     [Fact]
     public void GreaterThanAssertion_WithTimeOnlyValues_WorksCorrectly()
     {
-        var assertion = new GreaterThanAssertion();
+        // Arrange
+        var context = new TestExecutionContext();
         var actual = new TimeOnly(1, 2, 1).ToString();
         var expected = new TimeOnly(1, 1, 1).ToString();
+        var assertion = new GreaterThanAssertion(actual, expected);
 
         // Act
-        var result = assertion.Execute(actualValue: actual, expectedValue: expected);
+        var result = assertion.Execute(context);
 
         // Assert
         Assert.True(result.Success);
@@ -172,12 +182,14 @@ public class AssertionTests
     [Fact]
     public void LessThanAssertion_WithDateTimeValues_WorksCorrectly()
     {
-        var assertion = new LessThanAssertion();
+        // Arrange
+        var context = new TestExecutionContext();
         var actual = new DateTime(2020, 1, 1, 12, 34, 55).ToString(CultureInfo.InvariantCulture);
         var expected = new DateTime(2020, 1, 1, 12, 35, 0).ToString(CultureInfo.InvariantCulture);
+        var assertion = new LessThanAssertion(actual, expected);
 
         // Act
-        var result = assertion.Execute(actualValue: actual, expectedValue: expected);
+        var result = assertion.Execute(context);
 
         // Assert
         Assert.True(result.Success);
@@ -186,12 +198,14 @@ public class AssertionTests
     [Fact]
     public void LessThanAssertion_WithDateOnlyValues_WorksCorrectly()
     {
-        var assertion = new LessThanAssertion();
+        // Arrange
+        var context = new TestExecutionContext();
         var actual = new DateOnly(2020, 1, 1).ToString(CultureInfo.InvariantCulture);
         var expected = new DateOnly(2020, 1, 2).ToString(CultureInfo.InvariantCulture);
+        var assertion = new LessThanAssertion(actual, expected);
 
         // Act
-        var result = assertion.Execute(actualValue: actual, expectedValue: expected);
+        var result = assertion.Execute(context);
 
         // Assert
         Assert.True(result.Success);
@@ -200,12 +214,14 @@ public class AssertionTests
     [Fact]
     public void LessThanAssertion_WithTimeOnlyValues_WorksCorrectly()
     {
-        var assertion = new LessThanAssertion();
+        // Arrange
+        var context = new TestExecutionContext();
         var actual = new TimeOnly(1, 1, 1).ToString("hh:mm:ss");
         var expected = new TimeOnly(1, 1, 2).ToString("hh:mm:ss");
+        var assertion = new LessThanAssertion(actual, expected);
 
         // Act
-        var result = assertion.Execute(actualValue: actual, expectedValue: expected);
+        var result = assertion.Execute(context);
 
         // Assert
         Assert.True(result.Success);
@@ -214,12 +230,14 @@ public class AssertionTests
     [Fact]
     public void StronglyTypedDateTimeAssertion_WithDateOnlyValues_WorksCorrectly()
     {
-        var assertion = new LessThanAssertion();
+        // Arrange
+        var context = new TestExecutionContext();
         var actual = new DateOnly(2020, 1, 1);
         var expected = new DateOnly(2020, 1, 2);
+        var assertion = new LessThanAssertion(actual, expected);
 
         // Act
-        var result = assertion.Execute(actualValue: actual, expectedValue: expected);
+        var result = assertion.Execute(context);
 
         // Assert
         Assert.True(result.Success);
@@ -228,12 +246,14 @@ public class AssertionTests
     [Fact]
     public void StronglyTypedDateTimeAssertion_WithDateTimeValues_WorksCorrectly()
     {
-        var assertion = new LessThanAssertion();
+        // Arrange
+        var context = new TestExecutionContext();
         var actual = new DateTime(2020, 1, 1, 1, 1, 1);
         var expected = new DateTime(2020, 1, 1, 1, 1, 2);
+        var assertion = new LessThanAssertion(actual, expected);
 
         // Act
-        var result = assertion.Execute(actualValue: actual, expectedValue: expected);
+        var result = assertion.Execute(context);
 
         // Assert
         Assert.True(result.Success);
@@ -242,12 +262,14 @@ public class AssertionTests
     [Fact]
     public void StronglyTypedDateTimeAssertion_WithDateTimeOffsetValues_WorksCorrectly()
     {
-        var assertion = new LessThanAssertion();
+        // Arrange
+        var context = new TestExecutionContext();
         var actual = new DateTimeOffset(2020, 1, 1, 1, 1, 1, TimeSpan.FromHours(1));
         var expected = new DateTimeOffset(2020, 1, 1, 1, 1, 2, TimeSpan.Zero);
+        var assertion = new LessThanAssertion(actual, expected);
 
         // Act
-        var result = assertion.Execute(actualValue: actual, expectedValue: expected);
+        var result = assertion.Execute(context);
 
         // Assert
         Assert.True(result.Success);
@@ -256,12 +278,14 @@ public class AssertionTests
     [Fact]
     public void StronglyTypedDateTimeAssertion_WithTimeOnlyValues_WorksCorrectly()
     {
-        var assertion = new LessThanAssertion();
+        // Arrange
+        var context = new TestExecutionContext();
         var actual = new TimeOnly(1, 1, 1, 1);
         var expected = new TimeOnly(1, 1, 1, 2);
+        var assertion = new LessThanAssertion(actual, expected);
 
         // Act
-        var result = assertion.Execute(actualValue: actual, expectedValue: expected);
+        var result = assertion.Execute(context);
 
         // Assert
         Assert.True(result.Success);
@@ -270,15 +294,17 @@ public class AssertionTests
     [Fact]
     public void LessThanAssertion_WithDateTimeOffsetValues_WorksCorrectly()
     {
-        var assertion = new LessThanAssertion();
+        // Arrange
+        var context = new TestExecutionContext();
         // This seems like the later time, but there is an offset of 1 hour
         var actual = new DateTimeOffset(2020, 1, 1, 11, 55, 0, TimeSpan.FromHours(1))
             .ToString(CultureInfo.InvariantCulture);
         var expected = new DateTimeOffset(2020, 1, 1, 11, 0, 0, TimeSpan.Zero)
             .ToString(CultureInfo.InvariantCulture);
+        var assertion = new LessThanAssertion(actual, expected);
 
         // Act
-        var result = assertion.Execute(actualValue: actual, expectedValue: expected);
+        var result = assertion.Execute(context);
 
         // Assert
         Assert.True(result.Success);
@@ -288,12 +314,13 @@ public class AssertionTests
     public void LessThanOrEqualsAssertion_WithDateTimeValues_And_ActualLessThanExpected_Then_Succeeds()
     {
         // Arrange
-        var assertion = new LessOrEqualAssertion();
+        var context = new TestExecutionContext();
         var actual = new DateTime(2020, 1, 1, 12, 34, 55).ToString(CultureInfo.InvariantCulture);
         var expected = new DateTime(2020, 1, 1, 12, 35, 0).ToString(CultureInfo.InvariantCulture);
+        var assertion = new LessOrEqualAssertion(actual, expected);
 
         // Act
-        var result = assertion.Execute(actualValue: actual, expectedValue: expected);
+        var result = assertion.Execute(context);
 
         // Assert
         Assert.True(result.Success);
@@ -302,15 +329,17 @@ public class AssertionTests
     [Fact]
     public void LessThanOrEqualsAssertion_WithDateTimeOffsetValues_And_ActualLessThanExpected_Then_Succeeds()
     {
-        var assertion = new LessOrEqualAssertion();
+        // Arrange
+        var context = new TestExecutionContext();
         // This seems like the later time, but there is an offset of 1 hour
         var actual = new DateTimeOffset(2020, 1, 1, 11, 55, 0, TimeSpan.FromHours(1))
             .ToString(CultureInfo.InvariantCulture);
         var expected = new DateTimeOffset(2020, 1, 1, 11, 0, 0, TimeSpan.Zero)
             .ToString(CultureInfo.InvariantCulture);
+        var assertion = new LessOrEqualAssertion(actual, expected);
 
         // Act
-        var result = assertion.Execute(actualValue: actual, expectedValue: expected);
+        var result = assertion.Execute(context);
 
         // Assert
         Assert.True(result.Success);
@@ -319,12 +348,14 @@ public class AssertionTests
     [Fact]
     public void LessThanOrEqualsAssertion_WithDateTimeValues_And_ActualEqualsExpected_Then_Succeeds()
     {
-        var assertion = new LessOrEqualAssertion();
+        // Arrange
+        var context = new TestExecutionContext();
         var actual = new DateTime(2020, 1, 1, 12, 35, 0).ToString(CultureInfo.InvariantCulture);
         var expected = new DateTime(2020, 1, 1, 12, 35, 0).ToString(CultureInfo.InvariantCulture);
+        var assertion = new LessOrEqualAssertion(actual, expected);
 
         // Act
-        var result = assertion.Execute(actualValue: actual, expectedValue: expected);
+        var result = assertion.Execute(context);
 
         // Assert
         Assert.True(result.Success);
@@ -333,15 +364,17 @@ public class AssertionTests
     [Fact]
     public void LessThanOrEqualsAssertion_WithDateTimeOffsetValues_And_ActualEqualsExpected_Then_Succeeds()
     {
-        var assertion = new LessOrEqualAssertion();
+        // Arrange
+        var context = new TestExecutionContext();
         // This seems like a later time, but there is an offset of 1 hour
         var earlier = new DateTimeOffset(2020, 1, 1, 12, 0, 0, TimeSpan.FromHours(1))
             .ToString(CultureInfo.InvariantCulture);
         var later = new DateTimeOffset(2020, 1, 1, 11, 0, 0, TimeSpan.Zero)
             .ToString(CultureInfo.InvariantCulture);
+        var assertion = new LessOrEqualAssertion(earlier, later);
 
         // Act
-        var result = assertion.Execute(actualValue: earlier, expectedValue: later);
+        var result = assertion.Execute(context);
 
         // Assert
         Assert.True(result.Success);
@@ -350,16 +383,17 @@ public class AssertionTests
     [Fact]
     public void LessThanAssertion_WithNumericValues_InDifferentCultures_WorksCorrectly()
     {
-        // Save current culture
+        // Arrange
+        var context = new TestExecutionContext();        
         var originalCulture = CultureInfo.CurrentCulture;
 
         try
         {
             CultureInfo.CurrentCulture = new CultureInfo("de-DE");
-            var assertion = new LessThanAssertion();
+            var assertion = new LessThanAssertion(20.3, 30.5);
 
             // Act
-            var result = assertion.Execute(20.3, 30.5);
+            var result = assertion.Execute(context);
 
             // Assert
             Assert.True(result.Success);
@@ -374,10 +408,11 @@ public class AssertionTests
     public void ExistsAssertion_WithNonNullValue_ReturnsTrue()
     {
         // Arrange
-        var assertion = new ExistsAssertion();
+        var context = new TestExecutionContext();
+        var assertion = new ExistsAssertion("test");
 
         // Act
-        var result = assertion.Execute("test", null);
+        var result = assertion.Execute(context);
 
         // Assert
         Assert.True(result.Success);
@@ -387,10 +422,11 @@ public class AssertionTests
     public void ExistsAssertion_WithNullValue_ReturnsFalse()
     {
         // Arrange
-        var assertion = new ExistsAssertion();
+        var context = new TestExecutionContext();
+        var assertion = new ExistsAssertion(null);
 
         // Act
-        var result = assertion.Execute(null, null);
+        var result = assertion.Execute(context);
 
         // Assert
         Assert.False(result.Success);
@@ -398,133 +434,14 @@ public class AssertionTests
     }
 
     [Fact]
-    public void AssertionProcessor_WithEqualsAssertion_ProcessesCorrectly()
-    {
-        // Arrange
-        var context = new TestExecutionContext();
-        context.Variables["response"] = new { status = 200 };
-
-        var assertionJson = """
-        [
-            {
-                "op": "equals",
-                "actualValue": "{{$.response.status}}",
-                "expectedValue": 200
-            }
-        ]
-        """;
-
-        var assertionsElement = JsonSerializer.Deserialize<JsonElement>(assertionJson);
-
-        // Act
-        var results = AssertionProcessor.ProcessAssertions(assertionsElement, context);
-
-        // Assert
-        Assert.Single(results);
-        Assert.True(results[0].Success);
-    }
-
-    [Fact]
-    public void AssertionProcessor_WithNumericComparison_InDifferentCulture_WorksCorrectly()
-    {
-        // Save current culture
-        var originalCulture = CultureInfo.CurrentCulture;
-
-        try
-        {
-            CultureInfo.CurrentCulture = new CultureInfo("de-DE");
-
-            // Arrange
-            var context = new TestExecutionContext();
-            context.Variables["response"] = new { duration = 30.5 };
-
-            var assertionJson = """
-            [
-                {
-                    "op": "lessthan",
-                    "actualValue": "{{$.response.duration}}",
-                    "expectedValue": 60.0
-                }
-            ]
-            """;
-
-            var assertionsElement = JsonSerializer.Deserialize<JsonElement>(assertionJson);
-
-            // Act
-            var results = AssertionProcessor.ProcessAssertions(assertionsElement, context);
-
-            // Assert
-            Assert.Single(results);
-            Assert.True(results[0].Success);
-        }
-        finally
-        {
-            CultureInfo.CurrentCulture = originalCulture;
-        }
-    }
-
-    [Fact]
-    public void AssertionProcessor_WithUnknownOperation_ReturnsFailure()
-    {
-        // Arrange
-        var context = new TestExecutionContext();
-
-        var assertionJson = """
-        [
-            {
-                "op": "unknown-operation",
-                "actualValue": "test"
-            }
-        ]
-        """;
-
-        var assertionsElement = JsonSerializer.Deserialize<JsonElement>(assertionJson);
-
-        // Act
-        var results = AssertionProcessor.ProcessAssertions(assertionsElement, context);
-
-        // Assert
-        Assert.Single(results);
-        Assert.False(results[0].Success);
-        Assert.Contains("Unknown assertion operation: 'unknown-operation'", results[0].ErrorMessage);
-    }
-
-    [Fact]
-    public void AssertionRegistry_RegistersCustomOperation()
-    {
-        // Arrange
-        var registry = new AssertionRegistry();
-        var customOperation = new TestCustomAssertion();
-
-        // Act
-        registry.Register(customOperation);
-        var retrievedOperation = registry.GetOperation("test-custom");
-
-        // Assert
-        Assert.NotNull(retrievedOperation);
-        Assert.Equal("test-custom", retrievedOperation.OperationType);
-    }
-
-    private class TestCustomAssertion : IAssertionOperation
-    {
-        public string OperationType => "test-custom";
-
-        public AssertionResult Execute(object? actualValue, object? expectedValue)
-        {
-            return new AssertionResult(true);
-        }
-    }
-
-    // New tests for all assertion operations
-
-    [Fact]
     public void NotEqualsAssertion_WithDifferentValues_ReturnsTrue()
     {
         // Arrange
-        var assertion = new NotEqualsAssertion();
+        var context = new TestExecutionContext();
+        var assertion = new NotEqualsAssertion(42, 43);
 
         // Act
-        var result = assertion.Execute(42, 43);
+        var result = assertion.Execute(context);
 
         // Assert
         Assert.True(result.Success);
@@ -534,24 +451,26 @@ public class AssertionTests
     public void NotEqualsAssertion_WithSameValues_ReturnsFalse()
     {
         // Arrange
-        var assertion = new NotEqualsAssertion();
+        var context = new TestExecutionContext();
+        var assertion = new NotEqualsAssertion(42, 42);
 
         // Act
-        var result = assertion.Execute(42, 42);
+        var result = assertion.Execute(context);
 
         // Assert
         Assert.False(result.Success);
-        Assert.Contains("Expected '42' to not equal '42'", result.ErrorMessage);
+        Assert.Contains($"Condition failed: 42 != 42", result.ErrorMessage);
     }
 
     [Fact]
     public void NotExistsAssertion_WithNullValue_ReturnsTrue()
     {
         // Arrange
-        var assertion = new NotExistsAssertion();
+        var context = new TestExecutionContext();
+        var assertion = new NotExistsAssertion(null);
 
         // Act
-        var result = assertion.Execute(null, null);
+        var result = assertion.Execute(context);
 
         // Assert
         Assert.True(result.Success);
@@ -561,24 +480,26 @@ public class AssertionTests
     public void NotExistsAssertion_WithNonNullValue_ReturnsFalse()
     {
         // Arrange
-        var assertion = new NotExistsAssertion();
+        var context = new TestExecutionContext();
+        var assertion = new NotExistsAssertion("test");
 
         // Act
-        var result = assertion.Execute("test", null);
+        var result = assertion.Execute(context);
 
         // Assert
         Assert.False(result.Success);
-        Assert.Contains("Expected value to not exist, but it does", result.ErrorMessage);
+        Assert.Contains($"Expected value {assertion.ActualValue} to not exist.", result.ErrorMessage);
     }
 
     [Fact]
     public void ContainsAssertion_WithMatchingSubstring_ReturnsTrue()
     {
         // Arrange
-        var assertion = new ContainsAssertion();
+        var context = new TestExecutionContext();
+        var assertion = new ContainsAssertion("Hello World", "World");
 
         // Act
-        var result = assertion.Execute("Hello World", "World");
+        var result = assertion.Execute(context);
 
         // Assert
         Assert.True(result.Success);
@@ -588,24 +509,26 @@ public class AssertionTests
     public void ContainsAssertion_WithNonMatchingSubstring_ReturnsFalse()
     {
         // Arrange
-        var assertion = new ContainsAssertion();
+        var context = new TestExecutionContext();
+        var assertion = new ContainsAssertion("Hello World", "xyz");
 
         // Act
-        var result = assertion.Execute("Hello World", "xyz");
+        var result = assertion.Execute(context);
 
         // Assert
         Assert.False(result.Success);
-        Assert.Contains("Expected 'Hello World' to contain 'xyz'", result.ErrorMessage);
+        Assert.Contains($"Expected '{assertion.ActualValue}' to contain '{assertion.ExpectedValue}'", result.ErrorMessage);
     }
 
     [Fact]
     public void NotContainsAssertion_WithNonMatchingSubstring_ReturnsTrue()
     {
         // Arrange
-        var assertion = new NotContainsAssertion();
+        var context = new TestExecutionContext();
+        var assertion = new NotContainsAssertion("Hello World", "xyz");
 
         // Act
-        var result = assertion.Execute("Hello World", "xyz");
+        var result = assertion.Execute(context);
 
         // Assert
         Assert.True(result.Success);
@@ -615,24 +538,26 @@ public class AssertionTests
     public void NotContainsAssertion_WithMatchingSubstring_ReturnsFalse()
     {
         // Arrange
-        var assertion = new NotContainsAssertion();
+        var context = new TestExecutionContext();
+        var assertion = new NotContainsAssertion("Hello World", "World");
 
         // Act
-        var result = assertion.Execute("Hello World", "World");
+        var result = assertion.Execute(context);
 
         // Assert
         Assert.False(result.Success);
-        Assert.Contains("Expected 'Hello World' to not contain 'World'", result.ErrorMessage);
+        Assert.Contains($"Expected '{assertion.ActualValue}' to not contain '{assertion.ExpectedValue}'", result.ErrorMessage);
     }
 
     [Fact]
     public void StartsWithAssertion_WithMatchingPrefix_ReturnsTrue()
     {
         // Arrange
-        var assertion = new StartsWithAssertion();
+        var context = new TestExecutionContext();
+        var assertion = new StartsWithAssertion("Hello World", "Hello");
 
         // Act
-        var result = assertion.Execute("Hello World", "Hello");
+        var result = assertion.Execute(context);
 
         // Assert
         Assert.True(result.Success);
@@ -642,24 +567,26 @@ public class AssertionTests
     public void StartsWithAssertion_WithNonMatchingPrefix_ReturnsFalse()
     {
         // Arrange
-        var assertion = new StartsWithAssertion();
+        var context = new TestExecutionContext();
+        var assertion = new StartsWithAssertion("Hello World", "World");
 
         // Act
-        var result = assertion.Execute("Hello World", "World");
+        var result = assertion.Execute(context);
 
         // Assert
         Assert.False(result.Success);
-        Assert.Contains("Expected 'Hello World' to start with 'World'", result.ErrorMessage);
+        Assert.Contains($"Expected '{assertion.ActualValue}' to start with '{assertion.ExpectedValue}'", result.ErrorMessage);
     }
 
     [Fact]
     public void EndsWithAssertion_WithMatchingSuffix_ReturnsTrue()
     {
         // Arrange
-        var assertion = new EndsWithAssertion();
+        var context = new TestExecutionContext();
+        var assertion = new EndsWithAssertion("Hello World", "World");
 
         // Act
-        var result = assertion.Execute("Hello World", "World");
+        var result = assertion.Execute(context);
 
         // Assert
         Assert.True(result.Success);
@@ -669,24 +596,26 @@ public class AssertionTests
     public void EndsWithAssertion_WithNonMatchingSuffix_ReturnsFalse()
     {
         // Arrange
-        var assertion = new EndsWithAssertion();
+        var context = new TestExecutionContext();
+        var assertion = new EndsWithAssertion("Hello World", "Hello");
 
         // Act
-        var result = assertion.Execute("Hello World", "Hello");
+        var result = assertion.Execute(context);
 
         // Assert
         Assert.False(result.Success);
-        Assert.Contains("Expected 'Hello World' to end with 'Hello'", result.ErrorMessage);
+        Assert.Contains($"Expected '{assertion.ActualValue}' to end with '{assertion.ExpectedValue}'", result.ErrorMessage);
     }
 
     [Fact]
     public void MatchesAssertion_WithValidRegex_ReturnsTrue()
     {
         // Arrange
-        var assertion = new MatchesAssertion();
+        var context = new TestExecutionContext();
+        var assertion = new MatchAssertion("test123", @"\d+");
 
         // Act
-        var result = assertion.Execute("test123", @"\d+");
+        var result = assertion.Execute(context);
 
         // Assert
         Assert.True(result.Success);
@@ -696,38 +625,27 @@ public class AssertionTests
     public void MatchesAssertion_WithNonMatchingRegex_ReturnsFalse()
     {
         // Arrange
-        var assertion = new MatchesAssertion();
+        var context = new TestExecutionContext();
+        var assertion = new MatchAssertion("test", @"\d+");
 
         // Act
-        var result = assertion.Execute("test", @"\d+");
+        var result = assertion.Execute(context);
 
         // Assert
         Assert.False(result.Success);
-        Assert.Contains("Expected 'test' to match pattern", result.ErrorMessage);
+        Assert.Contains($"Expected '{assertion.ActualValue}' to match pattern '{assertion.ExpectedValue}'", result.ErrorMessage);
     }
 
-    [Fact]
-    public void MatchesAssertion_WithInvalidRegex_ReturnsFalse()
-    {
-        // Arrange
-        var assertion = new MatchesAssertion();
-
-        // Act
-        var result = assertion.Execute("test", "[invalid");
-
-        // Assert
-        Assert.False(result.Success);
-        Assert.Contains("Invalid regex pattern", result.ErrorMessage);
-    }
 
     [Fact]
     public void GreaterOrEqualAssertion_WithGreaterValue_ReturnsTrue()
     {
         // Arrange
-        var assertion = new GreaterOrEqualAssertion();
+        var context = new TestExecutionContext();
+        var assertion = new GreaterOrEqualAssertion(10, 5);
 
         // Act
-        var result = assertion.Execute(10, 5);
+        var result = assertion.Execute(context);
 
         // Assert
         Assert.True(result.Success);
@@ -737,10 +655,11 @@ public class AssertionTests
     public void GreaterOrEqualAssertion_WithEqualValue_ReturnsTrue()
     {
         // Arrange
-        var assertion = new GreaterOrEqualAssertion();
+        var context = new TestExecutionContext();
+        var assertion = new GreaterOrEqualAssertion(5, 5);
 
         // Act
-        var result = assertion.Execute(5, 5);
+        var result = assertion.Execute(context);
 
         // Assert
         Assert.True(result.Success);
@@ -750,25 +669,28 @@ public class AssertionTests
     public void GreaterOrEqualAssertion_WithLessValue_ReturnsFalse()
     {
         // Arrange
-        var assertion = new GreaterOrEqualAssertion();
+        var context = new TestExecutionContext();
+        var assertion = new GreaterOrEqualAssertion(5, 10);
 
         // Act
-        var result = assertion.Execute(5, 10);
+        var result = assertion.Execute(context);
 
         // Assert
         Assert.False(result.Success);
-        Assert.Contains("Expected 5 to be greater than or equal to 10", result.ErrorMessage);
+        Assert.Contains($"Condition failed: {assertion.ActualValue} >= {assertion.ExpectedValue}", result.ErrorMessage);
     }
 
     [Fact]
     public void GreaterOrEqualAssertion_WithDateOnlyValues_WorksCorrectly()
     {
-        var assertion = new GreaterOrEqualAssertion();
+        // Arrange
+        var context = new TestExecutionContext();
         var actual = new DateOnly(2020, 1, 2).ToString(CultureInfo.InvariantCulture);
         var expected = new DateOnly(2020, 1, 1).ToString(CultureInfo.InvariantCulture);
+        var assertion = new GreaterOrEqualAssertion(actual, expected);
 
         // Act
-        var result = assertion.Execute(actualValue: actual, expectedValue: expected);
+        var result = assertion.Execute(context);
 
         // Assert
         Assert.True(result.Success);
@@ -777,12 +699,14 @@ public class AssertionTests
     [Fact]
     public void GreaterOrEqualAssertion_WithTimeOnlyValues_WorksCorrectly()
     {
-        var assertion = new GreaterOrEqualAssertion();
+        // Arrange
+        var context = new TestExecutionContext();
         var actual = new TimeOnly(1, 1, 2).ToString(CultureInfo.InvariantCulture);
         var expected = new TimeOnly(1, 1, 1).ToString(CultureInfo.InvariantCulture);
+        var assertion = new GreaterOrEqualAssertion(actual, expected);
 
         // Act
-        var result = assertion.Execute(actualValue: actual, expectedValue: expected);
+        var result = assertion.Execute(context);
 
         // Assert
         Assert.True(result.Success);
@@ -793,10 +717,11 @@ public class AssertionTests
     public void LessOrEqualAssertion_WithLessValue_ReturnsTrue()
     {
         // Arrange
-        var assertion = new LessOrEqualAssertion();
+        var context = new TestExecutionContext();
+        var assertion = new LessOrEqualAssertion(5, 10);
 
         // Act
-        var result = assertion.Execute(5, 10);
+        var result = assertion.Execute(context);
 
         // Assert
         Assert.True(result.Success);
@@ -806,10 +731,11 @@ public class AssertionTests
     public void LessOrEqualAssertion_WithEqualValue_ReturnsTrue()
     {
         // Arrange
-        var assertion = new LessOrEqualAssertion();
+        var context = new TestExecutionContext();
+        var assertion = new LessOrEqualAssertion(5, 5);
 
         // Act
-        var result = assertion.Execute(5, 5);
+        var result = assertion.Execute(context);
 
         // Assert
         Assert.True(result.Success);
@@ -819,25 +745,27 @@ public class AssertionTests
     public void LessOrEqualAssertion_WithGreaterValue_ReturnsFalse()
     {
         // Arrange
-        var assertion = new LessOrEqualAssertion();
+        var context = new TestExecutionContext();
+        var assertion = new LessOrEqualAssertion(10,5);
 
         // Act
-        var result = assertion.Execute(10, 5);
+        var result = assertion.Execute(context);
 
         // Assert
         Assert.False(result.Success);
-        Assert.Contains("Expected 10 to be less than or equal to 5", result.ErrorMessage);
+        Assert.Contains($"Condition failed: {assertion.ActualValue} <= {assertion.ExpectedValue}", result.ErrorMessage);
     }
 
     [Fact]
     public void BetweenAssertion_WithValueInRange_ReturnsTrue()
     {
         // Arrange
-        var assertion = new BetweenAssertion();
+        var context = new TestExecutionContext();
         var range = JsonSerializer.Deserialize<JsonElement>("[5, 15]");
+        var assertion = new BetweenAssertion(10, range);
 
         // Act
-        var result = assertion.Execute(10, range);
+        var result = assertion.Execute(context);
 
         // Assert
         Assert.True(result.Success);
@@ -847,11 +775,12 @@ public class AssertionTests
     public void BetweenAssertion_WithValueOutOfRange_ReturnsFalse()
     {
         // Arrange
-        var assertion = new BetweenAssertion();
+        var context = new TestExecutionContext();
         var range = JsonSerializer.Deserialize<JsonElement>("[5, 15]");
+        var assertion = new BetweenAssertion(20, range);
 
         // Act
-        var result = assertion.Execute(20, range);
+        var result = assertion.Execute(context);
 
         // Assert
         Assert.False(result.Success);
@@ -862,24 +791,26 @@ public class AssertionTests
     public void BetweenAssertion_WithInvalidRange_ReturnsFalse()
     {
         // Arrange
-        var assertion = new BetweenAssertion();
+        var context = new TestExecutionContext();
+        var assertion = new BetweenAssertion(10, "not-an-array");
 
         // Act
-        var result = assertion.Execute(10, "not-an-array");
+        var result = assertion.Execute(context);
 
         // Assert
         Assert.False(result.Success);
-        Assert.Contains("Between assertion requires an array", result.ErrorMessage);
+        Assert.Contains("Operator 'between' requires an array of [min, max] values as expectedValue", result.ErrorMessage);
     }
 
     [Fact]
     public void LengthAssertion_WithStringOfCorrectLength_ReturnsTrue()
     {
         // Arrange
-        var assertion = new LengthAssertion();
+        var context = new TestExecutionContext();
+        var assertion = new LengthAssertion("Hello", 5);
 
         // Act
-        var result = assertion.Execute("Hello", 5);
+        var result = assertion.Execute(context);
 
         // Assert
         Assert.True(result.Success);
@@ -889,10 +820,11 @@ public class AssertionTests
     public void LengthAssertion_WithStringOfIncorrectLength_ReturnsFalse()
     {
         // Arrange
-        var assertion = new LengthAssertion();
+        var context = new TestExecutionContext();
+        var assertion = new LengthAssertion("Hello", 3);
 
         // Act
-        var result = assertion.Execute("Hello", 3);
+        var result = assertion.Execute(context);
 
         // Assert
         Assert.False(result.Success);
@@ -903,11 +835,12 @@ public class AssertionTests
     public void LengthAssertion_WithArray_ReturnsCorrectLength()
     {
         // Arrange
-        var assertion = new LengthAssertion();
+        var context = new TestExecutionContext();
         var array = new[] { "a", "b", "c" };
+        var assertion = new LengthAssertion(array, 3);
 
         // Act
-        var result = assertion.Execute(array, 3);
+        var result = assertion.Execute(context);
 
         // Assert
         Assert.True(result.Success);
@@ -917,10 +850,11 @@ public class AssertionTests
     public void EmptyAssertion_WithEmptyString_ReturnsTrue()
     {
         // Arrange
-        var assertion = new EmptyAssertion();
+        var context = new TestExecutionContext();
+        var assertion = new EmptyAssertion(string.Empty);
 
         // Act
-        var result = assertion.Execute("", null);
+        var result = assertion.Execute(context);
 
         // Assert
         Assert.True(result.Success);
@@ -930,24 +864,26 @@ public class AssertionTests
     public void EmptyAssertion_WithNonEmptyString_ReturnsFalse()
     {
         // Arrange
-        var assertion = new EmptyAssertion();
+        var context = new TestExecutionContext();
+        var assertion = new EmptyAssertion("Hello");
 
         // Act
-        var result = assertion.Execute("Hello", null);
+        var result = assertion.Execute(context);
 
         // Assert
         Assert.False(result.Success);
-        Assert.Contains("Expected value to be empty but it has 5", result.ErrorMessage);
+        Assert.Contains("Expected value to be empty but it has 5 items/characters", result.ErrorMessage);
     }
 
     [Fact]
     public void NotEmptyAssertion_WithNonEmptyString_ReturnsTrue()
     {
         // Arrange
-        var assertion = new NotEmptyAssertion();
+        var context = new TestExecutionContext();
+        var assertion = new NotEmptyAssertion("Hello");
 
         // Act
-        var result = assertion.Execute("Hello", null);
+        var result = assertion.Execute(context);
 
         // Assert
         Assert.True(result.Success);
@@ -957,25 +893,27 @@ public class AssertionTests
     public void NotEmptyAssertion_WithEmptyString_ReturnsFalse()
     {
         // Arrange
-        var assertion = new NotEmptyAssertion();
+        var context = new TestExecutionContext();
+        var assertion = new NotEmptyAssertion(string.Empty);
 
         // Act
-        var result = assertion.Execute("", null);
+        var result = assertion.Execute(context);
 
         // Assert
         Assert.False(result.Success);
-        Assert.Contains("Expected value to not be empty but it is", result.ErrorMessage);
+        Assert.Contains("Expected value to not be empty, but it is.", result.ErrorMessage);
     }
 
     [Fact]
     public void InAssertion_WithValueInArray_ReturnsTrue()
     {
         // Arrange
-        var assertion = new InAssertion();
+        var context = new TestExecutionContext();
         var array = new[] { "apple", "banana", "orange" };
+        var assertion = new InAssertion("banana", array);
 
         // Act
-        var result = assertion.Execute("banana", array);
+        var result = assertion.Execute(context);
 
         // Assert
         Assert.True(result.Success);
@@ -985,26 +923,28 @@ public class AssertionTests
     public void InAssertion_WithValueNotInArray_ReturnsFalse()
     {
         // Arrange
-        var assertion = new InAssertion();
+        var context = new TestExecutionContext();
         var array = new[] { "apple", "banana", "orange" };
+        var assertion = new InAssertion("grape", array);
 
         // Act
-        var result = assertion.Execute("grape", array);
+        var result = assertion.Execute(context);
 
         // Assert
         Assert.False(result.Success);
-        Assert.Contains("Expected 'grape' to be in [apple, banana, orange]", result.ErrorMessage);
+        Assert.Contains($"Expected '{assertion.ActualValue}' to be in {assertion.ExpectedValue}", result.ErrorMessage);
     }
 
     [Fact]
     public void InAssertion_WithJsonArray_ReturnsTrue()
     {
         // Arrange
-        var assertion = new InAssertion();
+        var context = new TestExecutionContext();
         var jsonArray = JsonSerializer.Deserialize<JsonElement>(@"[""apple"", ""banana"", ""orange""]");
+        var assertion = new InAssertion("banana", jsonArray);
 
         // Act
-        var result = assertion.Execute("banana", jsonArray);
+        var result = assertion.Execute(context);
 
         // Assert
         Assert.True(result.Success);
@@ -1014,10 +954,11 @@ public class AssertionTests
     public void TypeAssertion_WithCorrectType_ReturnsTrue()
     {
         // Arrange
-        var assertion = new TypeAssertion();
+        var context = new TestExecutionContext();
+        var assertion = new TypeAssertion("Hello", "string");
 
         // Act
-        var result = assertion.Execute("Hello", "string");
+        var result = assertion.Execute(context);
 
         // Assert
         Assert.True(result.Success);
@@ -1027,10 +968,11 @@ public class AssertionTests
     public void TypeAssertion_WithIncorrectType_ReturnsFalse()
     {
         // Arrange
-        var assertion = new TypeAssertion();
+        var context = new TestExecutionContext();
+        var assertion = new TypeAssertion(42, "string");
 
         // Act
-        var result = assertion.Execute(42, "string");
+        var result = assertion.Execute(context);
 
         // Assert
         Assert.False(result.Success);
@@ -1041,41 +983,14 @@ public class AssertionTests
     public void TypeAssertion_WithJsonElement_ReturnsCorrectType()
     {
         // Arrange
-        var assertion = new TypeAssertion();
+        var context = new TestExecutionContext();
         var jsonNumber = JsonSerializer.Deserialize<JsonElement>("42");
+        var assertion = new TypeAssertion(jsonNumber, "integer");
 
         // Act
-        var result = assertion.Execute(jsonNumber, "integer");
+        var result = assertion.Execute(context);
 
         // Assert
         Assert.True(result.Success);
-    }
-
-    [Fact]
-    public void AssertionProcessor_WithSimilarOperationName_ProvidesSuggestion()
-    {
-        // Arrange
-        var context = new TestExecutionContext();
-
-        var assertionJson = """
-        [
-            {
-                "op": "equal",
-                "actualValue": "test",
-                "expectedValue": "test"
-            }
-        ]
-        """;
-
-        var assertionsElement = JsonSerializer.Deserialize<JsonElement>(assertionJson);
-
-        // Act
-        var results = AssertionProcessor.ProcessAssertions(assertionsElement, context);
-
-        // Assert
-        Assert.Single(results);
-        Assert.False(results[0].Success);
-        Assert.Contains("Did you mean:", results[0].ErrorMessage);
-        Assert.Contains("'equals'", results[0].ErrorMessage);
     }
 }

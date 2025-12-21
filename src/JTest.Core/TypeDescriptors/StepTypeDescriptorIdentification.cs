@@ -22,7 +22,7 @@ namespace JTest.Core.TypeDescriptorRegistries
 
         static bool HasIdentifierAttribute(Type type, out string id)
         {
-            var attribute = type.GetCustomAttribute<IdentifierAttribute>();
+            var attribute = type.GetCustomAttribute<TypeIdentifierAttribute>();
             if (attribute is null)
             {
                 id = string.Empty;

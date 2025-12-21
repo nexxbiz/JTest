@@ -6,7 +6,7 @@ namespace JTest.Core.Assertions;
 /// <summary>
 /// In assertion to check if value is in a collection
 /// </summary>
-public sealed class InAssertion(object? actualValue, object? expectedValue, string? description, bool? mask)
+public sealed class InAssertion(object? actualValue, object? expectedValue, string? description = null, bool? mask = null)
     : AssertionOperationBase(actualValue, expectedValue, description, mask)
 {    
     protected override string GetErrorMessage(object? resolvedActualValue, object? resolvedExpectedValue)

@@ -15,5 +15,5 @@ public interface ITemplateContext
     /// <returns>The template definition or null if not found</returns>
     Template GetTemplate(string name);
 
-    Task Load(JTestSuite testSuite, IExecutionContext executionContext);
+    Task Load(JTestSuite testSuite);
 }

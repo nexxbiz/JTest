@@ -3,7 +3,7 @@
 /// <summary>
 /// Not equals assertion
 /// </summary>
-public class NotEqualsAssertion(object? actualValue, object? expectedValue, string? description, bool? mask)
+public sealed class NotEqualsAssertion(object? actualValue, object? expectedValue, string? description = null, bool? mask = null)
     : EqualityOperatorAssertionBase(actualValue, expectedValue, description, mask)
 {
     protected override string Operator => EqualityOperators.NotEqual;

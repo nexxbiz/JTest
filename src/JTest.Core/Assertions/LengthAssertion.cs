@@ -7,7 +7,7 @@ namespace JTest.Core.Assertions;
 /// <summary>
 /// Between assertion for numeric values
 /// </summary>
-public sealed class LengthAssertion(object? actualValue, object? expectedValue, string? description, bool? mask)
+public sealed class LengthAssertion(object? actualValue, object? expectedValue, string? description = null, bool? mask = null)
     : AssertionOperationBase(actualValue, expectedValue, description, mask)
 {    
     protected override string GetErrorMessage(object? resolvedActualValue, object? resolvedExpectedValue)

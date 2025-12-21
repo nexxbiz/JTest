@@ -10,7 +10,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="AssertionTests.cs" />
     <Compile Remove="AssertStepTests.cs" />
     <Compile Remove="CaseContextIntegrationTests.cs" />
     <Compile Remove="CaseContextTests.cs" />

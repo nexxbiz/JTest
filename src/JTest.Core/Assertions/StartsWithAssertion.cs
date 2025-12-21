@@ -3,7 +3,7 @@
 /// <summary>
 /// Starts with assertion for string values
 /// </summary>
-public sealed class StartsWithAssertion(object? actualValue, object? expectedValue, string? description, bool? mask)
+public sealed class StartsWithAssertion(object? actualValue, object? expectedValue, string? description = null, bool? mask = null)
     : AssertionOperationBase(actualValue, expectedValue, description, mask)
 {    
     protected override string GetErrorMessage(object? resolvedActualValue, object? resolvedExpectedValue)

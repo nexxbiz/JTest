@@ -80,12 +80,9 @@ public sealed class JTestSuiteExecutor(IJTestCaseExecutor testCaseExecutor, IVar
 
         // Merge global variables (parameter takes precedence)
         var mergedGlobals = MergeDictionaries(testSuite.Globals, variablesContext.GlobalVariables);
-
-        // Create temporary context for template loading logging
-        var tempContext = CreateExecutionContext(mergedEnvironment, mergedGlobals);
-
-        // Load templates
-        await templateContext.Load(testSuite, tempContext);
+        
+        // Load templates for test suite
+        await templateContext.Load(testSuite);
 
         var allResults = new List<JTestCaseResult>();
 
