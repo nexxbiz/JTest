@@ -1,5 +1,5 @@
 using JTest.Core.Execution;
-using System.Text.Json;
+using JTest.Core.Steps.Configuration;
 
 namespace JTest.Core.Steps;
 
@@ -8,33 +8,20 @@ namespace JTest.Core.Steps;
 /// </summary>
 public interface IStep
 {
-    /// <summary>
-    /// Gets the step type identifier
-    /// </summary>
-    string Type { get; }
+    string TypeName { get; }
 
-    /// <summary>
-    /// Gets or sets the step ID for context storage
-    /// </summary>
-    string? Id { get; }
-
-    /// <summary>
-    /// Gets or stes the name of the step. This is for display purposes only
-    /// </summary>
-    string? Name { get; }
-
-    /// <summary>
-    /// Gets or stes the description of the step. This is for display purposes only
-    /// </summary>
-    string? Description { get; }
+    IStepConfiguration Configuration { get; }
 
     /// <summary>
     /// Executes the step with the provided context
     /// </summary>
-    Task<StepResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default);
+    Task<StepExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Validates the step configuration from JSON
+    /// Validates the configuration of this step
     /// </summary>
-    bool ValidateConfiguration(List<string> validationErrors);
+    /// <param name="context"></param>
+    /// <param name="validationErrors"></param>
+    /// <returns></returns>
+    bool Validate(IExecutionContext context, out IEnumerable<string> validationErrors);
 }

@@ -1,3 +1,4 @@
+using JTest.Core.Steps;
 using System.Text.Json.Serialization;
 
 namespace JTest.Core.Models;
@@ -29,13 +30,13 @@ public class Template
     /// Gets or sets the steps to execute within the template
     /// </summary>
     [JsonPropertyName("steps")]
-    public List<object> Steps { get; set; } = new();
+    public IEnumerable<IStep> Steps { get; set; } = [];
 
     /// <summary>
     /// Gets or sets the output mapping that defines what values are exposed to the parent context
     /// </summary>
     [JsonPropertyName("output")]
-    public Dictionary<string, object>? Output { get; set; }
+    public Dictionary<string, object?>? Output { get; set; }
 }
 
 /// <summary>
@@ -95,5 +96,5 @@ public class TemplateComponents
     /// Gets or sets the list of templates
     /// </summary>
     [JsonPropertyName("templates")]
-    public List<Template> Templates { get; set; } = new();
+    public List<Template> Templates { get; set; } = [];
 }

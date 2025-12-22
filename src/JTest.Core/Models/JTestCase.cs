@@ -1,3 +1,4 @@
+using JTest.Core.Steps;
 using System.Text.Json.Serialization;
 
 namespace JTest.Core.Models;
@@ -23,7 +24,7 @@ public class JTestCase
     /// Gets or sets the test steps (sequence of steps to execute)
     /// </summary>
     [JsonPropertyName("steps")]
-    public List<object> Steps { get; set; } = new();
+    public List<IStep> Steps { get; set; } = [];
 
     /// <summary>
     /// Gets or sets the datasets for data-driven testing

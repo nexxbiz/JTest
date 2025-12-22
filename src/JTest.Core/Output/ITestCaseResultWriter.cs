@@ -1,9 +1,8 @@
 ﻿using JTest.Core.Models;
 
-namespace JTest.Core.Output
+namespace JTest.Core.Output;
+
+public interface ITestCaseResultWriter
 {
-    public interface ITestCaseResultWriter
-    {
-        void Write(TextWriter writer, JTestCaseResult testCaseResult, bool isDebug);
-    }
+    void Write(TextWriter writer, JTestCaseResult testCaseResult, bool isDebug);
 }
