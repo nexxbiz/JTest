@@ -21,7 +21,7 @@ public sealed class HttpStep(HttpClient httpClient, HttpStepConfiguration config
             validationErrors.Add("You can only specify 1 body type. Choose only of the following: 'body', 'file', or 'formFiles'.");
         }
 
-        var file = ResolveStringValue(Configuration.File, context);
+        var file = ResolveStringVariable(Configuration.File, context);
         if (!string.IsNullOrWhiteSpace(file) && !File.Exists(file))
         {
             validationErrors.Add($"No file found at path '{file}'.");
@@ -30,7 +30,7 @@ public sealed class HttpStep(HttpClient httpClient, HttpStepConfiguration config
         {
             foreach (var formFile in Configuration.FormFiles)
             {
-                var path = ResolveStringValue(formFile.Path, context);
+                var path = ResolveStringVariable(formFile.Path, context);
                 if (!File.Exists(path))
                 {
                     validationErrors.Add($"No file found at path '{path}'.");
@@ -38,7 +38,7 @@ public sealed class HttpStep(HttpClient httpClient, HttpStepConfiguration config
             }
         }
 
-        var method = ResolveStringValue(Configuration.Method, context);
+        var method = ResolveStringVariable(Configuration.Method, context);
         try
         {
             _ = new HttpMethod(method);
@@ -48,7 +48,7 @@ public sealed class HttpStep(HttpClient httpClient, HttpStepConfiguration config
             validationErrors.Add($"Invalid HTTP Method '{method}'");
         }
 
-        var uri = ResolveStringValue(Configuration.Url, context);
+        var uri = ResolveStringVariable(Configuration.Url, context);
         try
         {
             _ = new Uri(uri);
@@ -65,7 +65,7 @@ public sealed class HttpStep(HttpClient httpClient, HttpStepConfiguration config
 
         if (string.IsNullOrWhiteSpace(Description))
         {
-            Description = $"HTTP {ResolveStringValue(Configuration.Method, context)} {ResolveStringValue(Configuration.Url, context)}";
+            Description = $"HTTP {ResolveVariable(Configuration.Method, context)} {ResolveVariable(Configuration.Url, context)}";
         }
 
         return new(responseData);
@@ -81,10 +81,10 @@ public sealed class HttpStep(HttpClient httpClient, HttpStepConfiguration config
 
     private HttpRequestMessage BuildHttpRequest(IExecutionContext context)
     {
-        var url = ResolveStringValue(Configuration.Url, context);
+        var url = ResolveStringVariable(Configuration.Url, context);
         var finalUrl = AddQueryParameters(url, context);
 
-        var method = ResolveStringValue(Configuration.Method, context);
+        var method = ResolveStringVariable(Configuration.Method, context);
         var request = new HttpRequestMessage(new HttpMethod(method), finalUrl)
         {
             Content = GetRequestBodyContent(context)
@@ -112,7 +112,7 @@ public sealed class HttpStep(HttpClient httpClient, HttpStepConfiguration config
     private static string BuildQueryComponent(KeyValuePair<string, string> query, IExecutionContext context)
     {
         var key = Uri.EscapeDataString(query.Key);
-        var value = ResolveStringValue(query.Value, context);
+        var value = ResolveStringVariable(query.Value, context);
 
         return string.IsNullOrEmpty(value)
             ? string.Empty
@@ -126,8 +126,8 @@ public sealed class HttpStep(HttpClient httpClient, HttpStepConfiguration config
 
         foreach (var header in Configuration.Headers)
         {
-            var name = ResolveStringValue(header.Name, context);
-            var value = ResolveStringValue(header.Value, context);
+            var name = ResolveStringVariable(header.Name, context);
+            var value = ResolveStringVariable(header.Value, context);
 
             if (!string.IsNullOrEmpty(name) && !string.IsNullOrEmpty(value))
             {
@@ -166,7 +166,7 @@ public sealed class HttpStep(HttpClient httpClient, HttpStepConfiguration config
 
     private StreamContent? CreateFileStreamContent(IExecutionContext context)
     {
-        var filePath = ResolveStringValue(Configuration.File!, context);
+        var filePath = ResolveStringVariable(Configuration.File!, context);
         if (!File.Exists(filePath))
         {
             context.Log.Add($"File at path '{filePath}' does not eixst");
@@ -181,7 +181,7 @@ public sealed class HttpStep(HttpClient httpClient, HttpStepConfiguration config
             : jsonContentType;
 
         result.Headers.ContentType = new MediaTypeHeaderValue(
-            ResolveStringValue(contentType, context)
+            ResolveStringVariable(contentType, context)
         );
 
         return result;
@@ -193,17 +193,17 @@ public sealed class HttpStep(HttpClient httpClient, HttpStepConfiguration config
 
         foreach (var formFile in Configuration.FormFiles!)
         {
-            var path = ResolveStringValue(formFile.Path, context);
+            var path = $"{ResolveVariable(formFile.Path, context)}";
             var streamContent = new StreamContent(
                 File.OpenRead(path)
             );
             streamContent.Headers.ContentType = new MediaTypeHeaderValue(
-                ResolveStringValue(formFile.ContentType, context)
+                $"{ResolveVariable(formFile.ContentType, context)}"
             );
             result.Add(
                 streamContent,
-                ResolveStringValue(formFile.Name, context),
-                ResolveStringValue(formFile.FileName, context)
+                ResolveStringVariable(formFile.Name, context),
+                ResolveStringVariable(formFile.FileName, context)
             );
         }
 
@@ -211,20 +211,20 @@ public sealed class HttpStep(HttpClient httpClient, HttpStepConfiguration config
     }
 
 
-    private object ResolveJsonElement(JsonElement bodyElement, IExecutionContext context)
+    private object? ResolveJsonElement(JsonElement bodyElement, IExecutionContext context)
     {
         return bodyElement.ValueKind switch
         {
-            JsonValueKind.String => ResolveStringValue(bodyElement.GetString()!, context),
+            JsonValueKind.String => ResolveVariable(bodyElement.GetString()!, context),
             JsonValueKind.Object => ResolveObjectTokens(bodyElement, context),
             JsonValueKind.Array => ResolveArrayToken(bodyElement, context),
             _ => GetJsonElementValue(bodyElement)
         };
     }
 
-    private Dictionary<string, object> ResolveObjectTokens(JsonElement objectElement, IExecutionContext context)
+    private Dictionary<string, object?> ResolveObjectTokens(JsonElement objectElement, IExecutionContext context)
     {
-        var resolved = new Dictionary<string, object>();
+        var resolved = new Dictionary<string, object?>();
         foreach (var property in objectElement.EnumerateObject())
         {
             resolved[property.Name] = ResolveJsonElement(property.Value, context);
@@ -232,9 +232,9 @@ public sealed class HttpStep(HttpClient httpClient, HttpStepConfiguration config
         return resolved;
     }
 
-    private List<object> ResolveArrayToken(JsonElement arrayElement, IExecutionContext context)
+    private List<object?> ResolveArrayToken(JsonElement arrayElement, IExecutionContext context)
     {
-        var resolved = new List<object>();
+        var resolved = new List<object?>();
         foreach (var item in arrayElement.EnumerateArray())
         {
             var resolvedItem = ResolveJsonElement(item, context);
@@ -256,7 +256,7 @@ public sealed class HttpStep(HttpClient httpClient, HttpStepConfiguration config
         };
     }
 
-    private static string SerializeBodyToJson(object body)
+    private static string SerializeBodyToJson(object? body)
     {
         return body is string str ? str : JsonSerializer.Serialize(body, JsonSerializerOptionsAccessor.Default);
     }

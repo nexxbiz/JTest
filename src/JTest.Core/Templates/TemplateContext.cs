@@ -73,7 +73,7 @@ public sealed class TemplateContext(
     {
         var dictionary = new Dictionary<string, Template>();
 
-        var globalConfiguration = globalConfigurationAccessor.Get();
+        var globalConfiguration = globalConfigurationAccessor.Configuration;
         if (globalConfiguration.Templates is not null)
         {
             var globalSearchPaths = globalConfiguration.Templates.SearchPaths ?? [];

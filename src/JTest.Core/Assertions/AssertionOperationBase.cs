@@ -61,43 +61,17 @@ public abstract class AssertionOperationBase(object? actualValue, object? expect
 
     private static object? GetAssertionValue(object value, IExecutionContext context)
     {
+        if(value is JsonElement jsonElement && jsonElement.ValueKind == JsonValueKind.String)
+        {
+            value = jsonElement.GetString() ?? string.Empty;
+        }
+
         if (value is string stringValue)
         {
-            // Enhanced validation for JSONPath expressions
-            if (stringValue.StartsWith("{{") && stringValue.EndsWith("}}"))
-            {
-                var pathError = ValidateJsonPath(stringValue, context);
-                if (!string.IsNullOrEmpty(pathError))
-                {
-                    context.Log.Add($"JSONPath validation warning: {pathError}");
-                }
-            }
-
             return VariableInterpolator.ResolveVariableTokens(stringValue, context);
         }
 
         return value;
-    }
-
-    private static string ValidateJsonPath(string pathExpression, IExecutionContext context)
-    {
-        var path = pathExpression.Trim('{', '}').Trim();
-
-        // Check for reserved keys that shouldn't be modified        
-        var pathParts = path.Split('.');
-
-        if (pathParts.Length > 1)
-        {
-            var rootKey = pathParts[1]; // Skip the '$' part
-
-            // Check for potential step references
-            if (pathParts.Length > 2 && !context.Variables.ContainsKey(rootKey))
-            {
-                return $"Step reference '{rootKey}' not found. Available variables: {string.Join(", ", context.Variables.Keys.Take(10))}";
-            }
-        }
-
-        return "";
     }
 
     protected bool ValidateCardinality(object? resolvedActualValue, object? resolvedExpectedValue, out string? errorMessage)

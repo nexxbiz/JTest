@@ -1,5 +1,6 @@
 ﻿using JTest.Core.Models;
 using JTest.Core.Output;
+using JTest.Core.Output.Markdown;
 using Spectre.Console;
 
 namespace JTest.Core.Execution;
@@ -7,6 +8,8 @@ namespace JTest.Core.Execution;
 public sealed class JTestSuiteExecutionResultProcessor(IAnsiConsole console, IDictionary<string, IOutputGenerator> outputGenerators)
     : IJTestSuiteExecutionResultProcessor
 {
+    private const string defaultOutputFormat = MarkdownOutputGenerator.FormatKey;
+
     public void Process(IEnumerable<JTestSuiteExecutionResult> results, string outputDirectory, bool isDebug, bool skipOutput, string? outputFormat)
     {
         if (!Directory.Exists(outputDirectory))
@@ -40,6 +43,8 @@ public sealed class JTestSuiteExecutionResultProcessor(IAnsiConsole console, IDi
 
     private IOutputGenerator GetOutputGenerator(string? outputFormat)
     {
+        outputFormat ??= defaultOutputFormat;
+
         if (!string.IsNullOrWhiteSpace(outputFormat) && outputGenerators.TryGetValue(outputFormat, out var generator))
             return generator;
 

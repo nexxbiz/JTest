@@ -19,24 +19,18 @@ public abstract class BaseStep<TConfiguration>(TConfiguration configuration) : I
         .ToLowerInvariant();
 
     /// <summary>
-    /// Gets or sets the step ID for context storage. Value derived from configuration
-    /// </summary>
-    public string? Id => Configuration.Id;
-
-    /// <summary>
     /// Gets the step configuration JSON element
     /// </summary>
     protected TConfiguration Configuration { get; } = configuration;
 
     /// <summary>
-    /// Name of the step. Value derived from configuration
-    /// </summary>
-    public string? Name => Configuration?.Name ?? string.Empty;
-
-    /// <summary>
     /// Step description; can be assigned by derived classes. Initial value derived from configuration
     /// </summary>
-    public string? Description { get; protected set; } = configuration?.Description ?? string.Empty;
+    protected string? Description 
+    {
+        get => Configuration.GetDescription();
+        set => Configuration.UpdateDescription(value);
+    }
 
     IStepConfiguration IStep.Configuration => Configuration;
 
@@ -56,14 +50,17 @@ public abstract class BaseStep<TConfiguration>(TConfiguration configuration) : I
 
     protected virtual void Validate(IExecutionContext context, IList<string> validationErrors) { }
 
-    protected static string ResolveStringValue(string? value, IExecutionContext context)
+    protected static string ResolveStringVariable(string? value, IExecutionContext context)
+        => ResolveVariable(value, context)?.ToString() ?? string.Empty;
+
+    protected static object? ResolveVariable(string? value, IExecutionContext context)
     {
         if (string.IsNullOrWhiteSpace(value))
         {
             return string.Empty;
         }
 
-        return VariableInterpolator.ResolveVariableTokens(value, context).ToString() ?? string.Empty;
+        return VariableInterpolator.ResolveVariableTokens(value, context);
     }
 
     protected static JsonElement SerializeToJsonElement(object? value)

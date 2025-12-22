@@ -1,7 +1,4 @@
 ﻿using JTest.Core.Assertions;
-using JTest.Core.Execution;
-using JTest.Core.Templates;
-using Microsoft.Extensions.DependencyInjection;
 using System.Text.Json.Serialization;
 
 namespace JTest.Core.Steps.Configuration;

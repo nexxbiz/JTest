@@ -122,7 +122,7 @@ namespace JTest.UnitTests.Templates
         private static TemplateContext GetSut(GlobalConfiguration? globalConfiguration = null)
         {
             var globalConfigAccessor = Substitute.For<IGlobalConfigurationAccessor>();
-            globalConfigAccessor.Get().Returns(globalConfiguration ?? new());
+            globalConfigAccessor.Configuration.Returns(globalConfiguration ?? new());
 
             var serviceCollection = new ServiceCollection();
             serviceCollection.AddSingleton<ITypeDescriptorRegistryProvider, TypeDescriptorRegistryProvider>();

@@ -12,8 +12,6 @@ namespace JTest.Cli.Commands;
 public class RunCommand(IAnsiConsole ansiConsole, IJTestSuiteExecutionResultProcessor testExecutionResultsProcessor, IJTestSuiteExecutor testSuiteExecutor, IVariablesContext variablesContext, JsonSerializerOptionsAccessor serializerOptionsCache)
     : CommandBase<RunCommandSettings>(ansiConsole)
 {
-    public const string CommandName = "run";
-
     protected virtual bool IsDebug => false;
 
     public override sealed async Task<int> ExecuteAsync(CommandContext context, RunCommandSettings settings, CancellationToken cancellationToken)
@@ -42,7 +40,7 @@ public class RunCommand(IAnsiConsole ansiConsole, IJTestSuiteExecutionResultProc
         if (!testSuites.Any())
         {
             Console.WriteLine(
-                $"Error: No test files found matching patterns: {string.Join(", ", settings.TestFilePatterns ?? [])}",
+                $"Error: No test files found matching patterns: {string.Join(", ", settings.TestFilePatterns)}",
                 new Style(foreground: Color.Red)
             );
             return null;
@@ -59,12 +57,12 @@ public class RunCommand(IAnsiConsole ansiConsole, IJTestSuiteExecutionResultProc
 
     private IEnumerable<JTestSuite> ReadTestSuites(RunCommandSettings settings)
     {
-        var testFiles = JsonFileSearcher.Search(settings.TestFilePatterns!, settings.GetCategories());
+        var testFiles = JsonFileSearcher.Search(settings.TestFilePatterns, settings.GetCategories());
 
         return testFiles.Select(filePath =>
         {
             var json = File.ReadAllText(filePath);
-            var testSuite = JsonSerializer.Deserialize<JTestSuite>(filePath, serializerOptionsCache.Options)
+            var testSuite = JsonSerializer.Deserialize<JTestSuite>(json, serializerOptionsCache.Options)
                 ?? throw new ArgumentException($"Test suite at path '{filePath}' is not a valid JTestSuite");
             testSuite.FilePath = filePath;
 

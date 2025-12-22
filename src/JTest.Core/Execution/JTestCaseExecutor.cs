@@ -16,23 +16,18 @@ public sealed class JTestCaseExecutor(IStepProcessor stepProcessor) : IJTestCase
     /// <returns>List of test case results (one per dataset, or one if no datasets)</returns>
     public async Task<IEnumerable<JTestCaseResult>> ExecuteAsync(JTestCase testCase, TestExecutionContext baseContext, int testNumber = 1, CancellationToken cancellationToken = default)
     {
-        var results = new List<JTestCaseResult>();
-
-        if (testCase.Datasets == null || testCase.Datasets.Count == 0)
-        {
-            // Execute test case once without dataset - use cloned context for isolation
-            var executionContext = CloneContext(baseContext);
-            executionContext.TestNumber = testNumber;
-            var result = await ExecuteTestCaseAsync(testCase, executionContext, null, cancellationToken);
-            results.Add(result);
-        }
-        else
+        if (testCase.Datasets is not null && testCase.Datasets.Count > 0)
         {
             // Execute test case multiple times with datasets
-            results.AddRange(await RunTestWithDatasetsAsync(testCase, baseContext, testNumber, cancellationToken));
+            return await RunTestWithDatasetsAsync(testCase, baseContext, testNumber, cancellationToken);
         }
 
-        return results;
+        // Execute test case once without dataset - use cloned context for isolation
+        var executionContext = CloneContext(baseContext);
+        executionContext.TestNumber = testNumber;
+        var result = await ExecuteTestCaseAsync(testCase, executionContext, null, cancellationToken);
+
+        return [result];
     }
 
     /// <summary>
@@ -254,7 +249,7 @@ public sealed class JTestCaseExecutor(IStepProcessor stepProcessor) : IJTestCase
             // This is safe for immutable objects like env
             return value;
         }
-        catch(Exception e)
+        catch (Exception e)
         {
             throw new InvalidProgramException($"Cloning variable value '{value}' failed: could not be serialized to a JsonElement. Error: {e.Message}");
         }

@@ -4,7 +4,6 @@ using JTest.Core.Exceptions;
 using JTest.Core.Execution;
 using JTest.Core.Steps.Configuration;
 using JTest.Core.Utilities;
-using System.ComponentModel;
 using System.Diagnostics;
 using System.Text.Json;
 
@@ -16,13 +15,12 @@ public sealed class StepProcessor(IAssertionProcessor assertionProcessor) : ISte
 
     public async Task<StepProcessedResult> ProcessStep(IStep step, IExecutionContext executionContext, CancellationToken cancellationToken = default)
     {
-        var contextBefore = CloneContext(executionContext);
-
         if (!step.Validate(executionContext, out var validationErrors))
         {
             throw new StepConfigurationValidationException(step.TypeName, validationErrors);
         }
 
+        var contextBefore = CloneContext(executionContext);
         var stopWatch = Stopwatch.StartNew();
         var resultData = await step.ExecuteAsync(executionContext, cancellationToken);
         stopWatch.Stop();

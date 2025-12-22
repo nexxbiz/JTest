@@ -7,7 +7,6 @@ using JTest.Core.TypeDescriptors;
 using JTest.Core.Utilities;
 using JTest.UnitTests.TestHelpers;
 using System.Text.Json;
-using Xunit;
 
 namespace JTest.UnitTests;
 
@@ -224,16 +223,16 @@ public class MockHttpStep(MockStepConfiguration configuration) : BaseStep<MockSt
         };
 
         // Store result in context if ID is set
-        if (!string.IsNullOrEmpty(Id))
+        if (!string.IsNullOrEmpty(Configuration.Id))
         {
-            context.Variables[Id] = responseData;
+            context.Variables[Configuration.Id] = responseData;
         }
 
         // Always store in 'this' context
         context.Variables["this"] = responseData;
 
         // Save orderId for subsequent steps
-        if (Id == "createOrder")
+        if (Configuration.Id == "createOrder")
         {
             context.Variables["orderId"] = "ORDER123";
         }

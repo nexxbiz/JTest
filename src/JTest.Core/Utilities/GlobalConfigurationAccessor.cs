@@ -17,10 +17,7 @@ public sealed class GlobalConfigurationAccessor : IGlobalConfigurationAccessor
         this.console = console;
     }
 
-    public GlobalConfiguration Get()
-    {
-        return globalConfiguration.Value;
-    }
+    public GlobalConfiguration Configuration => globalConfiguration.Value;
 
     private GlobalConfiguration? LoadGlobalConfigurationFile()
     {

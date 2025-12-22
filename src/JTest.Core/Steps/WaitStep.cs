@@ -34,7 +34,7 @@ public sealed class WaitStep(WaitStepConfiguration configuration) : BaseStep<Wai
         }
         if(jsonElement.ValueKind == System.Text.Json.JsonValueKind.String)
         {
-            var result = ResolveStringValue(jsonElement.GetString()!, context);
+            var result = ResolveStringVariable(jsonElement.GetString()!, context);
             return int.Parse(result);
         }
 

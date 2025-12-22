@@ -7,6 +7,7 @@ namespace JTest.Core.Output.Markdown;
 
 public sealed class MarkdownOutputGenerator(IVariablesContext variablesContext) : IOutputGenerator
 {
+    public const string FormatKey = "markdown";
     private const string lineBreak = "<br/>";
     private readonly MarkdownTestCaseResultWriter testCaseWriter = new();
     public string FileExtension => ".md";

@@ -34,7 +34,7 @@ public sealed class UseStep(IAnsiConsole ansiConsole, ITemplateContext templateC
 
         var contextIncludingParameters = CreateIsolatedTemplateContext(context, template);
         template.Params
-            .Where(x => !IsRequiredParametersSet(x, context))
+            .Where(x => IsRequiredParameterMissing(x, contextIncludingParameters))
             .Select(x => $"Required template parameter '{x.Key}' not provided")
             .ToList()
             .ForEach(validationErrors.Add);
@@ -54,7 +54,7 @@ public sealed class UseStep(IAnsiConsole ansiConsole, ITemplateContext templateC
         // Create isolated execution context for template
         var isolatedContext = CreateIsolatedTemplateContext(context, template);
 
-        if (!AreAllRequiredParametersSet(template, isolatedContext))
+        if (IsAnyRequiredParameterMissing(template, isolatedContext))
         {
             throw new InvalidOperationException("Not all required parameters are given a value");
         }
@@ -227,20 +227,20 @@ public sealed class UseStep(IAnsiConsole ansiConsole, ITemplateContext templateC
         };
     }
 
-    static bool AreAllRequiredParametersSet(Template template, IExecutionContext context)
+    static bool IsAnyRequiredParameterMissing(Template template, IExecutionContext context)
     {
         foreach (var param in template.Params ?? [])
         {
-            if (IsRequiredParametersSet(param, context))
+            if (IsRequiredParameterMissing(param, context))
             {
-                return false;
+                return true;
             }
         }
 
-        return true;
+        return false;
     }
 
-    static bool IsRequiredParametersSet(KeyValuePair<string, TemplateParameter> param, IExecutionContext context)
+    static bool IsRequiredParameterMissing(KeyValuePair<string, TemplateParameter> param, IExecutionContext context)
     {
         return param.Value.Required && !context.Variables.ContainsKey(param.Key);
     }

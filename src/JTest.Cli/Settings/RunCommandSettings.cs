@@ -13,8 +13,8 @@ public sealed class RunCommandSettings : CommandSettings
     private IReadOnlyDictionary<string, object?>? globalVariables;
 
     [CommandArgument(0, "<test-file-patterns>")]
-    [Description("List of test file patterns that are executed in order. Example: \"tests/**/*\" \"!tests/obsolete-tests/*\"")]
-    public IEnumerable<string>? TestFilePatterns { get; set; }
+    [Description("List of test file patterns that are executed in order. Example: \"tests/**/*\" \"!tests/obsolete-tests/*\"")]    
+    public string[] TestFilePatterns { get; set; } = [];
 
     [CommandOption("--env-file")]
     [Description("File path to environment variables")]
@@ -65,7 +65,7 @@ public sealed class RunCommandSettings : CommandSettings
 
     public override ValidationResult Validate()
     {
-        if (TestFilePatterns?.Any() != true)
+        if (!(TestFilePatterns?.Length > 0))
         {
             return ValidationResult.Error("At least one test file pattern is required.");
         }
