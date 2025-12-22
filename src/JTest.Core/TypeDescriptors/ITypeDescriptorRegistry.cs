@@ -1,7 +1,6 @@
-﻿using JTest.Core.TypeDescriptors;
-using System.Reflection;
+﻿using System.Reflection;
 
-namespace JTest.Core.TypeDescriptorRegistries;
+namespace JTest.Core.TypeDescriptors;
 
 public interface ITypeDescriptorRegistry
 {

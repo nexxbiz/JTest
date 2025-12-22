@@ -9,10 +9,17 @@ public abstract record StepConfigurationBase : IStepConfiguration
     public abstract string? Id { get; init; }
     public abstract string? Name { get; init; }
     public abstract string? Description { get; init; }
-    public string GetDescription() => !string.IsNullOrWhiteSpace(updatedDescription)
+    public string GetDescription()
+    {
+        return !string.IsNullOrWhiteSpace(updatedDescription)
         ? updatedDescription
         : Description ?? string.Empty;
-    public void UpdateDescription(string? value) => updatedDescription = value;
+    }
+
+    public void UpdateDescription(string? value)
+    {
+        updatedDescription = value;
+    }
 
     public abstract IEnumerable<IAssertionOperation>? Assert { get; init; }
     public abstract IReadOnlyDictionary<string, object?>? Save { get; init; }

@@ -1,6 +1,5 @@
 ﻿using JTest.Core.Steps;
 using JTest.Core.Steps.Configuration;
-using JTest.Core.TypeDescriptorRegistries;
 using JTest.Core.TypeDescriptors;
 using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;

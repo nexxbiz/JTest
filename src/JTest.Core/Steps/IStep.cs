@@ -1,4 +1,3 @@
-using JTest.Core.Assertions;
 using JTest.Core.Execution;
 using JTest.Core.Steps.Configuration;
 
@@ -8,7 +7,7 @@ namespace JTest.Core.Steps;
 /// Interface for step implementations in the JTest execution engine
 /// </summary>
 public interface IStep
-{  
+{
     string TypeName { get; }
 
     IStepConfiguration Configuration { get; }

@@ -202,7 +202,7 @@ public sealed record MockStepConfiguration(
     string? Name = null,
     string? Description = null,
     IReadOnlyDictionary<string, object?>? Save = null
-) 
+)
 : StepConfigurationBase;
 
 /// <summary>

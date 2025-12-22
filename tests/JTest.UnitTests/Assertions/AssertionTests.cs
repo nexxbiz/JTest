@@ -2,7 +2,6 @@ using JTest.Core.Assertions;
 using JTest.Core.Execution;
 using System.Globalization;
 using System.Text.Json;
-using Xunit;
 
 namespace JTest.UnitTests.Assertions;
 
@@ -385,7 +384,7 @@ public sealed class AssertionTests
     public void LessThanAssertion_WithNumericValues_InDifferentCultures_WorksCorrectly()
     {
         // Arrange
-        var context = new TestExecutionContext();        
+        var context = new TestExecutionContext();
         var originalCulture = CultureInfo.CurrentCulture;
 
         try
@@ -747,7 +746,7 @@ public sealed class AssertionTests
     {
         // Arrange
         var context = new TestExecutionContext();
-        var assertion = new LessOrEqualAssertion(10,5);
+        var assertion = new LessOrEqualAssertion(10, 5);
 
         // Act
         var result = assertion.Execute(context);

@@ -7,7 +7,7 @@ namespace JTest.Core.Assertions;
 /// </summary>
 public sealed class MatchAssertion(object? actualValue, object? expectedValue, string? description = null, bool? mask = null)
     : AssertionOperationBase(actualValue, expectedValue, description, mask)
-{    
+{
     protected override string GetErrorMessage(object? resolvedActualValue, object? resolvedExpectedValue)
     {
         return $"Expected '{resolvedActualValue}' to match pattern '{resolvedExpectedValue}'";

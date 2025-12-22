@@ -1,5 +1,4 @@
 ﻿using JTest.Core.Assertions;
-using JTest.Core.TypeDescriptorRegistries;
 using JTest.Core.TypeDescriptors;
 using Microsoft.Extensions.DependencyInjection;
 using System.Text.Json;
@@ -23,7 +22,7 @@ public sealed class AssertionOperationJsonConverter(IServiceProvider serviceProv
         writer.WritePropertyName(operationTypePropertyName);
         writer.WriteStringValue(typeIdentifier);
 
-        if(value.ActualValue is not null)
+        if (value.ActualValue is not null)
         {
             writer.WritePropertyName(GetPropertyName(nameof(value.ActualValue)));
             writer.WriteRawValue(
@@ -31,7 +30,7 @@ public sealed class AssertionOperationJsonConverter(IServiceProvider serviceProv
             );
         }
 
-        if(value.ExpectedValue is not null)
+        if (value.ExpectedValue is not null)
         {
             writer.WritePropertyName(GetPropertyName(nameof(value.ExpectedValue)));
             writer.WriteRawValue(
@@ -39,13 +38,13 @@ public sealed class AssertionOperationJsonConverter(IServiceProvider serviceProv
             );
         }
 
-        if(!string.IsNullOrWhiteSpace(value.Description))
+        if (!string.IsNullOrWhiteSpace(value.Description))
         {
             writer.WritePropertyName(GetPropertyName(nameof(value.Description)));
             writer.WriteStringValue(value.Description);
         }
 
-        if(value.Mask.HasValue)
+        if (value.Mask.HasValue)
         {
             writer.WritePropertyName(GetPropertyName(nameof(value.Mask)));
             writer.WriteBooleanValue(value.Mask == true);

@@ -1,11 +1,9 @@
 ﻿using JTest.Core.Assertions;
-using JTest.Core.TypeDescriptorRegistries;
 using JTest.Core.TypeDescriptors;
 using JTest.UnitTests.TestHelpers;
 using NSubstitute;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using Xunit;
 
 namespace JTest.UnitTests.JsonConverters;
 
@@ -30,8 +28,8 @@ public sealed class AssertionJsonConverterTests
     [InlineData(notContainsAssertionJson, "{{ $.variable }}", "value", typeof(NotContainsAssertion))]
     [InlineData(inAssertionJson, "{{ $.variable }}", "value", typeof(InAssertion))]
     [InlineData(matchAssertionJson, "{{ $.variable }}", "value", typeof(MatchAssertion))]
-    [InlineData(betweenAssertionJson,2, "{{ $.variable }}", typeof(BetweenAssertion))]
-    [InlineData(lengthAssertionJson, "{{ $.variable }}",2, typeof(LengthAssertion))]
+    [InlineData(betweenAssertionJson, 2, "{{ $.variable }}", typeof(BetweenAssertion))]
+    [InlineData(lengthAssertionJson, "{{ $.variable }}", 2, typeof(LengthAssertion))]
     [InlineData(startsWithAssertionJson, "{{ $.variable }}", "a", typeof(StartsWithAssertion))]
     [InlineData(endsWithAssertionJson, "{{ $.variable }}", "a", typeof(EndsWithAssertion))]
     public void When_Deserialize_Then_Returns_AssertionOperation(string json, object? actualValue, object? expectedValue, Type expectedType)
@@ -113,7 +111,7 @@ public sealed class AssertionJsonConverterTests
     [InlineData("{\"op\": \"\", \"description\": \"test\", \"mask\": true, \"actualValue\": 12, \"expectedValue\": 12.3 }")]
     [InlineData("{\"op\": null, \"description\": \"test\", \"mask\": true, \"actualValue\": 12, \"expectedValue\": 12.3 }")]
     public void When_Deserialize_And_OpIsNullOrEmpty_Then_ThrowsException(string invalidAssertionJson)
-    {        
+    {
         // Act & Assert
         Assert.Throws<JsonException>(
             () => JsonSerializer.Deserialize<IAssertionOperation>(invalidAssertionJson, options)
@@ -126,7 +124,7 @@ public sealed class AssertionJsonConverterTests
     [InlineData("{\"op\": 123, \"description\": \"test\", \"mask\": true, \"actualValue\": 12, \"expectedValue\": 12.3 }")]
     [InlineData("{\"op\": true, \"description\": \"test\", \"mask\": true, \"actualValue\": 12, \"expectedValue\": 12.3 }")]
     public void When_Deserialize_And_OpPropertyIsInvalidType_Then_ThrowsException(string invalidAssertionJson)
-    {        
+    {
         // Act & Assert
         Assert.Throws<JsonException>(
             () => JsonSerializer.Deserialize<IAssertionOperation>(invalidAssertionJson, options)
@@ -154,7 +152,7 @@ public sealed class AssertionJsonConverterTests
         );
     }
 
-    const string typeAssertionJson =
+    private const string typeAssertionJson =
     """
     {
         "op": "type",
@@ -164,9 +162,9 @@ public sealed class AssertionJsonConverterTests
         "mask": true
     }
     """;
-    static readonly TypeAssertion typeAssertion = new("{{ $.variable }}", "object", "test", true);
+    private static readonly TypeAssertion typeAssertion = new("{{ $.variable }}", "object", "test", true);
 
-    const string equalsAssertionJson = 
+    private const string equalsAssertionJson =
     """
     {
         "op": "equals",
@@ -177,9 +175,9 @@ public sealed class AssertionJsonConverterTests
     }
     """;
 
-    static readonly EqualsAssertion equalsAssertion = new(12.3, 12.1, "test", true);
+    private static readonly EqualsAssertion equalsAssertion = new(12.3, 12.1, "test", true);
 
-    const string notEqualsAssertionJson =
+    private const string notEqualsAssertionJson =
     """
     {
         "op": "notequals",
@@ -190,9 +188,9 @@ public sealed class AssertionJsonConverterTests
     }
     """;
 
-    static readonly NotEqualsAssertion notEqualsAssertion = new(12.3, 12.1, "test", true);
+    private static readonly NotEqualsAssertion notEqualsAssertion = new(12.3, 12.1, "test", true);
 
-    const string greaterThanAssertionJson =
+    private const string greaterThanAssertionJson =
     """
     {
         "op": "greaterthan",
@@ -202,9 +200,9 @@ public sealed class AssertionJsonConverterTests
         "mask": true
     }
     """;
-    static readonly GreaterThanAssertion greaterThanAssertion = new(12.3, 12.1, "test", true);
+    private static readonly GreaterThanAssertion greaterThanAssertion = new(12.3, 12.1, "test", true);
 
-    const string greaterOrEqualAssertionJson =
+    private const string greaterOrEqualAssertionJson =
     """
     {
         "op": "greaterorequal",
@@ -215,9 +213,9 @@ public sealed class AssertionJsonConverterTests
     }
     """;
 
-    static readonly GreaterOrEqualAssertion greaterOrEqualAssertion = new(12.3, 12.1, "test", true);
+    private static readonly GreaterOrEqualAssertion greaterOrEqualAssertion = new(12.3, 12.1, "test", true);
 
-    const string lessThanAssertionJson =
+    private const string lessThanAssertionJson =
     """
     {
         "op": "lessthan",
@@ -228,9 +226,9 @@ public sealed class AssertionJsonConverterTests
     }
     """;
 
-    static readonly LessThanAssertion lessThanAssertion = new(12.3, 12.1, "test", true);
+    private static readonly LessThanAssertion lessThanAssertion = new(12.3, 12.1, "test", true);
 
-    const string lessOrEqualAssertionJson =
+    private const string lessOrEqualAssertionJson =
     """
     {
         "op": "lessorequal",
@@ -240,9 +238,9 @@ public sealed class AssertionJsonConverterTests
         "mask": true
     }
     """;
-    static readonly LessOrEqualAssertion lessOrEqualAssertion = new(12.3, 12.1, "test", true);
+    private static readonly LessOrEqualAssertion lessOrEqualAssertion = new(12.3, 12.1, "test", true);
 
-    const string existsAssertionJson =
+    private const string existsAssertionJson =
     """
     {
         "op": "exists",
@@ -252,10 +250,10 @@ public sealed class AssertionJsonConverterTests
     }
     """;
 
-    static readonly ExistsAssertion existsAssertion = new("{{ $.variable }}", "test", true);
+    private static readonly ExistsAssertion existsAssertion = new("{{ $.variable }}", "test", true);
 
 
-    const string notExistsAssertionJson =
+    private const string notExistsAssertionJson =
     """
     {
         "op": "notexists",
@@ -265,9 +263,9 @@ public sealed class AssertionJsonConverterTests
     }
     """;
 
-    static readonly NotExistsAssertion notExistsAssertion = new("{{ $.variable }}", "test", true);
+    private static readonly NotExistsAssertion notExistsAssertion = new("{{ $.variable }}", "test", true);
 
-    const string emptyAssertionJson =
+    private const string emptyAssertionJson =
     """
     {
         "op": "empty",
@@ -277,9 +275,9 @@ public sealed class AssertionJsonConverterTests
     }
     """;
 
-    static readonly EmptyAssertion emptyAssertion = new("{{ $.variable }}", "test", true);
+    private static readonly EmptyAssertion emptyAssertion = new("{{ $.variable }}", "test", true);
 
-    const string notEmptyAssertionJson =
+    private const string notEmptyAssertionJson =
     """
     {
         "op": "notempty",
@@ -289,9 +287,9 @@ public sealed class AssertionJsonConverterTests
     }
     """;
 
-    static readonly NotEmptyAssertion notEmptyAssertion = new("{{ $.variable }}", "test", true);
+    private static readonly NotEmptyAssertion notEmptyAssertion = new("{{ $.variable }}", "test", true);
 
-    const string containsAssertionJson =
+    private const string containsAssertionJson =
     """
     {
         "op": "contains",
@@ -302,10 +300,10 @@ public sealed class AssertionJsonConverterTests
     }
     """;
 
-    static readonly ContainsAssertion containsAssertion = new("{{ $.variable }}","value", "test", true);
+    private static readonly ContainsAssertion containsAssertion = new("{{ $.variable }}", "value", "test", true);
 
 
-    const string notContainsAssertionJson =
+    private const string notContainsAssertionJson =
     """
     {
         "op": "notcontains",
@@ -316,9 +314,9 @@ public sealed class AssertionJsonConverterTests
     }
     """;
 
-    static readonly NotContainsAssertion notContainsAssertion = new("{{ $.variable }}", "value", "test", true);
+    private static readonly NotContainsAssertion notContainsAssertion = new("{{ $.variable }}", "value", "test", true);
 
-    const string inAssertionJson =
+    private const string inAssertionJson =
     """
     {
         "op": "in",
@@ -329,9 +327,9 @@ public sealed class AssertionJsonConverterTests
     }
     """;
 
-    static readonly InAssertion inAssertion = new("{{ $.variable }}", "value", "test", true);
+    private static readonly InAssertion inAssertion = new("{{ $.variable }}", "value", "test", true);
 
-    const string matchAssertionJson =
+    private const string matchAssertionJson =
     """
     {
         "op": "match",
@@ -342,9 +340,9 @@ public sealed class AssertionJsonConverterTests
     }
     """;
 
-    static readonly MatchAssertion matchAssertion = new("{{ $.variable }}", "value", "test", true);
+    private static readonly MatchAssertion matchAssertion = new("{{ $.variable }}", "value", "test", true);
 
-    const string betweenAssertionJson =
+    private const string betweenAssertionJson =
     """
     {
         "op": "between",
@@ -355,9 +353,9 @@ public sealed class AssertionJsonConverterTests
     }
     """;
 
-    static readonly BetweenAssertion betweenAssertion = new(2, "{{ $.variable }}", "test", true);
+    private static readonly BetweenAssertion betweenAssertion = new(2, "{{ $.variable }}", "test", true);
 
-    const string lengthAssertionJson =
+    private const string lengthAssertionJson =
     """
     {
         "op": "length",
@@ -368,9 +366,9 @@ public sealed class AssertionJsonConverterTests
     }
     """;
 
-    static readonly LengthAssertion lengthAssertion = new("{{ $.variable }}", 2, "test", true);
+    private static readonly LengthAssertion lengthAssertion = new("{{ $.variable }}", 2, "test", true);
 
-    const string startsWithAssertionJson =
+    private const string startsWithAssertionJson =
     """
     {
         "op": "startswith",
@@ -381,9 +379,9 @@ public sealed class AssertionJsonConverterTests
     }
     """;
 
-    static readonly StartsWithAssertion startsWithAssertion = new("{{ $.variable }}", "a", "test", true);
+    private static readonly StartsWithAssertion startsWithAssertion = new("{{ $.variable }}", "a", "test", true);
 
-    const string endsWithAssertionJson =
+    private const string endsWithAssertionJson =
     """
     {
         "op": "endswith",
@@ -394,7 +392,7 @@ public sealed class AssertionJsonConverterTests
     }
     """;
 
-    static readonly EndsWithAssertion endsWithAssertion = new("{{ $.variable }}", "a", "test", true);
+    private static readonly EndsWithAssertion endsWithAssertion = new("{{ $.variable }}", "a", "test", true);
 
     public static readonly IEnumerable<object[]> SerializeTestsMemberData =
     [

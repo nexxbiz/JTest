@@ -1,7 +1,6 @@
 ﻿using JTest.Core.Assertions;
 using JTest.Core.Execution;
 using JTest.Core.Steps;
-using Xunit;
 
 namespace JTest.UnitTests.Steps;
 
@@ -17,7 +16,7 @@ public sealed class StepProcessorTests
         {
             new ExistsAssertion("test")
         };
-        const string id = "my-assert-step";        
+        const string id = "my-assert-step";
         var step = new AssertStep(new(assertions, Id: id));
 
         var sut = StepProcessor.Default;

@@ -1,9 +1,7 @@
-using JTest.Core.Assertions;
 using JTest.Core.Execution;
 using JTest.Core.Models;
 using JTest.Core.Steps;
 using JTest.Core.Utilities;
-using Xunit;
 
 namespace JTest.UnitTests.Integration;
 

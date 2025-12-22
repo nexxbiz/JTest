@@ -1,7 +1,6 @@
-﻿namespace JTest.UnitTests;
+﻿using System.Globalization;
 
-using System;
-using System.Globalization;
+namespace JTest.UnitTests;
 
 public sealed class CultureFixture : IDisposable
 {

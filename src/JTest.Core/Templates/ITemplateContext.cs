@@ -1,4 +1,3 @@
-using JTest.Core.Execution;
 using JTest.Core.Models;
 
 namespace JTest.Core.Templates;

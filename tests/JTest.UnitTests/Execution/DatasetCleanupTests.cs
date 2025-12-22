@@ -1,9 +1,7 @@
-using JTest.Core.Assertions;
 using JTest.Core.Execution;
 using JTest.Core.Models;
 using JTest.Core.Steps;
 using System.Reflection;
-using Xunit;
 
 namespace JTest.UnitTests.Execution;
 
@@ -62,7 +60,7 @@ public class DatasetCleanupTests
     public async Task ExecuteAsync_WithMultipleDatasets_ContextVariablesAreResetBetweenIterations()
     {
         // Arrange
-         var baseContext = new TestExecutionContext();
+        var baseContext = new TestExecutionContext();
         baseContext.Variables["env"] = new { immutableValue = "never-changes" };
         baseContext.Variables["globals"] = new Dictionary<string, object>
         {
@@ -78,7 +76,7 @@ public class DatasetCleanupTests
             Name = "Context reset test",
             Steps = [
                 new WaitStep(new(1, Save: saveVariableModification)) // Mock step that modifies variables
-            ], 
+            ],
             Datasets =
             [
                 new()

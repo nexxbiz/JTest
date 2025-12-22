@@ -38,8 +38,8 @@ public sealed class UseStep(IAnsiConsole ansiConsole, ITemplateContext templateC
             .Select(x => $"Required template parameter '{x.Key}' not provided")
             .ToList()
             .ForEach(validationErrors.Add);
-        
-    } 
+
+    }
 
     public override async Task<StepExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {
@@ -105,7 +105,7 @@ public sealed class UseStep(IAnsiConsole ansiConsole, ITemplateContext templateC
             ? "Template execution failed"
             : string.Empty;
 
-        if(!isSuccess)
+        if (!isSuccess)
         {
             resultData["errorMessage"] = errorMessage;
         }
@@ -227,7 +227,7 @@ public sealed class UseStep(IAnsiConsole ansiConsole, ITemplateContext templateC
         };
     }
 
-    static bool IsAnyRequiredParameterMissing(Template template, IExecutionContext context)
+    private static bool IsAnyRequiredParameterMissing(Template template, IExecutionContext context)
     {
         foreach (var param in template.Params ?? [])
         {
@@ -240,7 +240,7 @@ public sealed class UseStep(IAnsiConsole ansiConsole, ITemplateContext templateC
         return false;
     }
 
-    static bool IsRequiredParameterMissing(KeyValuePair<string, TemplateParameter> param, IExecutionContext context)
+    private static bool IsRequiredParameterMissing(KeyValuePair<string, TemplateParameter> param, IExecutionContext context)
     {
         return param.Value.Required && !context.Variables.ContainsKey(param.Key);
     }

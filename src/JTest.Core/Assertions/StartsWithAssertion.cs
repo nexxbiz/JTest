@@ -5,7 +5,7 @@
 /// </summary>
 public sealed class StartsWithAssertion(object? actualValue, object? expectedValue, string? description = null, bool? mask = null)
     : AssertionOperationBase(actualValue, expectedValue, description, mask)
-{    
+{
     protected override string GetErrorMessage(object? resolvedActualValue, object? resolvedExpectedValue)
     {
         return $"Expected '{resolvedActualValue}' to start with '{resolvedExpectedValue}'";

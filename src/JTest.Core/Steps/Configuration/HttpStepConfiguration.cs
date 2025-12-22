@@ -1,5 +1,4 @@
 ﻿using JTest.Core.Assertions;
-using JTest.Core.Execution;
 using System.Text.Json.Serialization;
 
 namespace JTest.Core.Steps.Configuration;

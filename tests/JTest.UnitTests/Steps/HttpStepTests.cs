@@ -262,7 +262,7 @@ public sealed class HttpStepTests
     {
         // Arrange
         var context = new TestExecutionContext();
-        context.Variables["filters"] = new { status = "active" };        
+        context.Variables["filters"] = new { status = "active" };
         var config = new HttpStepConfiguration(
 
             Method: "GET",
@@ -278,7 +278,7 @@ public sealed class HttpStepTests
             requestMessageRequirement: msg => msg.RequestUri!.Query.Contains("status=active") && msg.RequestUri!.Query.Contains("limit=10"),
             configuration: config
         );
-        
+
         // Act
         var result = await step.ExecuteAsync(context);
 

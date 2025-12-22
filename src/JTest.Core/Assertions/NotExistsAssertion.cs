@@ -5,7 +5,7 @@
 /// </summary>
 public sealed class NotExistsAssertion(object? actualValue, string? description = null, bool? mask = null)
     : AssertionOperationBase(actualValue, expectedValue: null, description, mask)
-{    
+{
     protected override string GetErrorMessage(object? resolvedActualValue, object? resolvedExpectedValue)
     {
         return $"Expected value {resolvedActualValue} to not exist.";

@@ -80,7 +80,7 @@ public sealed class JTestSuiteExecutor(IJTestCaseExecutor testCaseExecutor, IVar
 
         // Merge global variables (parameter takes precedence)
         var mergedGlobals = MergeDictionaries(testSuite.Globals, variablesContext.GlobalVariables);
-        
+
         // Load templates for test suite
         await templateContext.Load(testSuite);
 

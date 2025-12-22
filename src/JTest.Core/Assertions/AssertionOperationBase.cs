@@ -61,7 +61,7 @@ public abstract class AssertionOperationBase(object? actualValue, object? expect
 
     private static object? GetAssertionValue(object value, IExecutionContext context)
     {
-        if(value is JsonElement jsonElement && jsonElement.ValueKind == JsonValueKind.String)
+        if (value is JsonElement jsonElement && jsonElement.ValueKind == JsonValueKind.String)
         {
             value = jsonElement.GetString() ?? string.Empty;
         }

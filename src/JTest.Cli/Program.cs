@@ -6,7 +6,6 @@ using JTest.Core.Output;
 using JTest.Core.Output.Markdown;
 using JTest.Core.Steps;
 using JTest.Core.Templates;
-using JTest.Core.TypeDescriptorRegistries;
 using JTest.Core.Utilities;
 using JTest.Core.Variables;
 using Microsoft.Extensions.DependencyInjection;
@@ -30,7 +29,7 @@ internal class Program
         app.Configure(config =>
         {
             config.Settings.ApplicationName = "jtest";
-            
+
             config.SetHelpProvider(new EnvironmentVariablesHelpProvider(config.Settings));
 
             config

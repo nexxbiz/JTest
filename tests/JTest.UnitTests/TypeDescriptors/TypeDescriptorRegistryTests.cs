@@ -1,8 +1,5 @@
-﻿using JTest.Core.Models;
-using JTest.Core.TypeDescriptorRegistries;
-using JTest.Core.TypeDescriptors;
+﻿using JTest.Core.TypeDescriptors;
 using NSubstitute;
-using Xunit;
 
 namespace JTest.UnitTests.TypeDescriptors;
 

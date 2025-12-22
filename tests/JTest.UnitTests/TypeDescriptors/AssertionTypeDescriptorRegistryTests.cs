@@ -1,12 +1,10 @@
 ﻿using JTest.Core.Assertions;
 using JTest.Core.Steps;
 using JTest.Core.Templates;
-using JTest.Core.TypeDescriptorRegistries;
 using JTest.Core.TypeDescriptors;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
 using Spectre.Console;
-using Xunit;
 
 namespace JTest.UnitTests.TypeDescriptors;
 
@@ -48,7 +46,7 @@ public sealed class AssertionTypeDescriptorRegistryTests
     }
 
 
-    static ITypeDescriptorRegistry GetSut(bool registerStepDependencies = true)
+    private static ITypeDescriptorRegistry GetSut(bool registerStepDependencies = true)
     {
         var serviceCollection = new ServiceCollection();
 

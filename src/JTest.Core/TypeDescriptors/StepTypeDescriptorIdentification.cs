@@ -1,36 +1,33 @@
-﻿
-using JTest.Core.TypeDescriptors;
-using System.Reflection;
+﻿using System.Reflection;
 
-namespace JTest.Core.TypeDescriptorRegistries
+namespace JTest.Core.TypeDescriptors;
+
+public sealed class StepTypeDescriptorIdentification : ITypeDescriptorIdentification
 {
-    public sealed class StepTypeDescriptorIdentification : ITypeDescriptorIdentification
+    public string Identify(Type type)
     {
-        public string Identify(Type type)
+        if (HasIdentifierAttribute(type, out var id))
         {
-            if (HasIdentifierAttribute(type, out var id))
-            {
-                return id;
-            }
-
-            var result = type.Name
-                .Replace("Step", string.Empty)
-                .ToLowerInvariant();
-
-            return result;
+            return id;
         }
 
-        static bool HasIdentifierAttribute(Type type, out string id)
-        {
-            var attribute = type.GetCustomAttribute<TypeIdentifierAttribute>();
-            if (attribute is null)
-            {
-                id = string.Empty;
-                return false;
-            }
+        var result = type.Name
+            .Replace("Step", string.Empty)
+            .ToLowerInvariant();
 
-            id = attribute.Id;
-            return true;
+        return result;
+    }
+
+    private static bool HasIdentifierAttribute(Type type, out string id)
+    {
+        var attribute = type.GetCustomAttribute<TypeIdentifierAttribute>();
+        if (attribute is null)
+        {
+            id = string.Empty;
+            return false;
         }
+
+        id = attribute.Id;
+        return true;
     }
 }

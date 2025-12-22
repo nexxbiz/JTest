@@ -2,12 +2,10 @@
 using JTest.Core.Steps;
 using JTest.Core.Steps.Configuration;
 using JTest.Core.Templates;
-using JTest.Core.TypeDescriptorRegistries;
 using JTest.Core.TypeDescriptors;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
 using Spectre.Console;
-using Xunit;
 
 namespace JTest.UnitTests.TypeDescriptors;
 
@@ -60,7 +58,7 @@ public sealed class StepTypeDescriptorRegistryTests
         return types;
     }
 
-    static ITypeDescriptorRegistry GetSut(bool registerStepDependencies = true)
+    private static ITypeDescriptorRegistry GetSut(bool registerStepDependencies = true)
     {
         var serviceCollection = new ServiceCollection();
         serviceCollection.AddSingleton<TypeDescriptorRegistryProvider>();

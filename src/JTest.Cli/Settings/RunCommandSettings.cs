@@ -13,7 +13,7 @@ public sealed class RunCommandSettings : CommandSettings
     private IReadOnlyDictionary<string, object?>? globalVariables;
 
     [CommandArgument(0, "<test-file-patterns>")]
-    [Description("List of test file patterns that are executed in order. Example: \"tests/**/*\" \"!tests/obsolete-tests/*\"")]    
+    [Description("List of test file patterns that are executed in order. Example: \"tests/**/*\" \"!tests/obsolete-tests/*\"")]
     public string[] TestFilePatterns { get; set; } = [];
 
     [CommandOption("--env-file")]

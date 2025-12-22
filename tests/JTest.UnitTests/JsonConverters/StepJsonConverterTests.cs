@@ -2,14 +2,12 @@
 using JTest.Core.Steps;
 using JTest.Core.Steps.Configuration;
 using JTest.Core.Templates;
-using JTest.Core.TypeDescriptorRegistries;
 using JTest.Core.TypeDescriptors;
 using JTest.UnitTests.TestHelpers;
 using NSubstitute;
 using Spectre.Console;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using Xunit;
 
 namespace JTest.UnitTests.JsonConverters;
 
@@ -85,10 +83,10 @@ public sealed class StepJsonConverterTests
     public void When_SerializeHttpStep_Then_Returns_HttpStepJson()
     {
         // Arrange
-        var save = new KeyValuePair<string, object?>("$.globals.var","{{ $.this.value }}");
+        var save = new KeyValuePair<string, object?>("$.globals.var", "{{ $.this.value }}");
         var query = new KeyValuePair<string, string>("param1", "value1");
         var header = new HttpStepRequestHeaderConfiguration("header1", "value1");
-        var formFile = new HttpStepFormFileConfiguration("name1","fileName1", "path1.json", "application/xml");
+        var formFile = new HttpStepFormFileConfiguration("name1", "fileName1", "path1.json", "application/xml");
         var assert = new EqualsAssertion(null, null, "test", null);
         var httpStepConfiguration = new HttpStepConfiguration(
             "GET",
@@ -115,7 +113,7 @@ public sealed class StepJsonConverterTests
         Assert.NotEmpty(result);
 
         var resultObject = JsonNode.Parse(result)!.AsObject();
-                
+
         Assert.Equal(httpStepConfiguration.Id, $"{resultObject["id"]}");
         Assert.Equal(httpStepConfiguration.Name, $"{resultObject["name"]}");
         Assert.Equal(httpStepConfiguration.Description, $"{resultObject["description"]}");
@@ -174,7 +172,7 @@ public sealed class StepJsonConverterTests
         Assert.Equal("Execute template", configuration.Name);
         Assert.Equal("templateName", configuration.Template);
         Assert.Equal("test", configuration.Description);
-        
+
         Assert.NotNull(configuration.Assert);
         Assert.Single(configuration.Assert);
         var assertion = configuration.Assert.First();
@@ -209,7 +207,7 @@ public sealed class StepJsonConverterTests
     {
         // Arrange
         var with = new KeyValuePair<string, object?>("param1", "value1");
-        var save = new KeyValuePair<string, object?>("$.globals.var", "{{ $.this.value }}");     
+        var save = new KeyValuePair<string, object?>("$.globals.var", "{{ $.this.value }}");
         var assert = new EqualsAssertion(null, null, "test", null);
         var useStepConfiguration = new UseStepConfiguration(
             $"{Guid.NewGuid()}",
@@ -220,7 +218,7 @@ public sealed class StepJsonConverterTests
             [assert],
             new Dictionary<string, object?>([save])
         );
-        IStep step = new UseStep(Substitute.For<IAnsiConsole>(),Substitute.For<ITemplateContext>(), Substitute.For<IStepProcessor>(), Substitute.For<IServiceProvider>(), useStepConfiguration);
+        IStep step = new UseStep(Substitute.For<IAnsiConsole>(), Substitute.For<ITemplateContext>(), Substitute.For<IStepProcessor>(), Substitute.For<IServiceProvider>(), useStepConfiguration);
 
         // Act
         var result = JsonSerializer.Serialize(step, options);
@@ -233,7 +231,7 @@ public sealed class StepJsonConverterTests
 
         Assert.Equal(useStepConfiguration.Id, $"{resultObject["id"]}");
         Assert.Equal(useStepConfiguration.Name, $"{resultObject["name"]}");
-        Assert.Equal(useStepConfiguration.Description, $"{resultObject["description"]}");        
+        Assert.Equal(useStepConfiguration.Description, $"{resultObject["description"]}");
         Assert.Equal(useStepConfiguration.Template, $"{resultObject["template"]}");
 
         Assert.NotNull(resultObject["assert"]?.AsArray());
@@ -303,9 +301,9 @@ public sealed class StepJsonConverterTests
         var assert = new EqualsAssertion(null, null, "test", null);
         var stepConfiguration = new WaitStepConfiguration(
             100,
-            $"{Guid.NewGuid()}",            
             $"{Guid.NewGuid()}",
-            $"{Guid.NewGuid()}",            
+            $"{Guid.NewGuid()}",
+            $"{Guid.NewGuid()}",
             [assert],
             new Dictionary<string, object?>([save])
         );
@@ -352,7 +350,7 @@ public sealed class StepJsonConverterTests
         Assert.NotNull(configuration);
         Assert.Equal("assert-id", configuration.Id);
         Assert.Equal("Execute assert", configuration.Name);
-        Assert.Equal("test", configuration.Description);        
+        Assert.Equal("test", configuration.Description);
 
         Assert.NotNull(configuration.Assert);
         Assert.Single(configuration.Assert);
@@ -403,7 +401,7 @@ public sealed class StepJsonConverterTests
 
         Assert.Equal(stepConfiguration.Id, $"{resultObject["id"]}");
         Assert.Equal(stepConfiguration.Name, $"{resultObject["name"]}");
-        Assert.Equal(stepConfiguration.Description, $"{resultObject["description"]}");        
+        Assert.Equal(stepConfiguration.Description, $"{resultObject["description"]}");
 
         Assert.NotNull(resultObject["assert"]?.AsArray());
         Assert.Single(resultObject["assert"]!.AsArray());
@@ -676,5 +674,5 @@ public sealed class StepJsonConverterTests
       "description": "test",
       "contentType": "application/json"
     }    
-    """;    
+    """;
 }

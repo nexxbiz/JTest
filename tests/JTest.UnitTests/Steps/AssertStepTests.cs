@@ -1,7 +1,6 @@
 using JTest.Core.Assertions;
 using JTest.Core.Execution;
 using JTest.Core.Steps;
-using Xunit;
 
 namespace JTest.UnitTests.Steps;
 
@@ -19,7 +18,7 @@ public sealed class AssertStepTests
     {
         // Arrange
         var context = new TestExecutionContext();
-        
+
         context.Variables["testValue"] = "hello world";
         context.Variables["numberValue"] = 42;
 
@@ -36,7 +35,7 @@ public sealed class AssertStepTests
         var result = await step.ExecuteAsync(context);
 
         // Assert
-        var resultData = result.Data as Dictionary<string, object?>;
+        var resultData = result.Data;
         Assert.NotNull(resultData);
         Assert.True(resultData.ContainsKey("assertions"));
         Assert.NotNull(resultData["assertions"]);

@@ -1,5 +1,4 @@
 ﻿using JTest.Core.Assertions;
-using JTest.Core.Execution;
 
 namespace JTest.Core.Steps.Configuration;
 
@@ -13,5 +12,5 @@ public interface IStepConfiguration
 
     IEnumerable<IAssertionOperation>? Assert { get; }
 
-    IReadOnlyDictionary<string, object?>? Save { get; }    
+    IReadOnlyDictionary<string, object?>? Save { get; }
 }

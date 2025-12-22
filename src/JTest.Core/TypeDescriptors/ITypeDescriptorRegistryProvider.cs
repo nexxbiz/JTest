@@ -1,8 +1,7 @@
-﻿namespace JTest.Core.TypeDescriptorRegistries
+﻿namespace JTest.Core.TypeDescriptors;
+
+public interface ITypeDescriptorRegistryProvider
 {
-    public interface ITypeDescriptorRegistryProvider
-    {
-        ITypeDescriptorRegistry StepTypeRegistry { get; }
-        ITypeDescriptorRegistry AssertionTypeRegistry { get; }
-    }
+    ITypeDescriptorRegistry StepTypeRegistry { get; }
+    ITypeDescriptorRegistry AssertionTypeRegistry { get; }
 }

@@ -63,7 +63,7 @@ public sealed class UseStepTests
             """,
             serializerOptions
         )!;
-        
+
         var context = new TestExecutionContext();
 
         // Act
@@ -104,12 +104,12 @@ public sealed class UseStepTests
             """,
             serializerOptions
         )!;
-        
+
         var context = new TestExecutionContext();
 
         // Act & Assert
         await Assert.ThrowsAsync<InvalidOperationException>(
-            async () =>_ = await useStep.ExecuteAsync(context)
+            async () => _ = await useStep.ExecuteAsync(context)
         );
     }
 
@@ -149,7 +149,7 @@ public sealed class UseStepTests
         var result = await useStep.ExecuteAsync(context);
 
         // Assert
-        Assert.NotNull(result.Data);                       
+        Assert.NotNull(result.Data);
         Assert.Equal("default value", $"{result.Data["result"]}");
     }
 
@@ -236,7 +236,7 @@ public sealed class UseStepTests
             """,
             serializerOptions
         )!;
-        
+
         // Create execution context with case data
         var context = new TestExecutionContext();
         var caseData = new Dictionary<string, object>
@@ -299,7 +299,7 @@ public sealed class UseStepTests
         var result = await useStep.ExecuteAsync(context);
 
         // Assert
-        Assert.NotNull(result.Data);                
+        Assert.NotNull(result.Data);
         Assert.Equal("Template executed successfully", result.Data["message"]);
     }
 
@@ -363,7 +363,7 @@ public sealed class UseStepTests
     }
 
 
-    static UseStep GetSut(string templateName, IReadOnlyDictionary<string, object?>? with = null, ITemplateContext? context = null, IServiceProvider? serviceProvider = null)
+    private static UseStep GetSut(string templateName, IReadOnlyDictionary<string, object?>? with = null, ITemplateContext? context = null, IServiceProvider? serviceProvider = null)
     {
         return new UseStep(
             Substitute.For<IAnsiConsole>(),

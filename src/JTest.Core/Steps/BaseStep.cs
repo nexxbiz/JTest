@@ -26,7 +26,7 @@ public abstract class BaseStep<TConfiguration>(TConfiguration configuration) : I
     /// <summary>
     /// Step description; can be assigned by derived classes. Initial value derived from configuration
     /// </summary>
-    protected string? Description 
+    protected string? Description
     {
         get => Configuration.GetDescription();
         set => Configuration.UpdateDescription(value);
@@ -51,7 +51,9 @@ public abstract class BaseStep<TConfiguration>(TConfiguration configuration) : I
     protected virtual void Validate(IExecutionContext context, IList<string> validationErrors) { }
 
     protected static string ResolveStringVariable(string? value, IExecutionContext context)
-        => ResolveVariable(value, context)?.ToString() ?? string.Empty;
+    {
+        return ResolveVariable(value, context)?.ToString() ?? string.Empty;
+    }
 
     protected static object? ResolveVariable(string? value, IExecutionContext context)
     {

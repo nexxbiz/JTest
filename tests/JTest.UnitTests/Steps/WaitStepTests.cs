@@ -65,8 +65,8 @@ public class WaitStepTests
     {
         // Arrange
         const long durationInput = 50;
-        var expectedDuration = durationInput * expectedResultIncludingErrorMargin;        
-        var step = new WaitStep(new ($"{durationInput}"));
+        var expectedDuration = durationInput * expectedResultIncludingErrorMargin;
+        var step = new WaitStep(new($"{durationInput}"));
         var context = new TestExecutionContext();
 
         // Act
@@ -74,7 +74,7 @@ public class WaitStepTests
 
         // Assert
         Assert.NotNull(result.Data);
-        Assert.True((long?)result.Data["duration"] >= expectedDuration, $"Expected duration to be at least {expectedDuration}ms, but got {result.Data["duration"]}ms.");        
+        Assert.True((long?)result.Data["duration"] >= expectedDuration, $"Expected duration to be at least {expectedDuration}ms, but got {result.Data["duration"]}ms.");
     }
 
     [Fact]
@@ -99,7 +99,7 @@ public class WaitStepTests
         const long durationInput = 25;
         var expectedDuration = durationInput * expectedResultIncludingErrorMargin;
         var context = new TestExecutionContext();
-        context.Variables["env"] = new { requestDelay = durationInput };        
+        context.Variables["env"] = new { requestDelay = durationInput };
         var step = new WaitStep(new("{{$.env.requestDelay}}"));
 
         // Act
@@ -132,7 +132,7 @@ public class WaitStepTests
         const long durationInput = 30;
         var expectedDuration = durationInput * expectedResultIncludingErrorMargin;
         var context = new TestExecutionContext();
-        context.Variables["config"] = new { timeout = durationInput };        
+        context.Variables["config"] = new { timeout = durationInput };
         var step = new WaitStep(new("{{$.config.timeout}}"));
 
         // Act
@@ -140,14 +140,14 @@ public class WaitStepTests
 
         // Assert
         Assert.NotNull(result.Data);
-        Assert.True((long?)result.Data["duration"] >= expectedDuration, $"Expected duration to be at least {expectedDuration}ms, but got {result.Data["duration"]}ms.");        
+        Assert.True((long?)result.Data["duration"] >= expectedDuration, $"Expected duration to be at least {expectedDuration}ms, but got {result.Data["duration"]}ms.");
     }
 
     [Fact]
     public async Task ExecuteAsync_SupportsCancellation()
     {
         // Arrange
-        var context = new TestExecutionContext();        
+        var context = new TestExecutionContext();
         var step = new WaitStep(new(5000));
 
         using var cts = new CancellationTokenSource();
@@ -169,7 +169,7 @@ public class WaitStepTests
         const long mediumDurationInput = 50;
         var expectedDuration = mediumDurationInput * expectedResultIncludingErrorMargin;
         var context = new TestExecutionContext();
-        context.Variables["env"] = new { delays = new { short_ = 10, medium = mediumDurationInput, long_ = 100 } };        
+        context.Variables["env"] = new { delays = new { short_ = 10, medium = mediumDurationInput, long_ = 100 } };
         var step = new WaitStep(new("{{$.env.delays.medium}}"));
 
         var result = await step.ExecuteAsync(context);

@@ -1,7 +1,6 @@
-﻿namespace JTest.Core.TypeDescriptorRegistries
+﻿namespace JTest.Core.TypeDescriptors;
+
+public interface ITypeDescriptorIdentification
 {
-    public interface ITypeDescriptorIdentification
-    {
-        string Identify(Type type);
-    }
+    string Identify(Type type);
 }

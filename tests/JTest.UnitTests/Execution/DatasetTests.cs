@@ -2,7 +2,6 @@ using JTest.Core.Models;
 using JTest.Core.Steps;
 using JTest.UnitTests.TestHelpers;
 using System.Text.Json;
-using Xunit;
 
 namespace JTest.UnitTests.Execution;
 
@@ -76,7 +75,7 @@ public class DatasetTests
         var result = new JTestCaseResult
         {
             TestCaseName = "Order processing",
-            Dataset = dataset,            
+            Dataset = dataset,
             DurationMs = 500
         };
 

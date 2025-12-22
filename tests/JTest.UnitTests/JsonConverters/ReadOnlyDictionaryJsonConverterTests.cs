@@ -1,6 +1,5 @@
 ﻿using JTest.Core.JsonConverters;
 using System.Text.Json;
-using Xunit;
 
 namespace JTest.UnitTests.JsonConverters;
 

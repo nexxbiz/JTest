@@ -205,7 +205,7 @@ public sealed class JTestCaseExecutorTests
         var testCase = new JTestCase
         {
             Name = "Test with failing step",
-            Steps = 
+            Steps =
             [
                 new WaitStep(new(Ms: "not-a-number")),
                 new WaitStep(new(Ms: 1))
@@ -228,5 +228,8 @@ public sealed class JTestCaseExecutorTests
         Assert.True(stepResults.Last().Success);
     }
 
-    static JTestCaseExecutor GetSut() => new(StepProcessor.Default);
+    private static JTestCaseExecutor GetSut()
+    {
+        return new(StepProcessor.Default);
+    }
 }

@@ -1,7 +1,6 @@
 ﻿using JTest.Core.JsonConverters;
 using JTest.Core.Steps;
 using JTest.Core.Templates;
-using JTest.Core.TypeDescriptorRegistries;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
 using Spectre.Console;
@@ -18,7 +17,7 @@ internal static class JsonSerializerHelper
         var serviceCollection = new ServiceCollection();
         serviceCollection
             .AddSingleton(new HttpClient())
-            .AddSingleton(AnsiConsole.Console)            
+            .AddSingleton(AnsiConsole.Console)
             .AddSingleton(StepProcessor.Default);
 
         if (registryProvider is not null)

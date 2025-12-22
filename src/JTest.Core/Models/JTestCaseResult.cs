@@ -42,7 +42,10 @@ public class JTestCaseResult
                                     ? string.Join("; ", errors)
                                     : null;
 
-    public void AddStepResult(StepProcessedResult stepProcessedResult) => stepResults.Add(stepProcessedResult);
+    public void AddStepResult(StepProcessedResult stepProcessedResult)
+    {
+        stepResults.Add(stepProcessedResult);
+    }
 
     public void AddError(string? error)
     {

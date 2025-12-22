@@ -57,7 +57,7 @@ public sealed class HttpStep(HttpClient httpClient, HttpStepConfiguration config
         {
             validationErrors.Add($"Invalid url '{uri}'");
         }
-    }  
+    }
 
     public override async Task<StepExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {

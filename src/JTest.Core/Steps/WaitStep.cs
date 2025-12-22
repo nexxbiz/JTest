@@ -19,20 +19,20 @@ public sealed class WaitStep(WaitStepConfiguration configuration) : BaseStep<Wai
                 validationErrors.Add("Milliseconds must be greater than 0");
             }
         }
-        catch(Exception e)
+        catch (Exception e)
         {
             validationErrors.Add($"Could not parse/resolve milliseconds '{Configuration.Ms}'. Error: {e.Message}");
         }
     }
 
-    int ParseMs(IExecutionContext context)
-    {        
+    private int ParseMs(IExecutionContext context)
+    {
         var jsonElement = SerializeToJsonElement(Configuration.Ms);
-        if(jsonElement.ValueKind == System.Text.Json.JsonValueKind.Number)
+        if (jsonElement.ValueKind == System.Text.Json.JsonValueKind.Number)
         {
             return (int)jsonElement.GetDouble();
         }
-        if(jsonElement.ValueKind == System.Text.Json.JsonValueKind.String)
+        if (jsonElement.ValueKind == System.Text.Json.JsonValueKind.String)
         {
             var result = ResolveStringVariable(jsonElement.GetString()!, context);
             return int.Parse(result);

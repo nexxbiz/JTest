@@ -1,5 +1,4 @@
 using JTest.Core.Debugging;
-using Xunit;
 
 namespace JTest.UnitTests.Debugging;
 
@@ -77,14 +76,14 @@ public class SecurityMaskerTests
 
         // Assert
         Assert.Equal("masked", result);
-        
+
         // Test that both quoted and unquoted versions are masked
         var textWithQuotes = "password: \"secret123\"";
         var textWithoutQuotes = "password: secret123";
-        
+
         var maskedWithQuotes = masker.ApplyMasking(textWithQuotes);
         var maskedWithoutQuotes = masker.ApplyMasking(textWithoutQuotes);
-        
+
         Assert.DoesNotContain("secret123", maskedWithQuotes);
         Assert.DoesNotContain("secret123", maskedWithoutQuotes);
     }
@@ -96,7 +95,7 @@ public class SecurityMaskerTests
         var masker = new SecurityMasker();
 
         // Act & Assert
-        Assert.Equal("null", masker.RegisterForMasking("password", (string?)null!));
+        Assert.Equal("null", masker.RegisterForMasking("password", null!));
         Assert.Equal("masked", masker.RegisterForMasking("password", ""));
         Assert.Equal("masked", masker.RegisterForMasking("password", "   "));
     }
