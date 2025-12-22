@@ -1,6 +1,7 @@
 ﻿using JTest.Core.JsonConverters;
 using JTest.Core.Steps;
 using JTest.Core.Templates;
+using JTest.Core.TypeDescriptors;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
 using Spectre.Console;

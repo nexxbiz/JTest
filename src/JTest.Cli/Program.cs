@@ -6,6 +6,7 @@ using JTest.Core.Output;
 using JTest.Core.Output.Markdown;
 using JTest.Core.Steps;
 using JTest.Core.Templates;
+using JTest.Core.TypeDescriptors;
 using JTest.Core.Utilities;
 using JTest.Core.Variables;
 using Microsoft.Extensions.DependencyInjection;

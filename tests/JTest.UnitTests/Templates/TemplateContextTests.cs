@@ -1,5 +1,6 @@
 ﻿using JTest.Core.Models;
 using JTest.Core.Templates;
+using JTest.Core.TypeDescriptors;
 using JTest.Core.Utilities;
 using JTest.UnitTests.TestHelpers;
 using Microsoft.Extensions.DependencyInjection;
