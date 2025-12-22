@@ -1,20 +1,62 @@
-﻿using System.Globalization;
+﻿using JTest.Core.Execution;
+using System.Globalization;
 using System.Text.Json;
 
 namespace JTest.Core.Utilities;
 
 internal static class TypeConversionHelper
 {
-    internal static double ConvertToDouble(object? value)
+    internal static IEnumerable<object> ConvertToArray(object? value, IExecutionContext context)
+    {
+        if (value is IEnumerable<object> enumerable)
+        {
+            return enumerable;
+        }
+
+        if (value is string stringValue)
+        {
+            var resolved = VariableInterpolator.ResolveVariableTokens(stringValue, context);
+            if (resolved is not IEnumerable<object> resolvedArray)
+            {
+                throw new InvalidOperationException($"Failed to convert value '{value}' to an array");
+            }
+
+            return resolvedArray;
+        }
+
+        if (value is JsonElement jsonValue && jsonValue.ValueKind == JsonValueKind.String)
+        {
+            var arrayObject = VariableInterpolator.ResolveVariableTokens(jsonValue.GetString()!, context);
+            if (arrayObject is not IEnumerable<object> enumerableArrayObject)
+            {
+                throw new InvalidOperationException($"Failed to convert value '{value}' to an array");
+            }
+
+            return enumerableArrayObject;
+        }
+
+        throw new InvalidOperationException($"Failed to convert value '{value}' to an array");
+    }
+
+    internal static double ConvertToDouble(object? value, IExecutionContext? context = null)
     {
         if (value is null)
         {
             throw new FormatException("Cannot convert null to a numeric value");
         }
 
+        if (value is string)
+        {
+            var stringValue = context is not null
+                ? VariableInterpolator.ResolveVariableTokens($"{value}", context)
+                : $"{value}";
+
+            return Convert.ToDouble(stringValue, CultureInfo.InvariantCulture);
+        }
+
         if (value is JsonElement element)
         {
-            return ConvertJsonElementToDouble(element);
+            return ConvertJsonElementToDouble(element, context);
         }
 
         if (IsNumeric(value))
@@ -25,13 +67,19 @@ internal static class TypeConversionHelper
         throw new FormatException($"Cannot convert '{value}' to a numeric value");
     }
 
-    internal static double ConvertJsonElementToDouble(JsonElement element)
+    internal static double ConvertJsonElementToDouble(JsonElement element, IExecutionContext? context = null)
     {
         if (element.ValueKind == JsonValueKind.Number)
             return element.GetDouble();
 
         if (element.ValueKind == JsonValueKind.String)
-            return Convert.ToDouble(element.GetString(), CultureInfo.InvariantCulture);
+        {
+            var elementString = context is not null
+                ? VariableInterpolator.ResolveVariableTokens(element.GetString()!, context)
+                : element.GetString();
+
+            return Convert.ToDouble(elementString, CultureInfo.InvariantCulture);
+        }
 
         throw new FormatException($"Cannot convert JsonElement '{element}' to a numeric value");
     }
@@ -54,18 +102,18 @@ internal static class TypeConversionHelper
 
     internal static bool IsDateTimeValue(object? value, out long ticks)
     {
-        ticks = 0;        
+        ticks = 0;
         if (value is string valueString)
         {
             if (DateTimeOffset.TryParse(valueString, out var actualDateTime))
             {
-                ticks = actualDateTime.ToUniversalTime().Ticks;                
+                ticks = actualDateTime.ToUniversalTime().Ticks;
                 return true;
             }
 
             if (TimeOnly.TryParse(valueString, out var actualTimeOnly))
             {
-                ticks = actualTimeOnly.Ticks;                
+                ticks = actualTimeOnly.Ticks;
                 return true;
             }
 
@@ -74,7 +122,7 @@ internal static class TypeConversionHelper
 
         if (value is DateTime actualValueDateTime)
         {
-            ticks = actualValueDateTime.ToUniversalTime().Ticks;            
+            ticks = actualValueDateTime.ToUniversalTime().Ticks;
             return true;
         }
 

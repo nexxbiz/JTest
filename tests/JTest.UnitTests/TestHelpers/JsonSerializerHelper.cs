@@ -11,7 +11,7 @@ namespace JTest.UnitTests.TestHelpers;
 
 internal static class JsonSerializerHelper
 {
-    internal static readonly JsonSerializerOptions Options = GetSerializerOptions();
+    internal static readonly JsonSerializerOptions Options = GetSerializerOptions();  
 
     internal static JsonSerializerOptions GetSerializerOptions(ITypeDescriptorRegistryProvider? registryProvider = null, ITemplateContext? templateContext = null)
     {

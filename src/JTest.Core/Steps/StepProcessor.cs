@@ -10,9 +10,9 @@ using System.Text.Json;
 
 namespace JTest.Core.Steps;
 
-public sealed class StepProcessor(IAssertionProcessor assertionProcessor, IAnsiConsole console) : IStepProcessor
+public sealed class StepProcessor(IAssertionProcessor assertionProcessor) : IStepProcessor
 {
-    public static readonly IStepProcessor Default = new StepProcessor(new AssertionProcessor(), AnsiConsole.Console);
+    public static readonly IStepProcessor Default = new StepProcessor(new AssertionProcessor());
 
     public async Task<StepProcessedResult> ProcessStep(IStep step, IExecutionContext executionContext, CancellationToken cancellationToken = default)
     {
