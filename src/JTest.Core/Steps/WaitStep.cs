@@ -14,7 +14,7 @@ public sealed class WaitStep(WaitStepConfiguration configuration) : BaseStep<Wai
     {
         try
         {
-            var ms = TypeConversionHelper.ConvertToDouble(Configuration.Ms, context);
+            var ms = Configuration.Ms.ConvertToDouble(context);
             if (ms <= 0)
             {
                 validationErrors.Add("Milliseconds must be greater than 0");
@@ -41,7 +41,7 @@ public sealed class WaitStep(WaitStepConfiguration configuration) : BaseStep<Wai
         var stopWatch = Stopwatch.StartNew();
         try
         {
-            var ms = (int)TypeConversionHelper.ConvertToDouble(Configuration.Ms, context);
+            var ms = (int)Configuration.Ms.ConvertToDouble(context);
             await Task.Delay(ms, cancellationToken);
         }
         catch (TaskCanceledException)

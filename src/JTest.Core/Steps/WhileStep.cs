@@ -8,7 +8,7 @@ public sealed class WhileStep(IStepProcessor stepProcessor, WhileStepConfigurati
 {
     protected override void Validate(IExecutionContext context, IList<string> validationErrors)
     {
-        var timeoutMs = TypeConversionHelper.ConvertToDouble(Configuration.TimeoutMs, context);
+        var timeoutMs = Configuration.TimeoutMs.ConvertToDouble(context);
         if(timeoutMs <= 0)
         {
             validationErrors.Add($"TimeoutMs must be greater than 0");
@@ -28,7 +28,7 @@ public sealed class WhileStep(IStepProcessor stepProcessor, WhileStepConfigurati
         }
 
         var start = DateTime.UtcNow;
-        var timeoutMs = (int)TypeConversionHelper.ConvertToDouble(Configuration.TimeoutMs, context);
+        var timeoutMs = (int)Configuration.TimeoutMs.ConvertToDouble(context);
 
         var stepsToIterate = Configuration.Steps.ToArray();
         var innerStepResults = new StepProcessedResult[stepsToIterate.Length];

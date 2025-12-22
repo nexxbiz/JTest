@@ -13,7 +13,7 @@ public sealed class ForLoopStep(IStepProcessor stepProcessor, ForLoopStepConfigu
         IEnumerable<object?>? items = null;
         try
         {
-            items = TypeConversionHelper.ConvertToArray(Configuration.Items, context);
+            items = Configuration.Items.ConvertToArray(context);
         }
         catch (Exception e)
         {
@@ -39,8 +39,8 @@ public sealed class ForLoopStep(IStepProcessor stepProcessor, ForLoopStepConfigu
             throw new InvalidOperationException(string.Join("; ", errors));
         }
 
-        var items = TypeConversionHelper
-            .ConvertToArray(Configuration.Items, context)
+        var items = Configuration.Items
+            .ConvertToArray(context)
             .ToArray();
 
         var stepsToIterate = Configuration.Steps.ToArray();

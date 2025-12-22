@@ -16,7 +16,7 @@ public abstract class EqualityOperatorAssertionBase(object? actualValue, object?
     internal sealed override bool Execute(object? resolvedActualValue, object? resolvedExpectedValue)
     {
         bool result;
-        if (TypeConversionHelper.IsDateTimeValue(resolvedActualValue, out var actualTicks) && TypeConversionHelper.IsDateTimeValue(resolvedExpectedValue, out var expectedTicks))
+        if (resolvedActualValue.IsDateTimeValue(out var actualTicks) && resolvedExpectedValue.IsDateTimeValue(out var expectedTicks))
         {
             result = ExecuteOperator(actualTicks, expectedTicks);
         }
@@ -26,8 +26,8 @@ public abstract class EqualityOperatorAssertionBase(object? actualValue, object?
         }
         else
         {
-            var actual = TypeConversionHelper.ConvertToDouble(resolvedActualValue);
-            var expected = TypeConversionHelper.ConvertToDouble(resolvedExpectedValue);
+            var actual = resolvedActualValue.ConvertToDouble();
+            var expected = resolvedExpectedValue.ConvertToDouble();
             result = ExecuteOperator(actual, expected);
         }
 
@@ -65,13 +65,13 @@ public abstract class EqualityOperatorAssertionBase(object? actualValue, object?
         if (actual == null && expected == null) return true;
         if (actual == null || expected == null) return false;
 
-        if (TypeConversionHelper.IsNumeric(actual) && TypeConversionHelper.IsNumeric(expected))
+        if (actual.IsNumeric() && expected.IsNumeric())
         {
             return CompareNumericValues(actual, expected);
         }
 
-        var actualStr = TypeConversionHelper.ConvertToInvariantString(actual);
-        var expectedStr = TypeConversionHelper.ConvertToInvariantString(expected);
+        var actualStr = actual.ConvertToInvariantString();
+        var expectedStr = expected.ConvertToInvariantString();
 
         return string.Equals(actualStr, expectedStr, StringComparison.Ordinal);
     }

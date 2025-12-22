@@ -6,7 +6,7 @@ namespace JTest.Core.Utilities;
 
 internal static class TypeConversionHelper
 {
-    internal static IEnumerable<object> ConvertToArray(object? value, IExecutionContext context)
+    internal static IEnumerable<object> ConvertToArray(this object? value, IExecutionContext context)
     {
         if (value is IEnumerable<object> enumerable)
         {
@@ -38,7 +38,7 @@ internal static class TypeConversionHelper
         throw new InvalidOperationException($"Failed to convert value '{value}' to an array");
     }
 
-    internal static double ConvertToDouble(object? value, IExecutionContext? context = null)
+    internal static double ConvertToDouble(this object? value, IExecutionContext? context = null)
     {
         if (value is null)
         {
@@ -56,7 +56,7 @@ internal static class TypeConversionHelper
 
         if (value is JsonElement element)
         {
-            return ConvertJsonElementToDouble(element, context);
+            return element.ConvertToDouble(context);
         }
 
         if (IsNumeric(value))
@@ -67,7 +67,7 @@ internal static class TypeConversionHelper
         throw new FormatException($"Cannot convert '{value}' to a numeric value");
     }
 
-    internal static double ConvertJsonElementToDouble(JsonElement element, IExecutionContext? context = null)
+    internal static double ConvertToDouble(this JsonElement element, IExecutionContext? context = null)
     {
         if (element.ValueKind == JsonValueKind.Number)
             return element.GetDouble();
@@ -84,12 +84,12 @@ internal static class TypeConversionHelper
         throw new FormatException($"Cannot convert JsonElement '{element}' to a numeric value");
     }
 
-    internal static bool IsNumeric(object value)
+    internal static bool IsNumeric(this object value)
     {
         return value is double or float or decimal or int or long or short or byte or sbyte or uint or ulong or ushort;
     }
 
-    internal static string ConvertToInvariantString(object value)
+    internal static string ConvertToInvariantString(this object value)
     {
         return value switch
         {
@@ -100,7 +100,7 @@ internal static class TypeConversionHelper
         };
     }
 
-    internal static bool IsDateTimeValue(object? value, out long ticks)
+    internal static bool IsDateTimeValue(this object? value, out long ticks)
     {
         ticks = 0;
         if (value is string valueString)
