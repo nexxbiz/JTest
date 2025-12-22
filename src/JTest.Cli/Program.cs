@@ -20,7 +20,8 @@ internal class Program
     private static async Task Main(string[] args)
     {
         var serviceCollection = new ServiceCollection();
-        serviceCollection.AddHttpClient();
+        serviceCollection
+            .AddHttpClient();
 
         var typeRegistrar = new TypeRegistrar(serviceCollection);
         RegisterDependencies(typeRegistrar);
@@ -28,7 +29,7 @@ internal class Program
         var app = new CommandApp(typeRegistrar);
 
         app.Configure(config =>
-        {
+        {   
             config.Settings.ApplicationName = "jtest";
 
             config.SetHelpProvider(new EnvironmentVariablesHelpProvider(config.Settings));

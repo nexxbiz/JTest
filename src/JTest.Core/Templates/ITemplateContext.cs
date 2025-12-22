@@ -15,4 +15,6 @@ public interface ITemplateContext
     Template GetTemplate(string name);
 
     Task Load(JTestSuite testSuite);
+
+    Task LoadGlobalTemplates();
 }

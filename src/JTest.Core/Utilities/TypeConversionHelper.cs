@@ -6,14 +6,14 @@ namespace JTest.Core.Utilities;
 
 internal static class TypeConversionHelper
 {
-    internal static IEnumerable<object> ConvertToArray(this object? value, IExecutionContext context)
+    internal static IEnumerable<object> ConvertToArray(this object? value, IExecutionContext? context = null)
     {
         if (value is IEnumerable<object> enumerable)
         {
             return enumerable;
         }
 
-        if (value is string stringValue)
+        if (value is string stringValue && context is not null)
         {
             var resolved = VariableInterpolator.ResolveVariableTokens(stringValue, context);
             if (resolved is not IEnumerable<object> resolvedArray)
@@ -24,7 +24,7 @@ internal static class TypeConversionHelper
             return resolvedArray;
         }
 
-        if (value is JsonElement jsonValue && jsonValue.ValueKind == JsonValueKind.String)
+        if (value is JsonElement jsonValue && jsonValue.ValueKind == JsonValueKind.String && context is not null)
         {
             var arrayObject = VariableInterpolator.ResolveVariableTokens(jsonValue.GetString()!, context);
             if (arrayObject is not IEnumerable<object> enumerableArrayObject)
@@ -33,6 +33,11 @@ internal static class TypeConversionHelper
             }
 
             return enumerableArrayObject;
+        }
+
+        if(value is JsonElement jsonElement && jsonElement.ValueKind == JsonValueKind.Array)
+        {
+            return jsonElement.EnumerateArray().Select(x => x as object);
         }
 
         throw new InvalidOperationException($"Failed to convert value '{value}' to an array");

@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using JTest.Core.Utilities;
+using System.Collections;
 using System.Globalization;
 using System.Text.Json;
 
@@ -17,7 +18,7 @@ public sealed class LengthAssertion(object? actualValue, object? expectedValue, 
 
     internal override bool Execute(object? resolvedActualValue, object? resolvedExpectedValue)
     {
-        var expectedLength = Convert.ToInt32(resolvedExpectedValue, CultureInfo.InvariantCulture);
+        var expectedLength = (int)resolvedExpectedValue.ConvertToDouble();
         var actualLength = GetLength(resolvedActualValue);
 
         return actualLength == expectedLength;

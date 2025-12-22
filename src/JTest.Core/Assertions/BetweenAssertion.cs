@@ -1,4 +1,5 @@
-﻿using System.Globalization;
+﻿using JTest.Core.Utilities;
+using System.Globalization;
 using System.Text.Json;
 
 namespace JTest.Core.Assertions;
@@ -20,7 +21,8 @@ public sealed class BetweenAssertion(object? actualValue, object? expectedValue,
     {
         try
         {
-            var actual = Convert.ToDouble(ActualValue, CultureInfo.InvariantCulture);
+            var actual = resolvedActualValue.ConvertToDouble();
+            var expectedValue = resolvedExpectedValue.ConvertToArray();
 
             // Expected value should be an array with min and max values
             if (ExpectedValue is not JsonElement jsonElement || jsonElement.ValueKind != JsonValueKind.Array)

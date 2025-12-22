@@ -1,6 +1,7 @@
 ﻿using JTest.Cli.Settings;
 using JTest.Core.Execution;
 using JTest.Core.Models;
+using JTest.Core.Templates;
 using JTest.Core.Utilities;
 using JTest.Core.Variables;
 using Spectre.Console;
@@ -9,13 +10,15 @@ using System.Text.Json;
 
 namespace JTest.Cli.Commands;
 
-public class RunCommand(IAnsiConsole ansiConsole, IJTestSuiteExecutionResultProcessor testExecutionResultsProcessor, IJTestSuiteExecutor testSuiteExecutor, IVariablesContext variablesContext, JsonSerializerOptionsAccessor serializerOptionsCache)
+public class RunCommand(IAnsiConsole ansiConsole, IJTestSuiteExecutionResultProcessor testExecutionResultsProcessor, IJTestSuiteExecutor testSuiteExecutor, IVariablesContext variablesContext, ITemplateContext templateContext, JsonSerializerOptionsAccessor serializerOptionsCache)
     : CommandBase<RunCommandSettings>(ansiConsole)
 {
     protected virtual bool IsDebug => false;
 
     public override sealed async Task<int> ExecuteAsync(CommandContext context, RunCommandSettings settings, CancellationToken cancellationToken)
     {
+        await templateContext.LoadGlobalTemplates();
+
         InitializeVariablesContext(settings);
 
         var results = await ExecuteRunCommand(settings);

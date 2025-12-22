@@ -15,15 +15,18 @@ public sealed class JTestSuiteExecutor(IJTestCaseExecutor testCaseExecutor, IVar
 
         foreach (var testFile in testFiles)
         {            
-            console.WriteLine($"Running test file: {testFile.FilePath}", new Style(foreground: Color.GreenYellow));
-            console.WriteLine();
+            console.WriteLine($"Running test file: {testFile.FilePath}", new Style(foreground: Color.GreenYellow));            
 
             try
             {
                 var executionResults = await RunTestSuiteAsync(testFile);
                 allResults.Add(new(testFile.FilePath, testFile.Info?.Name, testFile.Info?.Description, executionResults));
                 
-                console.WriteLine($"Test file {testFile.FilePath} passed", new Style(foreground: Color.Green));
+                if(executionResults.All(x => x.Success))
+                    console.WriteLine($"Test file {testFile.FilePath} passed", new Style(foreground: Color.Green));
+                else
+                    console.WriteLine($"Test file {testFile.FilePath} failed", new Style(foreground: Color.Red));
+
                 console.WriteLine();
             }
             catch (Exception ex)

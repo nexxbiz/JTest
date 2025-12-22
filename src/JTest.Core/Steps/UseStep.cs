@@ -76,7 +76,7 @@ public sealed class UseStep(IAnsiConsole ansiConsole, ITemplateContext templateC
             if (!stepResult.Success)
             {
                 ansiConsole.WriteLine(
-                    $"Template step failed: {stepResult.ErrorMessage} - {stepResult.DetailedAssertionFailures}",
+                    $"Template step failed: {stepResult.DetailedAssertionFailures}",
                     new Style(foreground: Color.Yellow)
                 );
             }

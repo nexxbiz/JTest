@@ -22,6 +22,8 @@ public sealed class TemplateContext(
     private Task? _globalInitTask;
     private readonly SemaphoreSlim _globalInitSemaphore = new(1, 1);
 
+    public Task LoadGlobalTemplates() => EnsureGlobalTemplatesLoadedAsync();
+
     public async Task Load(JTestSuite testSuite)
     {
         // Ensure global templates are loaded once and awaited by all callers
