@@ -1,5 +1,6 @@
 using JTest.Core.Execution;
 using JTest.Core.Steps.Configuration;
+using JTest.Core.Utilities;
 using System.Diagnostics;
 
 namespace JTest.Core.Steps;
@@ -13,7 +14,7 @@ public sealed class WaitStep(WaitStepConfiguration configuration) : BaseStep<Wai
     {
         try
         {
-            var ms = ParseMs(context);
+            var ms = TypeConversionHelper.ConvertToDouble(Configuration.Ms, context);
             if (ms <= 0)
             {
                 validationErrors.Add("Milliseconds must be greater than 0");
@@ -23,23 +24,7 @@ public sealed class WaitStep(WaitStepConfiguration configuration) : BaseStep<Wai
         {
             validationErrors.Add($"Could not parse/resolve milliseconds '{Configuration.Ms}'. Error: {e.Message}");
         }
-    }
-
-    private int ParseMs(IExecutionContext context)
-    {
-        var jsonElement = SerializeToJsonElement(Configuration.Ms);
-        if (jsonElement.ValueKind == System.Text.Json.JsonValueKind.Number)
-        {
-            return (int)jsonElement.GetDouble();
-        }
-        if (jsonElement.ValueKind == System.Text.Json.JsonValueKind.String)
-        {
-            var result = ResolveStringVariable(jsonElement.GetString()!, context);
-            return int.Parse(result);
-        }
-
-        return Convert.ToInt32(Configuration.Ms);
-    }
+    }    
 
     public override async Task<StepExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {
@@ -48,15 +33,15 @@ public sealed class WaitStep(WaitStepConfiguration configuration) : BaseStep<Wai
             Description = $"Wait {Configuration.Ms}ms";
         }
 
+        if (!Validate(context, out var errors))
+        {
+            throw new InvalidOperationException(string.Join("; ", errors));
+        }
+
         var stopWatch = Stopwatch.StartNew();
         try
         {
-            var ms = ParseMs(context);
-            if (ms <= 0)
-            {
-                throw new InvalidOperationException("Milliseconds to wait is less than or equal to zero");
-            }
-
+            var ms = (int)TypeConversionHelper.ConvertToDouble(Configuration.Ms, context);
             await Task.Delay(ms, cancellationToken);
         }
         catch (TaskCanceledException)

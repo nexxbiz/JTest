@@ -86,7 +86,7 @@ public class WaitStepTests
         var step = new WaitStep(new("invalid"));
 
         // Act & Assert
-        await Assert.ThrowsAsync<FormatException>(async () =>
+        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
         {
             _ = await step.ExecuteAsync(context);
         });
@@ -118,7 +118,7 @@ public class WaitStepTests
         var step = new WaitStep(new("{{$.missing.value}}"));
 
         // Act & Assert
-        await Assert.ThrowsAsync<FormatException>(async () =>
+        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
         {
             _ = await step.ExecuteAsync(context);
         });
