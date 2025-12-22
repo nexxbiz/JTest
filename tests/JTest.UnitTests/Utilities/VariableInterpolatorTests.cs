@@ -159,10 +159,10 @@ public sealed class VariableInterpolatorTests
         // Assert
         Assert.NotNull(result);
         // The result should be a Dictionary when complex objects are returned (converted for token resolution)
-        Assert.True(result is Dictionary<string, object> || result is JsonObject || result.GetType().Name.Contains("Json"));
+        Assert.True(result is Dictionary<string, object?> || result is JsonObject || result.GetType().Name.Contains("Json"));
 
         // Verify the content is accessible
-        if (result is Dictionary<string, object> dict)
+        if (result is Dictionary<string, object?> dict)
         {
             Assert.Equal("John", dict["name"]);
             Assert.Equal(30, dict["age"]);
@@ -186,7 +186,7 @@ public sealed class VariableInterpolatorTests
     }
 
     [Fact]
-    public void ResolveVariableTokens_WithMissingPath_ReturnsEmptyStringAndLogsWarning()
+    public void ResolveVariableTokens_WithMissingPath_ReturnsEmptyString()
     {
         // Arrange
         var context = new TestExecutionContext();
@@ -197,9 +197,8 @@ public sealed class VariableInterpolatorTests
         var result = VariableInterpolator.ResolveVariableTokens(input, context);
 
         // Assert
+        Assert.NotNull(result);
         Assert.Equal("Hello ", result);
-        Assert.Single(context.Log);
-        Assert.Contains("Warning: JSONPath '$.user.nonexistent' not found in variables", context.Log[0]);
     }
 
     [Fact]
@@ -210,13 +209,10 @@ public sealed class VariableInterpolatorTests
         context.Variables["user"] = new { name = "John" };
         var input = "{{$.user.}}"; // Invalid JSONPath - ends with dot
 
-        // Act
-        var result = VariableInterpolator.ResolveVariableTokens(input, context);
-
-        // Assert
-        Assert.Equal(string.Empty, result);
-        Assert.Single(context.Log);
-        Assert.Contains("Warning: JSONPath '$.user.' not found in variables", context.Log[0]);
+        // Act & Assert
+        Assert.Throws<InvalidOperationException>(
+            () => _ = VariableInterpolator.ResolveVariableTokens(input, context)
+        );
     }
 
     [Fact]
@@ -231,9 +227,8 @@ public sealed class VariableInterpolatorTests
         var result = VariableInterpolator.ResolveVariableTokens(input, context);
 
         // Assert
+        Assert.NotNull(result);
         Assert.Equal("Hello John from !", result);
-        Assert.Single(context.Log);
-        Assert.Contains("Warning: JSONPath '$.missing.path' not found in variables", context.Log[0]);
     }
 
     [Fact]
@@ -340,7 +335,7 @@ public sealed class VariableInterpolatorTests
     {
         // Arrange - reproduce the issue from the problem statement
         var context = new TestExecutionContext();
-        var caseData = new Dictionary<string, object>
+        var caseData = new Dictionary<string, object?>
         {
             ["isTrue"] = false,
             ["expectedCondition"] = false,
@@ -364,7 +359,7 @@ public sealed class VariableInterpolatorTests
     {
         // Arrange - test with more complex scenario
         var context = new TestExecutionContext();
-        var caseData = new Dictionary<string, object>
+        var caseData = new Dictionary<string, object?>
         {
             ["isTrue"] = false,
             ["expectedCondition"] = false,
@@ -380,7 +375,7 @@ public sealed class VariableInterpolatorTests
 
         // Assert
         Assert.Equal("Request: { \"isTrue\": \"False\" }", result);
-        Assert.DoesNotContain("{{$.case.isTrue}}", result.ToString());
+        Assert.DoesNotContain("{{$.case.isTrue}}", result?.ToString());
     }
 
     [Fact]
@@ -388,14 +383,14 @@ public sealed class VariableInterpolatorTests
     {
         // Arrange - test case that might reveal the issue
         var context = new TestExecutionContext();
-        context.Variables["workflowResponse"] = new Dictionary<string, object>
+        context.Variables["workflowResponse"] = new Dictionary<string, object?>
         {
-            ["request"] = new Dictionary<string, object>
+            ["request"] = new Dictionary<string, object?>
             {
                 ["isTrue"] = "{{$.case.isTrue}}"
             }
         };
-        var caseData = new Dictionary<string, object>
+        var caseData = new Dictionary<string, object?>
         {
             ["isTrue"] = false
         };
@@ -417,7 +412,7 @@ public sealed class VariableInterpolatorTests
     {
         // Arrange - test to verify the exact scenario from problem statement
         var context = new TestExecutionContext();
-        var caseData = new Dictionary<string, object>
+        var caseData = new Dictionary<string, object?>
         {
             ["isTrue"] = false
         };
@@ -425,7 +420,7 @@ public sealed class VariableInterpolatorTests
 
         // Simulate the exact scenario - where a token contains another token that needs resolution
         // This is the bug: when a resolved value contains another token, it should be resolved further
-        context.Variables["nested"] = new Dictionary<string, object>
+        context.Variables["nested"] = new Dictionary<string, object?>
         {
             ["template"] = "{{$.case.isTrue}}"
         };
@@ -449,12 +444,10 @@ public sealed class VariableInterpolatorTests
         context.Variables["a"] = "{{$.b}}";
         context.Variables["b"] = "{{$.a}}";
 
-        // Act
-        var result = VariableInterpolator.ResolveVariableTokens("{{$.a}}", context);
-
-        // Assert - should not crash and should log warning
-        Assert.NotNull(result);
-        Assert.Contains(context.Log, log => log.Contains("Maximum token resolution depth"));
+        // Act & Assert
+        Assert.Throws<InvalidOperationException>(
+            () => _ = VariableInterpolator.ResolveVariableTokens("{{$.a}}", context)
+        );
     }
 
     [Fact]
@@ -465,11 +458,11 @@ public sealed class VariableInterpolatorTests
         context.Variables["env"] = new { baseUrl = "https://api.test.com" };
 
         // Case data contains tokens that reference other variables
-        var caseData = new Dictionary<string, object>
+        var caseData = new Dictionary<string, object?>
         {
             ["endpoint"] = "{{$.env.baseUrl}}/users", // This token should be resolved when case is set
             ["userId"] = "123",
-            ["nested"] = new Dictionary<string, object>
+            ["nested"] = new Dictionary<string, object?>
             {
                 ["apiUrl"] = "{{$.env.baseUrl}}/api"
             }
@@ -488,10 +481,10 @@ public sealed class VariableInterpolatorTests
         Assert.Equal("https://api.test.com/api", resolvedNestedUrl);
 
         // Verify the case data itself was modified to contain resolved values
-        var caseContext = context.Variables["case"] as Dictionary<string, object>;
+        var caseContext = context.Variables["case"] as Dictionary<string, object?>;
         Assert.Equal("https://api.test.com/users", caseContext!["endpoint"]);
 
-        var nestedContext = caseContext["nested"] as Dictionary<string, object>;
+        var nestedContext = caseContext["nested"] as Dictionary<string, object?>;
         Assert.Equal("https://api.test.com/api", nestedContext!["apiUrl"]);
     }
 
@@ -502,14 +495,14 @@ public sealed class VariableInterpolatorTests
         var context = new TestExecutionContext();
 
         // Set up case data
-        var caseData = new Dictionary<string, object>
+        var caseData = new Dictionary<string, object?>
         {
             ["isTrue"] = false
         };
         context.SetCase(caseData);
 
         // Set up workflowbody that contains tokens (this is the issue scenario)
-        context.Variables["workflowbody"] = new Dictionary<string, object>
+        context.Variables["workflowbody"] = new Dictionary<string, object?>
         {
             ["isTrue"] = "{{$.case.isTrue}}"
         };
@@ -519,9 +512,9 @@ public sealed class VariableInterpolatorTests
 
         // Assert - The returned object should have tokens resolved
         Assert.NotNull(result);
-        Assert.True(result is Dictionary<string, object>);
+        Assert.True(result is Dictionary<string, object?>);
 
-        var resultDict = result as Dictionary<string, object>;
+        var resultDict = result as Dictionary<string, object?>;
         Assert.Equal(false, resultDict!["isTrue"]); // Should be resolved to false, not "{{$.case.isTrue}}"
 
         // Verify that the JSON representation doesn't contain unresolved tokens

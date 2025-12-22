@@ -4,14 +4,15 @@ using JTest.Core.Exceptions;
 using JTest.Core.Execution;
 using JTest.Core.Steps.Configuration;
 using JTest.Core.Utilities;
+using Spectre.Console;
 using System.Diagnostics;
 using System.Text.Json;
 
 namespace JTest.Core.Steps;
 
-public sealed class StepProcessor(IAssertionProcessor assertionProcessor) : IStepProcessor
+public sealed class StepProcessor(IAssertionProcessor assertionProcessor, IAnsiConsole console) : IStepProcessor
 {
-    public static readonly IStepProcessor Default = new StepProcessor(new AssertionProcessor());
+    public static readonly IStepProcessor Default = new StepProcessor(new AssertionProcessor(), AnsiConsole.Console);
 
     public async Task<StepProcessedResult> ProcessStep(IStep step, IExecutionContext executionContext, CancellationToken cancellationToken = default)
     {
@@ -85,7 +86,7 @@ public sealed class StepProcessor(IAssertionProcessor assertionProcessor) : ISte
             }
             catch (Exception ex)
             {
-                context.Log.Add($"Warning: Failed to process save operation '{saveProperty.Name}': {ex.Message}");
+                throw new InvalidOperationException($"Failed to process save operation '{saveProperty.Name}': {ex.Message}");
             }
         }
     }
@@ -127,7 +128,7 @@ public sealed class StepProcessor(IAssertionProcessor assertionProcessor) : ISte
         }
         else
         {
-            context.Log.Add($"Warning: Cannot save to '{targetPath}' - '{scope}' is not a dictionary");
+            throw new InvalidOperationException($"Cannot save to '{targetPath}' - '{scope}' is not a dictionary");
         }
     }
 
@@ -202,13 +203,16 @@ public sealed class StepProcessor(IAssertionProcessor assertionProcessor) : ISte
 
         // Determine if step should be marked as failed based on assertion results
         var hasFailedAssertions = assertionResults.Any(r => !r.Success);
+        var errorMessage = hasFailedAssertions
+                ? GetFailedAssertionsErrorMessages(assertionResults)
+                : null;
 
         // Create result - fail if any assertions failed
         var stepResult = new StepProcessedResult(context.StepNumber)
         {
             Step = step,
             Success = !hasFailedAssertions,
-            ErrorMessage = hasFailedAssertions ? "One or more assertions failed" : null,
+            ErrorMessage = errorMessage,
             DurationMs = stopwatch.ElapsedMilliseconds,
             AssertionResults = assertionResults ?? [],
             Data = stepExecutionResult.Data,
@@ -217,6 +221,17 @@ public sealed class StepProcessor(IAssertionProcessor assertionProcessor) : ISte
         };
 
         return stepResult;
+    }
+
+    private static string GetFailedAssertionsErrorMessages(IEnumerable<AssertionResult> assertionResults)
+    {
+        var errorMessages = assertionResults
+            .Where(x => !x.Success)
+            .Select(x => x.ErrorMessage);
+
+        var joinedErrorMessages = string.Join(", ", errorMessages);
+
+        return $"Assertions failed: {joinedErrorMessages}";
     }
 
     /// <summary>
@@ -260,7 +275,7 @@ public sealed class StepProcessor(IAssertionProcessor assertionProcessor) : ISte
         {
             list.Add(GetValueFromJsonElement(item));
         }
-        return list.ToArray();
+        return [.. list];
     }
 
     /// <summary>

@@ -18,11 +18,6 @@ public class TestExecutionContext : IExecutionContext
     public Dictionary<string, object?> Variables { get; } = [];
 
     /// <summary>
-    /// Gets the log list for warnings and errors during execution
-    /// </summary>
-    public IList<string> Log { get; } = [];
-
-    /// <summary>
     /// Gets or sets the current test number
     /// </summary>
     public int TestNumber { get; set; } = 1;
@@ -42,7 +37,7 @@ public class TestExecutionContext : IExecutionContext
     /// Automatically resolves any tokens in the case data that reference other variables
     /// </summary>
     /// <param name="caseData">The case variables to set in the context</param>
-    public void SetCase(Dictionary<string, object> caseData)
+    public void SetCase(Dictionary<string, object?> caseData)
     {
         // Resolve any tokens in the case data before setting it
         var resolvedCaseData = ResolveCaseTokens(caseData);
@@ -54,7 +49,7 @@ public class TestExecutionContext : IExecutionContext
     /// </summary>
     public void ClearCase()
     {
-        Variables["case"] = new Dictionary<string, object>();
+        Variables["case"] = new Dictionary<string, object?>();
     }
 
     /// <summary>
@@ -64,9 +59,9 @@ public class TestExecutionContext : IExecutionContext
     /// </summary>
     /// <param name="caseData">The case data that may contain tokens</param>
     /// <returns>Case data with all tokens resolved</returns>
-    private Dictionary<string, object> ResolveCaseTokens(Dictionary<string, object> caseData)
+    private Dictionary<string, object?> ResolveCaseTokens(Dictionary<string, object?> caseData)
     {
-        var resolvedData = new Dictionary<string, object>();
+        var resolvedData = new Dictionary<string, object?>();
 
         foreach (var kvp in caseData)
         {
@@ -81,7 +76,7 @@ public class TestExecutionContext : IExecutionContext
     /// </summary>
     /// <param name="value">The value that may contain tokens</param>
     /// <returns>The value with tokens resolved</returns>
-    private object ResolveValue(object value)
+    private object? ResolveValue(object? value)
     {
         switch (value)
         {
@@ -89,9 +84,9 @@ public class TestExecutionContext : IExecutionContext
                 // Use VariableInterpolator to resolve any tokens in string values
                 return VariableInterpolator.ResolveVariableTokens(stringValue, this);
 
-            case Dictionary<string, object> dictValue:
+            case Dictionary<string, object?> dictValue:
                 // Recursively resolve tokens in nested dictionaries
-                var resolvedDict = new Dictionary<string, object>();
+                var resolvedDict = new Dictionary<string, object?>();
                 foreach (var kvp in dictValue)
                 {
                     resolvedDict[kvp.Key] = ResolveValue(kvp.Value);
@@ -100,7 +95,7 @@ public class TestExecutionContext : IExecutionContext
 
             case System.Collections.IEnumerable enumerable when value is not string:
                 // Handle arrays and lists by resolving each element
-                var resolvedList = new List<object>();
+                var resolvedList = new List<object?>();
                 foreach (var item in enumerable)
                 {
                     resolvedList.Add(ResolveValue(item));

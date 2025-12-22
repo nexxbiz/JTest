@@ -164,13 +164,12 @@ public sealed class HttpStep(HttpClient httpClient, HttpStepConfiguration config
         return CreateStringContent(jsonString);
     }
 
-    private StreamContent? CreateFileStreamContent(IExecutionContext context)
+    private StreamContent CreateFileStreamContent(IExecutionContext context)
     {
         var filePath = ResolveStringVariable(Configuration.File!, context);
         if (!File.Exists(filePath))
         {
-            context.Log.Add($"File at path '{filePath}' does not eixst");
-            return null;
+            throw new InvalidOperationException($"Cannot find file at path '{filePath}'");
         }
 
         var fileContent = File.OpenRead(filePath);

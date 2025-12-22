@@ -20,7 +20,7 @@ public sealed class JTestCaseExecutorTests
         var baseContext = new TestExecutionContext();
 
         // Act
-        var results = await executor.ExecuteAsync(testCase, baseContext);
+        var results = await executor.ExecuteAsync(testCase, baseContext, 1);
 
         // Assert
         Assert.Single(results);
@@ -43,7 +43,7 @@ public sealed class JTestCaseExecutorTests
         var baseContext = new TestExecutionContext();
 
         // Act
-        var results = await executor.ExecuteAsync(testCase, baseContext);
+        var results = await executor.ExecuteAsync(testCase, baseContext, 1);
 
         // Assert
         Assert.Single(results);
@@ -65,19 +65,19 @@ public sealed class JTestCaseExecutorTests
                 new()
                 {
                     Name = "dataset1",
-                    Case = new Dictionary<string, object> { ["userId"] = "user1" }
+                    Case = new Dictionary<string, object?> { ["userId"] = "user1" }
                 },
                 new()
                 {
                     Name = "dataset2",
-                    Case = new Dictionary<string, object> { ["userId"] = "user2" }
+                    Case = new Dictionary<string, object?> { ["userId"] = "user2" }
                 }
             ]
         };
         var baseContext = new TestExecutionContext();
 
         // Act
-        var results = await executor.ExecuteAsync(testCase, baseContext);
+        var results = await executor.ExecuteAsync(testCase, baseContext, 1);
 
         // Assert
         Assert.Equal(2, results.Count());
@@ -107,7 +107,7 @@ public sealed class JTestCaseExecutorTests
                 new()
                 {
                     Name = "test-dataset",
-                    Case = new Dictionary<string, object>
+                    Case = new Dictionary<string, object?>
                     {
                         ["accountId"] = "acct-1001",
                         ["expectedTotal"] = 20.0
@@ -121,7 +121,7 @@ public sealed class JTestCaseExecutorTests
         baseContext.Variables["env"] = new { baseUrl = "https://api.test.com" };
 
         // Act
-        var results = await executor.ExecuteAsync(testCase, baseContext);
+        var results = await executor.ExecuteAsync(testCase, baseContext, 1);
 
         // Assert
         Assert.Single(results);
@@ -148,10 +148,10 @@ public sealed class JTestCaseExecutorTests
 
         var baseContext = new TestExecutionContext();
         // Pre-populate case context to ensure it gets cleared
-        baseContext.SetCase(new Dictionary<string, object> { ["leftover"] = "value" });
+        baseContext.SetCase(new Dictionary<string, object?> { ["leftover"] = "value" });
 
         // Act
-        var results = await executor.ExecuteAsync(testCase, baseContext);
+        var results = await executor.ExecuteAsync(testCase, baseContext, 1);
 
         // Assert
         Assert.Single(results);
@@ -169,7 +169,7 @@ public sealed class JTestCaseExecutorTests
             Steps = [],
             Datasets =
             [
-                new() { Name = "test", Case = new Dictionary<string, object> { ["caseVar"] = "caseValue" } }
+                new() { Name = "test", Case = new Dictionary<string, object?> { ["caseVar"] = "caseValue" } }
             ]
         };
 
@@ -178,7 +178,7 @@ public sealed class JTestCaseExecutorTests
         baseContext.Variables["globals"] = new { authToken = "token123" };
 
         // Act
-        var results = await executor.ExecuteAsync(testCase, baseContext);
+        var results = await executor.ExecuteAsync(testCase, baseContext, 1);
 
         // Assert
         Assert.Single(results);
@@ -190,7 +190,7 @@ public sealed class JTestCaseExecutorTests
         // Case should not be set in base context (execution uses cloned context)
         if (baseContext.Variables.TryGetValue("case", out object? value))
         {
-            var caseContext = value as Dictionary<string, object>;
+            var caseContext = value as Dictionary<string, object?>;
             Assert.NotNull(caseContext);
             Assert.DoesNotContain("caseVar", caseContext.Keys);
         }
@@ -215,7 +215,7 @@ public sealed class JTestCaseExecutorTests
         var baseContext = new TestExecutionContext();
 
         // Act
-        var results = await executor.ExecuteAsync(testCase, baseContext);
+        var results = await executor.ExecuteAsync(testCase, baseContext, 1);
 
         // Assert
         Assert.Single(results);

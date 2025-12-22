@@ -64,13 +64,13 @@ public class SaveIntegrationTests
         var useStep = JsonSerializer.Deserialize<IStep>(useStepJson, serializerOptions)!;
 
         var context = new TestExecutionContext();
-        context.Variables["env"] = new Dictionary<string, object>
+        context.Variables["env"] = new Dictionary<string, object?>
         {
             ["username"] = "testuser",
             ["password"] = "secret123",
             ["tokenUrl"] = "https://api.example.com/token"
         };
-        context.Variables["globals"] = new Dictionary<string, object>();
+        context.Variables["globals"] = new Dictionary<string, object?>();
 
         var stepProcessor = StepProcessor.Default;
 
@@ -82,13 +82,13 @@ public class SaveIntegrationTests
 
         // Verify template outputs are accessible via {{$.this.outputKey}} pattern
         Assert.Contains("this", context.Variables.Keys);
-        var thisResult = Assert.IsType<Dictionary<string, object>>(context.Variables["this"]);
+        var thisResult = Assert.IsType<Dictionary<string, object?>>(context.Variables["this"]);
         Assert.Equal("testuser-secret123-token", thisResult["token"]);
         Assert.Equal("Bearer testuser-secret123-token", thisResult["authHeader"]);
 
         // Verify save operations work exactly as specified in the problem statement
         Assert.Contains("globals", context.Variables.Keys);
-        var globals = Assert.IsType<Dictionary<string, object>>(context.Variables["globals"]);
+        var globals = Assert.IsType<Dictionary<string, object?>>(context.Variables["globals"]);
         Assert.Equal("testuser-secret123-token", globals["token"]);
         Assert.Equal("Bearer testuser-secret123-token", globals["authHeader"]);
 
@@ -120,7 +120,7 @@ public class SaveIntegrationTests
         var stepProcessor = StepProcessor.Default;
 
         var context = new TestExecutionContext();
-        context.Variables["globals"] = new Dictionary<string, object>();
+        context.Variables["globals"] = new Dictionary<string, object?>();
 
         // Act - We need to mock this since we don't want to make real HTTP calls in tests
         // So let's just test the save processing directly
@@ -136,7 +136,7 @@ public class SaveIntegrationTests
         processMethod?.Invoke(stepProcessor, [httpStep!.Configuration, context]);
 
         // Assert
-        var globals = Assert.IsType<Dictionary<string, object>>(context.Variables["globals"]);
+        var globals = Assert.IsType<Dictionary<string, object?>>(context.Variables["globals"]);
         Assert.Equal(200, globals["responseStatus"]);
         Assert.Equal("application/json", context.Variables["simpleVar"]);
     }

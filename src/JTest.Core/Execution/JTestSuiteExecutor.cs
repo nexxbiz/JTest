@@ -14,16 +14,22 @@ public sealed class JTestSuiteExecutor(IJTestCaseExecutor testCaseExecutor, IVar
         var allResults = new List<JTestSuiteExecutionResult>();
 
         foreach (var testFile in testFiles)
-        {
-            console.WriteLine($"Running test file: {testFile}");
+        {            
+            console.WriteLine($"Running test file: {testFile.FilePath}", new Style(foreground: Color.GreenYellow));
+            console.WriteLine();
 
             try
             {
                 var executionResults = await RunTestSuiteAsync(testFile);
                 allResults.Add(new(testFile.FilePath, testFile.Info?.Name, testFile.Info?.Description, executionResults));
+                
+                console.WriteLine($"Test file {testFile.FilePath} passed", new Style(foreground: Color.Green));
+                console.WriteLine();
             }
             catch (Exception ex)
             {
+                console.WriteLine();
+                console.WriteLine($"Test file {testFile.FilePath} failed", new Style(foreground: Color.Red));
                 console.WriteException(ex, ExceptionFormats.NoStackTrace);
             }
         }
@@ -104,7 +110,7 @@ public sealed class JTestSuiteExecutor(IJTestCaseExecutor testCaseExecutor, IVar
         var context = new TestExecutionContext();
         context.Variables["env"] = environmentVariables ?? [];
         context.Variables["globals"] = globalVariables ?? [];
-        context.Variables["ctx"] = new Dictionary<string, object>();
+        context.Variables["ctx"] = new Dictionary<string, object?>();
 
         return context;
     }

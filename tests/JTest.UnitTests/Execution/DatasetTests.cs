@@ -14,7 +14,7 @@ public class DatasetTests
         var dataset = new JTestDataset
         {
             Name = "basic",
-            Case = new Dictionary<string, object>
+            Case = new Dictionary<string, object?>
             {
                 ["accountId"] = "acct-1001",
                 ["expectedTotal"] = 20.0
@@ -50,8 +50,8 @@ public class DatasetTests
             Steps = [new WaitStep(new(1))],
             Datasets =
             [
-                new() { Name = "dataset1", Case = new Dictionary<string, object> { ["value"] = 1 } },
-                new() { Name = "dataset2", Case = new Dictionary<string, object> { ["value"] = 2 } }
+                new() { Name = "dataset1", Case = new Dictionary<string, object?> { ["value"] = 1 } },
+                new() { Name = "dataset2", Case = new Dictionary<string, object?> { ["value"] = 2 } }
             ]
         };
 
@@ -68,7 +68,7 @@ public class DatasetTests
         var dataset = new JTestDataset
         {
             Name = "test-dataset",
-            Case = new Dictionary<string, object> { ["userId"] = "123" }
+            Case = new Dictionary<string, object?> { ["userId"] = "123" }
         };
 
         // Act

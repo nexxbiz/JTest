@@ -10,7 +10,7 @@ public sealed class CaseContextTests
     {
         // Arrange
         var context = new TestExecutionContext();
-        var caseData = new Dictionary<string, object>
+        var caseData = new Dictionary<string, object?>
         {
             ["userId"] = "user123",
             ["accountId"] = "acct-1001",
@@ -22,7 +22,7 @@ public sealed class CaseContextTests
 
         // Assert
         Assert.Contains("case", context.Variables.Keys);
-        var caseContext = context.Variables["case"] as Dictionary<string, object>;
+        var caseContext = context.Variables["case"] as Dictionary<string, object?>;
         Assert.NotNull(caseContext);
         Assert.Equal("user123", caseContext["userId"]);
         Assert.Equal("acct-1001", caseContext["accountId"]);
@@ -34,7 +34,7 @@ public sealed class CaseContextTests
     {
         // Arrange
         var context = new TestExecutionContext();
-        var caseData = new Dictionary<string, object> { ["userId"] = "user123" };
+        var caseData = new Dictionary<string, object?> { ["userId"] = "user123" };
         context.SetCase(caseData);
 
         // Act
@@ -42,7 +42,7 @@ public sealed class CaseContextTests
 
         // Assert
         Assert.Contains("case", context.Variables.Keys);
-        var caseContext = context.Variables["case"] as Dictionary<string, object>;
+        var caseContext = context.Variables["case"] as Dictionary<string, object?>;
         Assert.NotNull(caseContext);
         Assert.Empty(caseContext);
     }
@@ -52,7 +52,7 @@ public sealed class CaseContextTests
     {
         // Arrange
         var context = new TestExecutionContext();
-        var caseData = new Dictionary<string, object>
+        var caseData = new Dictionary<string, object?>
         {
             ["userId"] = "user456",
             ["orderPayload"] = new { sku = "SKU-1", qty = 2 }
@@ -73,7 +73,7 @@ public sealed class CaseContextTests
     {
         // Arrange
         var context = new TestExecutionContext();
-        var caseData = new Dictionary<string, object>
+        var caseData = new Dictionary<string, object?>
         {
             ["orderPayload"] = new { sku = "SKU-1", qty = 2, discountPct = 10 }
         };

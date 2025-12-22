@@ -25,33 +25,33 @@ public class DatasetCleanupTests
                 new()
                 {
                     Name = "dataset1",
-                    Case = new Dictionary<string, object> { ["iteration"] = 1 }
+                    Case = new Dictionary<string, object?> { ["iteration"] = 1 }
                 },
                 new()
                 {
                     Name = "dataset2",
-                    Case = new Dictionary<string, object> { ["iteration"] = 2 }
+                    Case = new Dictionary<string, object?> { ["iteration"] = 2 }
                 }
             ]
         };
 
         var baseContext = new TestExecutionContext();
         baseContext.Variables["env"] = new { baseUrl = "https://api.test.com" };
-        baseContext.Variables["globals"] = new Dictionary<string, object> { ["sharedCounter"] = 0 };
-        baseContext.Variables["ctx"] = new Dictionary<string, object> { ["localVar"] = "initial" };
+        baseContext.Variables["globals"] = new Dictionary<string, object?> { ["sharedCounter"] = 0 };
+        baseContext.Variables["ctx"] = new Dictionary<string, object?> { ["localVar"] = "initial" };
 
         // Act
-        var results = await executor.ExecuteAsync(testCase, baseContext);
+        var results = await executor.ExecuteAsync(testCase, baseContext, 1);
 
         // Assert
         Assert.Equal(2, results.Count());
 
         // Verify that the base context is not modified during execution
-        var originalGlobals = baseContext.Variables["globals"] as Dictionary<string, object>;
+        var originalGlobals = baseContext.Variables["globals"] as Dictionary<string, object?>;
         Assert.NotNull(originalGlobals);
         Assert.Equal(0, originalGlobals["sharedCounter"]); // Should remain unchanged in base context
 
-        var originalCtx = baseContext.Variables["ctx"] as Dictionary<string, object>;
+        var originalCtx = baseContext.Variables["ctx"] as Dictionary<string, object?>;
         Assert.NotNull(originalCtx);
         Assert.Equal("initial", originalCtx["localVar"]); // Should remain unchanged in base context
     }
@@ -62,11 +62,11 @@ public class DatasetCleanupTests
         // Arrange
         var baseContext = new TestExecutionContext();
         baseContext.Variables["env"] = new { immutableValue = "never-changes" };
-        baseContext.Variables["globals"] = new Dictionary<string, object>
+        baseContext.Variables["globals"] = new Dictionary<string, object?>
         {
             ["var"] = "initialValue"
         };
-        baseContext.Variables["ctx"] = new Dictionary<string, object> { ["status"] = "ready" };
+        baseContext.Variables["ctx"] = new Dictionary<string, object?> { ["status"] = "ready" };
         var saveVariableModification = new Dictionary<string, object?>
         {
             ["$.ctx.status"] = "finished"
@@ -82,26 +82,26 @@ public class DatasetCleanupTests
                 new()
                 {
                     Name = "dataset1",
-                    Case = new Dictionary<string, object> { ["value"] = "first" }
+                    Case = new Dictionary<string, object?> { ["value"] = "first" }
                 },
                 new()
                 {
                     Name = "dataset2",
-                    Case = new Dictionary<string, object> { ["value"] = "second" }
+                    Case = new Dictionary<string, object?> { ["value"] = "second" }
                 }
             ]
         };
 
         // Act
-        var results = await executor.ExecuteAsync(testCase, baseContext);
+        var results = await executor.ExecuteAsync(testCase, baseContext, 1);
 
         // Assert
         Assert.Equal(2, results.Count());
 
         // Verify base context remains unchanged
         var baseEnv = baseContext.Variables["env"];
-        var baseGlobals = baseContext.Variables["globals"] as Dictionary<string, object>;
-        var baseCtx = baseContext.Variables["ctx"] as Dictionary<string, object>;
+        var baseGlobals = baseContext.Variables["globals"] as Dictionary<string, object?>;
+        var baseCtx = baseContext.Variables["ctx"] as Dictionary<string, object?>;
 
         Assert.NotNull(baseEnv);
         Assert.NotNull(baseGlobals);
@@ -122,12 +122,12 @@ public class DatasetCleanupTests
                 new()
                 {
                     Name = "dataset1",
-                    Case = new Dictionary<string, object> { ["test"] = "value1" }
+                    Case = new Dictionary<string, object?> { ["test"] = "value1" }
                 },
                 new()
                 {
                     Name = "dataset2",
-                    Case = new Dictionary<string, object> { ["test"] = "value2" }
+                    Case = new Dictionary<string, object?> { ["test"] = "value2" }
                 }
             ]
         };
@@ -137,7 +137,7 @@ public class DatasetCleanupTests
         baseContext.Variables["env"] = originalEnv;
 
         // Act
-        var results = await executor.ExecuteAsync(testCase, baseContext);
+        var results = await executor.ExecuteAsync(testCase, baseContext, 1);
 
         // Assert
         Assert.Equal(2, results.Count());
@@ -153,12 +153,12 @@ public class DatasetCleanupTests
         var baseContext = new TestExecutionContext();
 
         baseContext.Variables["env"] = new { url = "https://test.com" };
-        baseContext.Variables["globals"] = new Dictionary<string, object> { ["token"] = "abc123" };
-        baseContext.Variables["ctx"] = new Dictionary<string, object> { ["step"] = 1 };
+        baseContext.Variables["globals"] = new Dictionary<string, object?> { ["token"] = "abc123" };
+        baseContext.Variables["ctx"] = new Dictionary<string, object?> { ["step"] = 1 };
         baseContext.Variables["this"] = new { result = "data" };
 
         // Simulate updated globals from first iteration
-        var updatedGlobals = new Dictionary<string, object> { ["token"] = "xyz789", ["newVar"] = "added" };
+        var updatedGlobals = new Dictionary<string, object?> { ["token"] = "xyz789", ["newVar"] = "added" };
 
         // Use reflection to test private methods (for testing purposes only)
         var captureMethod = typeof(JTestCaseExecutor).GetMethod("CaptureOriginalVariables",
@@ -170,7 +170,7 @@ public class DatasetCleanupTests
         Assert.NotNull(prepareMethod);
 
         // Act
-        var originalVariables = (Dictionary<string, object>)captureMethod.Invoke(executor, [baseContext])!;
+        var originalVariables = (Dictionary<string, object?>)captureMethod.Invoke(executor, [baseContext])!;
         var iterationContext = (TestExecutionContext)prepareMethod.Invoke(executor, [baseContext, originalVariables, updatedGlobals])!;
 
         // Assert - verify proper scoping
@@ -179,7 +179,7 @@ public class DatasetCleanupTests
         Assert.NotSame(baseContext.Variables["ctx"], iterationContext.Variables["ctx"]); // ctx is cloned
 
         // Verify ctx values are reset to original
-        var iterationCtx = iterationContext.Variables["ctx"] as Dictionary<string, object>;
+        var iterationCtx = iterationContext.Variables["ctx"] as Dictionary<string, object?>;
         Assert.NotNull(iterationCtx);
         Assert.Equal(1, iterationCtx["step"]);
     }

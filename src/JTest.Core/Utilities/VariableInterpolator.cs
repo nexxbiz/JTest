@@ -1,4 +1,5 @@
 using Json.Path;
+using JTest.Core.Exceptions;
 using JTest.Core.Execution;
 using System.Globalization;
 using System.Text.Json;
@@ -21,7 +22,7 @@ public static class VariableInterpolator
     /// Resolves variable tokens in the input string using the provided execution context
     /// Supports nested tokens by resolving from innermost to outermost
     /// </summary>
-    public static object ResolveVariableTokens(string input, IExecutionContext context)
+    public static object? ResolveVariableTokens(string input, IExecutionContext context)
     {
         return ResolveVariableTokensInternal(input, context, 0);
     }
@@ -29,15 +30,14 @@ public static class VariableInterpolator
     /// <summary>
     /// Internal recursive method for resolving variable tokens with depth tracking
     /// </summary>
-    private static object ResolveVariableTokensInternal(string input, IExecutionContext context, int depth)
+    private static object? ResolveVariableTokensInternal(string input, IExecutionContext context, int depth)
     {
         if (input == null) return string.Empty;
 
         // Prevent infinite recursion
         if (depth >= MaxNestingDepth)
         {
-            context.Log.Add($"Warning: Maximum token resolution depth ({MaxNestingDepth}) reached for input: {input}");
-            return input;
+            throw new InvalidOperationException($"Warning: Maximum token resolution depth ({MaxNestingDepth}) reached for input: {input}");
         }
 
         input = ResolveEnvironmentVariableTokens(input);
@@ -116,7 +116,7 @@ public static class VariableInterpolator
 
         if (iterationDepth >= MaxNestingDepth)
         {
-            context.Log.Add($"Warning: Maximum nesting iteration depth ({MaxNestingDepth}) reached while resolving tokens in: {input}");
+            throw new InvalidOperationException($"Warning: Maximum nesting iteration depth ({MaxNestingDepth}) reached while resolving tokens in: {input}");
         }
 
         return current;
@@ -210,61 +210,14 @@ public static class VariableInterpolator
     private static bool IsInnermostTokenCustom(string token)
     {
         // Remove the outer {{ and }} to check the content
-        var content = token.Substring(2, token.Length - 4);
+        var content = token[2..^2];
 
         // Look for inner {{ patterns in the content
-        var innerStart = content.IndexOf("{{");
-        return innerStart == -1; // If no inner {{ found, it's innermost
+        return !content.Contains("{{");
     }
 
-    /// <summary>
-    /// Finds innermost tokens that don't contain other tokens within them
-    /// (Legacy method kept for compatibility with simpler cases)
-    /// </summary>
-    private static List<Match> FindInnermostTokens(string input)
-    {
-        var allMatches = TokenRegex.Matches(input).Cast<Match>().ToList();
-        var innermostTokens = new List<Match>();
 
-        foreach (var match in allMatches)
-        {
-            if (IsInnermostToken(match, allMatches))
-            {
-                innermostTokens.Add(match);
-            }
-        }
-
-        return innermostTokens;
-    }
-
-    /// <summary>
-    /// Determines if a token is innermost by checking if no other tokens are contained within it
-    /// (Legacy method kept for compatibility)
-    /// </summary>
-    private static bool IsInnermostToken(Match candidate, List<Match> allMatches)
-    {
-        var candidateStart = candidate.Index;
-        var candidateEnd = candidate.Index + candidate.Length;
-
-        // Check if any other token is completely contained within this token
-        foreach (var other in allMatches)
-        {
-            if (other == candidate) continue;
-
-            var otherStart = other.Index;
-            var otherEnd = other.Index + other.Length;
-
-            // If another token is completely inside this one, this is not innermost
-            if (otherStart > candidateStart && otherEnd < candidateEnd)
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    private static object ResolveSingleTokenRecursive(Match match, IExecutionContext context, int depth)
+    private static object? ResolveSingleTokenRecursive(Match match, IExecutionContext context, int depth)
     {
         var path = ExtractPath(match.Value);
         var result = ResolveJsonPath(path, context, depth);
@@ -310,36 +263,25 @@ public static class VariableInterpolator
         return matches.Count == 1 && matches[0].Value == input;
     }
 
-    private static object ResolveSingleToken(Match match, IExecutionContext context)
-    {
-        return ResolveSingleTokenRecursive(match, context, 0);
-    }
-
-    private static string ResolveMultipleTokens(string input, MatchCollection matches, IExecutionContext context)
-    {
-        return ResolveMultipleTokensRecursive(input, matches, context, 0);
-    }
-
-    private static string ReplaceToken(string input, Match match, IExecutionContext context)
-    {
-        return ReplaceTokenRecursive(input, match, context, 0);
-    }
-
     private static string ExtractPath(string token)
     {
         return token.Trim('{', '}', ' ');
     }
 
-    private static object ResolveJsonPath(string path, IExecutionContext context)
+    private static object? ResolveJsonPath(string path, IExecutionContext context, int depth)
     {
-        try { return ExecuteJsonPath(path, context, 0); }
-        catch (Exception) { LogPathError(path, context); return string.Empty; }
-    }
-
-    private static object ResolveJsonPath(string path, IExecutionContext context, int depth)
-    {
-        try { return ExecuteJsonPath(path, context, depth); }
-        catch (Exception) { LogPathError(path, context); return string.Empty; }
+        try
+        { 
+            return ExecuteJsonPath(path, context, depth); 
+        }
+        catch (JsonPathValueNotFoundException)
+        {
+            return null;
+        }
+        catch (Exception e) 
+        {
+            throw new InvalidOperationException($"Failed to execute JSONPath '{path}'. Error: {e.Message}");
+        }
     }
 
     private static object ExecuteJsonPath(string path, IExecutionContext context, int depth)
@@ -347,10 +289,11 @@ public static class VariableInterpolator
         var jsonPath = JsonPath.Parse(path);
         var jsonNode = JsonSerializer.SerializeToNode(context.Variables);
         var result = jsonPath.Evaluate(jsonNode);
-        if (result.Matches == null || !result.Matches.Any()) return HandleMissingPath(path, context);
+        if (result.Matches == null || result.Matches.Count == 0)
+            throw new JsonPathValueNotFoundException(path);
 
         // If there's only one match, return the single value (preserves existing behavior)
-        if (result.Matches.Count() == 1)
+        if (result.Matches.Count == 1)
         {
             return ExtractValue(result.Matches.First().Value, context, depth);
         }
@@ -415,16 +358,15 @@ public static class VariableInterpolator
     /// <summary>
     /// Recursively resolves tokens in a JsonObject by converting it to a Dictionary and resolving each value
     /// </summary>
-    private static object ResolveTokensInJsonObject(JsonObject jsonObj, IExecutionContext context, int depth)
+    private static Dictionary<string, object?> ResolveTokensInJsonObject(JsonObject jsonObj, IExecutionContext context, int depth)
     {
         // Prevent infinite recursion
         if (depth >= MaxNestingDepth)
         {
-            context.Log.Add($"Warning: Maximum token resolution depth ({MaxNestingDepth}) reached while resolving JsonObject");
-            return jsonObj;
+            throw new InvalidOperationException($"Warning: Maximum token resolution depth ({MaxNestingDepth}) reached while resolving JsonObject");            
         }
 
-        var resolvedDict = new Dictionary<string, object>();
+        var resolvedDict = new Dictionary<string, object?>();
 
         foreach (var kvp in jsonObj)
         {
@@ -455,16 +397,15 @@ public static class VariableInterpolator
     /// <summary>
     /// Recursively resolves tokens in a JsonArray by converting it to an array and resolving each element
     /// </summary>
-    private static object ResolveTokensInJsonArray(JsonArray jsonArray, IExecutionContext context, int depth)
+    private static object?[] ResolveTokensInJsonArray(JsonArray jsonArray, IExecutionContext context, int depth)
     {
         // Prevent infinite recursion
         if (depth >= MaxNestingDepth)
         {
-            context.Log.Add($"Warning: Maximum token resolution depth ({MaxNestingDepth}) reached while resolving JsonArray");
-            return jsonArray;
+            throw new InvalidOperationException($"Warning: Maximum token resolution depth ({MaxNestingDepth}) reached while resolving JsonArray");            
         }
 
-        var resolvedList = new List<object>();
+        var resolvedList = new List<object?>();
 
         foreach (var element in jsonArray)
         {
@@ -486,7 +427,7 @@ public static class VariableInterpolator
             resolvedList.Add(resolvedValue);
         }
 
-        return resolvedList.ToArray();
+        return [.. resolvedList];
     }
 
     private static object ExtractFromJsonElement(JsonElement element)
@@ -502,20 +443,9 @@ public static class VariableInterpolator
         };
     }
 
-    private static string HandleMissingPath(string path, IExecutionContext context)
+    private static string ConvertToString(object? value)
     {
-        LogPathError(path, context);
-        return string.Empty;
-    }
-
-    private static void LogPathError(string path, IExecutionContext context)
-    {
-        context.Log.Add($"Warning: JSONPath '{path}' not found in variables");
-    }
-
-    private static string ConvertToString(object value)
-    {
-        if (value == null) return string.Empty;
+        if (value is null) return string.Empty;
 
         // Use invariant culture for numeric types to ensure consistent decimal formatting
         return value switch

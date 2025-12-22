@@ -14,7 +14,7 @@ public sealed class JTestCaseExecutor(IStepProcessor stepProcessor) : IJTestCase
     /// <param name="baseContext">The base execution context with environment and global variables</param>
     /// <param name="testNumber">The test number for debug logging</param>
     /// <returns>List of test case results (one per dataset, or one if no datasets)</returns>
-    public async Task<IEnumerable<JTestCaseResult>> ExecuteAsync(JTestCase testCase, TestExecutionContext baseContext, int testNumber = 1, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<JTestCaseResult>> ExecuteAsync(JTestCase testCase, TestExecutionContext baseContext, int testNumber, CancellationToken cancellationToken = default)
     {
         if (testCase.Datasets is not null && testCase.Datasets.Count > 0)
         {
@@ -150,12 +150,6 @@ public sealed class JTestCaseExecutor(IStepProcessor stepProcessor) : IJTestCase
             clonedContext.Variables[kvp.Key] = kvp.Value;
         }
 
-        // Copy log entries
-        foreach (var logEntry in baseContext.Log)
-        {
-            clonedContext.Log.Add(logEntry);
-        }
-
         return clonedContext;
     }
 
@@ -188,12 +182,6 @@ public sealed class JTestCaseExecutor(IStepProcessor stepProcessor) : IJTestCase
         Dictionary<string, object?>? sharedGlobals)
     {
         var iterationContext = new TestExecutionContext();
-
-        // Copy log entries from base context
-        foreach (var logEntry in baseContext.Log)
-        {
-            iterationContext.Log.Add(logEntry);
-        }
 
         // Set up variables with proper scoping rules
         foreach (var kvp in originalVariables)

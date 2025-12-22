@@ -49,8 +49,8 @@ public abstract class AssertionOperationBase(object? actualValue, object? expect
 
         return new AssertionResult(result, error)
         {
-            ActualValue = resolvedExpectedValue,
-            ExpectedValue = resolvedActualValue,
+            ActualValue = resolvedActualValue,
+            ExpectedValue = resolvedExpectedValue,
             Operation = OperationName
         };
     }

@@ -186,7 +186,7 @@ public sealed class UseStepTests
             serializerOptions
         )!;
         var context = new TestExecutionContext();
-        context.Variables["env"] = new Dictionary<string, object>
+        context.Variables["env"] = new Dictionary<string, object?>
         {
             ["baseUrl"] = "https://api.example.com"
         };
@@ -239,7 +239,7 @@ public sealed class UseStepTests
 
         // Create execution context with case data
         var context = new TestExecutionContext();
-        var caseData = new Dictionary<string, object>
+        var caseData = new Dictionary<string, object?>
         {
             ["userId"] = "user123",
             ["accountId"] = "acct-1001",
@@ -344,7 +344,7 @@ public sealed class UseStepTests
 
         // Create execution context with case data
         var context = new TestExecutionContext();
-        var caseData = new Dictionary<string, object>
+        var caseData = new Dictionary<string, object?>
         {
             ["userId"] = "user456"
         };

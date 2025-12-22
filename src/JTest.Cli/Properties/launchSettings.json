@@ -22,8 +22,8 @@
 
     "run all tests in subfolders": {
       "commandName": "Project",
-      "commandLineArgs": "run \"import-and-publish-workflows.json\" \"!other-folder/**/*\" --env-file \"./environments/dev.json\"",
-      "workingDirectory": "C:\\Users\\tech_\\Code\\Nexxbiz\\JTEST-nexxbiz",
+      "commandLineArgs": "run \"tests/**/*\" \"!tests/obsolete-tests/*\" --env-file \"./environments/dev.json\"",
+      "workingDirectory": "<path-to-project>",
       "environmentVariables": {
         "JTEST_CONFIG_FILE": "global-configuration.json"
       }

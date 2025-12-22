@@ -1,4 +1,5 @@
-﻿using System.Globalization;
+﻿using JTest.Core.Utilities;
+using System.Globalization;
 
 namespace JTest.Core.Assertions;
 
@@ -15,7 +16,7 @@ public abstract class EqualityOperatorAssertionBase(object? actualValue, object?
     internal sealed override bool Execute(object? resolvedActualValue, object? resolvedExpectedValue)
     {
         bool result;
-        if (AssertionHelper.IsDateTimeAssertion(resolvedActualValue, resolvedExpectedValue, out var actualTicks, out var expectedTicks))
+        if (TypeConversionHelper.IsDateTimeValue(resolvedActualValue, out var actualTicks) && TypeConversionHelper.IsDateTimeValue(resolvedExpectedValue, out var expectedTicks))
         {
             result = ExecuteOperator(actualTicks, expectedTicks);
         }
@@ -25,8 +26,8 @@ public abstract class EqualityOperatorAssertionBase(object? actualValue, object?
         }
         else
         {
-            var actual = Convert.ToDouble(resolvedActualValue, CultureInfo.InvariantCulture);
-            var expected = Convert.ToDouble(resolvedExpectedValue, CultureInfo.InvariantCulture);
+            var actual = TypeConversionHelper.ConvertToDouble(resolvedActualValue);
+            var expected = TypeConversionHelper.ConvertToDouble(resolvedExpectedValue);
             result = ExecuteOperator(actual, expected);
         }
 
@@ -64,24 +65,17 @@ public abstract class EqualityOperatorAssertionBase(object? actualValue, object?
         if (actual == null && expected == null) return true;
         if (actual == null || expected == null) return false;
 
-        // Handle numeric comparisons with culture independence
-        if (IsNumeric(actual) && IsNumeric(expected))
+        if (TypeConversionHelper.IsNumeric(actual) && TypeConversionHelper.IsNumeric(expected))
         {
             return CompareNumericValues(actual, expected);
         }
 
-        // Convert both values to strings using culture-independent formatting
-        var actualStr = ConvertToInvariantString(actual);
-        var expectedStr = ConvertToInvariantString(expected);
+        var actualStr = TypeConversionHelper.ConvertToInvariantString(actual);
+        var expectedStr = TypeConversionHelper.ConvertToInvariantString(expected);
 
         return string.Equals(actualStr, expectedStr, StringComparison.Ordinal);
     }
-
-    private static bool IsNumeric(object value)
-    {
-        return value is double or float or decimal or int or long or short or byte or sbyte or uint or ulong or ushort;
-    }
-
+  
     private static bool CompareNumericValues(object actual, object expected)
     {
         try
@@ -94,16 +88,5 @@ public abstract class EqualityOperatorAssertionBase(object? actualValue, object?
         {
             return false;
         }
-    }
-
-    private static string ConvertToInvariantString(object value)
-    {
-        return value switch
-        {
-            double d => d.ToString(CultureInfo.InvariantCulture),
-            float f => f.ToString(CultureInfo.InvariantCulture),
-            decimal dec => dec.ToString(CultureInfo.InvariantCulture),
-            _ => value.ToString() ?? string.Empty
-        };
     }
 }

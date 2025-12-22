@@ -139,12 +139,12 @@ public sealed class UseStep(IAnsiConsole ansiConsole, ITemplateContext templateC
         AddDefaultParameterValues(template, templateContext);
 
         // Initialize template's internal context
-        templateContext.Variables["ctx"] = new Dictionary<string, object>();
+        templateContext.Variables["ctx"] = new Dictionary<string, object?>();
 
         return templateContext;
     }
 
-    private object ResolveParameterValue(object? param, IExecutionContext parentContext)
+    private object? ResolveParameterValue(object? param, IExecutionContext parentContext)
     {
         var paramValue = SerializeToJsonElement(param);
 
@@ -192,7 +192,7 @@ public sealed class UseStep(IAnsiConsole ansiConsole, ITemplateContext templateC
         return outputs;
     }
 
-    private object ResolveOutputValue(object outputValue, TestExecutionContext templateContext)
+    private object? ResolveOutputValue(object? outputValue, TestExecutionContext templateContext)
     {
         return outputValue switch
         {
@@ -202,7 +202,7 @@ public sealed class UseStep(IAnsiConsole ansiConsole, ITemplateContext templateC
         };
     }
 
-    private object ResolveJsonElementValue(JsonElement element, TestExecutionContext templateContext)
+    private object? ResolveJsonElementValue(JsonElement element, TestExecutionContext templateContext)
     {
         return element.ValueKind switch
         {

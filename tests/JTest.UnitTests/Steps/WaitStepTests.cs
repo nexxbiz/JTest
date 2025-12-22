@@ -111,7 +111,7 @@ public class WaitStepTests
     }
 
     [Fact]
-    public async Task ExecuteAsync_WithMissingToken_FailsGracefully()
+    public async Task ExecuteAsync_WithMissingToken_Fails()
     {
         // Arrange
         var context = new TestExecutionContext();

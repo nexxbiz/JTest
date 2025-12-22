@@ -36,7 +36,7 @@ public class Template
     /// Gets or sets the output mapping that defines what values are exposed to the parent context
     /// </summary>
     [JsonPropertyName("output")]
-    public Dictionary<string, object>? Output { get; set; }
+    public Dictionary<string, object?>? Output { get; set; }
 }
 
 /// <summary>

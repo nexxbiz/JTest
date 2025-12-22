@@ -11,11 +11,6 @@ public interface IExecutionContext
     Dictionary<string, object?> Variables { get; }
 
     /// <summary>
-    /// Gets the log list for warnings and errors during execution
-    /// </summary>
-    IList<string> Log { get; }
-
-    /// <summary>
     /// Gets the current test number
     /// </summary>
     int TestNumber { get; }

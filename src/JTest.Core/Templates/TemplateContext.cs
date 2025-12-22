@@ -71,6 +71,8 @@ public sealed class TemplateContext(
 
     private async Task LoadTemplatesFromGlobalUsingPathsAsync()
     {
+        console.WriteLine("Loading templates from global configuration");        
+
         var dictionary = new Dictionary<string, Template>();
 
         var globalConfiguration = globalConfigurationAccessor.Configuration;
@@ -95,6 +97,24 @@ public sealed class TemplateContext(
         _globalTemplates = dictionary.AsReadOnly();
     }
 
+    private void WriteTemplateFilesFound(IEnumerable<string> usingPaths)
+    {
+        console.WriteLine($"Found the following template files:");
+
+        var grid = new Grid();
+        var column = new GridColumn()
+            .NoWrap()            
+            .Padding(4, 0, 0, 0);
+        grid.AddColumn(column);
+
+        usingPaths            
+            .ToList()
+            .ForEach(p => grid.AddRow(p));
+
+        console.Write(grid);
+        console.WriteLine();
+    }
+
     private async Task LoadTemplatesFromUsingAsync(
         IDictionary<string, Template> dictionary,
         List<string>? usingPaths,
@@ -103,13 +123,13 @@ public sealed class TemplateContext(
         if (usingPaths == null || usingPaths.Count == 0)
             return;
 
+        WriteTemplateFilesFound(usingPaths);
+
         foreach (var path in usingPaths)
         {
             try
             {
-                var resolvedPath = ResolveTemplatePath(path, testFilePath);
-                console.WriteLine($"Loading templates from: {resolvedPath}");
-
+                var resolvedPath = ResolveTemplatePath(path, testFilePath);                
                 var templateContent = await LoadContentFromPathAsync(resolvedPath);
                 var templateCollection = JsonSerializer.Deserialize<TemplateCollection>(templateContent, jsonSerializerOptionsCache.Options);
 
@@ -124,9 +144,7 @@ public sealed class TemplateContext(
                     }
 
                     dictionary[template.Name] = template;
-                }
-
-                console.WriteLine($"Successfully loaded templates from: {path}");
+                }                
             }
             catch (Exception ex)
             {

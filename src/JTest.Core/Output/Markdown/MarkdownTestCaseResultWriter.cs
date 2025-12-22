@@ -56,7 +56,7 @@ public sealed class MarkdownTestCaseResultWriter : ITestCaseResultWriter
         var showStepNumber = string.IsNullOrWhiteSpace(templateName);
         if (!string.IsNullOrWhiteSpace(stepResult.Step.Configuration.Name))
         {
-            if (showStepNumber)
+            if (showStepNumber || isDebug)
             {
                 writer.WriteLine($"**Step {stepResult.StepNumber}**: {stepResult.Step.Configuration.Name} <br/>");
                 writer.WriteLine($"**Step type:** {stepResult.Step.TypeName} <br/>");
@@ -114,7 +114,7 @@ public sealed class MarkdownTestCaseResultWriter : ITestCaseResultWriter
             WriteAssertionsTable(writer, stepResult.AssertionResults);
         }
 
-        if (stepResult.InnerResults.Any())
+        if (stepResult.InnerResults.Any() && isDebug)
         {
             writer.WriteLine();
             writer.WriteLine();
@@ -128,7 +128,7 @@ public sealed class MarkdownTestCaseResultWriter : ITestCaseResultWriter
         }
     }
 
-    private void WriteAssertionsTable(TextWriter writer, IEnumerable<AssertionResult> assertions)
+    private static void WriteAssertionsTable(TextWriter writer, IEnumerable<AssertionResult> assertions)
     {
         writer.WriteLine("<table style=\"border-collapse: collapse;\">");
         writer.WriteLine("<thead>");

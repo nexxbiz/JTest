@@ -237,12 +237,12 @@ public class DatabaseStep : BaseStep
 
     private async Task<object> ExecuteQueryAsync(IDbCommand command)
     {
-        var results = new List<Dictionary<string, object>>();
+        var results = new List<Dictionary<string, object?>>();
         
         using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
-            var row = new Dictionary<string, object>();
+            var row = new Dictionary<string, object?>();
             for (int i = 0; i < reader.FieldCount; i++)
             {
                 row[reader.GetName(i)] = reader.GetValue(i);

@@ -86,7 +86,7 @@ public sealed class AssertionProcessorTests
     {
         // Arrange
         var context = new TestExecutionContext();
-        context.Variables["globals"] = new Dictionary<string, object>
+        context.Variables["globals"] = new Dictionary<string, object?>
         {
             ["var"] = "custom description component"
         };

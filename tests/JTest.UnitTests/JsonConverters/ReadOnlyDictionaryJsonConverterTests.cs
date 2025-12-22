@@ -39,14 +39,14 @@ public sealed class ReadOnlyDictionaryJsonConverterTests
         const string json = "{\"key1\": \"value1\", \"key2\": 12.23 }";
 
         // Act
-        var result = JsonSerializer.Deserialize<IReadOnlyDictionary<string, object>>(json, options);
+        var result = JsonSerializer.Deserialize<IReadOnlyDictionary<string, object?>>(json, options);
 
         // Assert
         Assert.NotNull(result);
         Assert.True(result.ContainsKey("key1"));
         Assert.Equal("value1", $"{result["key1"]}");
         Assert.True(result.ContainsKey("key2"));
-        var numericValue = ((JsonElement)result["key2"]).GetDouble();
+        var numericValue = ((JsonElement)result["key2"]!).GetDouble();
         Assert.Equal(12.23, numericValue);
     }
 }

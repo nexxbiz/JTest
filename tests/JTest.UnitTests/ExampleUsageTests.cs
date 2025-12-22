@@ -78,7 +78,7 @@ public class ExampleUsageTests
 
         // 4. Execute the test case with datasets using a mock step factory        
         var executor = new JTestCaseExecutor(StepProcessor.Default);
-        var results = await executor.ExecuteAsync(testCase, baseContext);
+        var results = await executor.ExecuteAsync(testCase, baseContext, 1);
 
         // 5. Verify execution results
         Assert.Equal(2, results.Count()); // One result per dataset
@@ -128,12 +128,12 @@ public class ExampleUsageTests
         // Verify the resolutions work correctly
         Assert.Equal("https://api.example.com/orders", createOrderUrl);
         Assert.NotNull(orderPayload);
-        Assert.Contains(dataset.Case["accountId"].ToString()!, getOrderUrl.ToString());
+        Assert.Contains(dataset.Case["accountId"]?.ToString()!, getOrderUrl?.ToString());
 
         // Compare the actual values, not the types
         var expectedTotalValue = dataset.Case["expectedTotal"];
         var resolvedTotalValue = expectedTotal;
-        Assert.Equal(expectedTotalValue.ToString(), resolvedTotalValue.ToString());
+        Assert.Equal(expectedTotalValue?.ToString(), resolvedTotalValue?.ToString());
 
         Console.WriteLine($"Dataset: {dataset.Name}");
         Console.WriteLine($"  Create Order URL: {createOrderUrl}");
@@ -164,7 +164,7 @@ public class ExampleUsageTests
         };
 
         // Case variables (dataset-specific)
-        context.SetCase(new Dictionary<string, object>
+        context.SetCase(new Dictionary<string, object?>
         {
             ["userId"] = "user-456",
             ["testData"] = new { name = "Test User", role = "admin" }

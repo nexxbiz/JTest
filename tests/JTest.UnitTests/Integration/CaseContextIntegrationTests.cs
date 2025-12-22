@@ -21,7 +21,7 @@ public sealed class CaseContextIntegrationTests
         context.Variables["env"] = new { baseUrl = "https://api.test.com" };
 
         // Set case context as would happen during dataset execution
-        var caseData = new Dictionary<string, object>
+        var caseData = new Dictionary<string, object?>
         {
             ["accountId"] = "acct-1001",
             ["orderPayload"] = new { sku = "SKU-1", qty = 2 },
@@ -52,7 +52,7 @@ public sealed class CaseContextIntegrationTests
         var context = new TestExecutionContext();
         context.Variables["env"] = new { baseUrl = "https://api.test.com" };
 
-        var caseData = new Dictionary<string, object>
+        var caseData = new Dictionary<string, object?>
         {
             ["accountId"] = "acct-1002",
             ["orderPayload"] = new { sku = "SKU-2", qty = 3, discountPct = 10 },
@@ -88,7 +88,7 @@ public sealed class CaseContextIntegrationTests
                 new()
                 {
                     Name = "basic",
-                    Case = new Dictionary<string, object>
+                    Case = new Dictionary<string, object?>
                     {
                         ["accountId"] = "acct-1001",
                         ["orderPayload"] = new { sku = "SKU-1", qty = 2 },
@@ -98,7 +98,7 @@ public sealed class CaseContextIntegrationTests
                 new()
                 {
                     Name = "discounted",
-                    Case = new Dictionary<string, object>
+                    Case = new Dictionary<string, object?>
                     {
                         ["accountId"] = "acct-1002",
                         ["orderPayload"] = new { sku = "SKU-2", qty = 3, discountPct = 10 },
@@ -139,7 +139,7 @@ public sealed class CaseContextIntegrationTests
     {
         // Arrange
         var context = new TestExecutionContext();
-        var originalCaseData = new Dictionary<string, object>
+        var originalCaseData = new Dictionary<string, object?>
         {
             ["userId"] = "user123",
             ["status"] = "active"
@@ -147,7 +147,7 @@ public sealed class CaseContextIntegrationTests
         context.SetCase(originalCaseData);
 
         // Act - Try to modify case context (this should not affect original)
-        var caseContext = context.Variables["case"] as Dictionary<string, object>;
+        var caseContext = context.Variables["case"] as Dictionary<string, object?>;
         Assert.NotNull(caseContext);
 
         // Simulating what would happen if step tried to modify case context
@@ -165,7 +165,7 @@ public sealed class CaseContextIntegrationTests
     {
         // Arrange - Complex nested case data
         var context = new TestExecutionContext();
-        var complexCaseData = new Dictionary<string, object>
+        var complexCaseData = new Dictionary<string, object?>
         {
             ["user"] = new
             {
