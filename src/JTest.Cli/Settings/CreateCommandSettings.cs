@@ -12,11 +12,8 @@ public sealed class CreateCommandSettings : CommandSettings
 
     public override ValidationResult Validate()
     {
-        if (string.IsNullOrWhiteSpace(Name))
-        {
-            return ValidationResult.Error("Name argument must be specified");
-        }
-
-        return ValidationResult.Success();
+        return string.IsNullOrWhiteSpace(Name) 
+            ? ValidationResult.Error("Name argument must be specified") 
+            : ValidationResult.Success();
     }
 }
