@@ -26,7 +26,7 @@ public sealed class ExportCommandSettings : CommandSettings
         }
         if (string.IsNullOrWhiteSpace(TestFilePath))
         {
-            return ValidationResult.Error("Format argument must be specified");
+            return ValidationResult.Error("TestFilePath argument must be specified");
         }
         if (!File.Exists(TestFilePath))
         {
