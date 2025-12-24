@@ -1,9 +1,11 @@
 ﻿using Spectre.Console;
 using Spectre.Console.Cli;
 using System.ComponentModel;
+using JetBrains.Annotations;
 
 namespace JTest.Cli.Settings;
 
+[UsedImplicitly]
 public sealed class ExportCommandSettings : CommandSettings
 {
     [CommandArgument(0, "<format>")]

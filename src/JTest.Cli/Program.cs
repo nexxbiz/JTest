@@ -1,4 +1,5 @@
-﻿using JTest.Cli.Commands;
+﻿using JetBrains.Annotations;
+using JTest.Cli.Commands;
 using JTest.Cli.DI;
 using JTest.Core.Assertions;
 using JTest.Core.Execution;
@@ -15,6 +16,7 @@ using Spectre.Console.Cli;
 
 namespace JTest.Cli;
 
+[UsedImplicitly]
 internal class Program
 {
     private static async Task Main(string[] args)
