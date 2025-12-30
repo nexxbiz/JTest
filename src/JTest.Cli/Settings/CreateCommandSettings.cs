@@ -1,9 +1,11 @@
 ﻿using Spectre.Console;
 using Spectre.Console.Cli;
 using System.ComponentModel;
+using JetBrains.Annotations;
 
 namespace JTest.Cli.Settings;
 
+[UsedImplicitly]
 public sealed class CreateCommandSettings : CommandSettings
 {
     [CommandArgument(0, "<name>")]
@@ -12,11 +14,8 @@ public sealed class CreateCommandSettings : CommandSettings
 
     public override ValidationResult Validate()
     {
-        if (string.IsNullOrWhiteSpace(Name))
-        {
-            return ValidationResult.Error("Name argument must be specified");
-        }
-
-        return ValidationResult.Success();
+        return string.IsNullOrWhiteSpace(Name) 
+            ? ValidationResult.Error("Name argument must be specified") 
+            : ValidationResult.Success();
     }
 }

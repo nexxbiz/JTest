@@ -1,9 +1,11 @@
 ﻿using Spectre.Console;
 using Spectre.Console.Cli;
 using System.ComponentModel;
+using JetBrains.Annotations;
 
 namespace JTest.Cli.Settings;
 
+[UsedImplicitly]
 public sealed class ExportCommandSettings : CommandSettings
 {
     [CommandArgument(0, "<format>")]
@@ -26,7 +28,7 @@ public sealed class ExportCommandSettings : CommandSettings
         }
         if (string.IsNullOrWhiteSpace(TestFilePath))
         {
-            return ValidationResult.Error("Format argument must be specified");
+            return ValidationResult.Error("TestFilePath argument must be specified");
         }
         if (!File.Exists(TestFilePath))
         {

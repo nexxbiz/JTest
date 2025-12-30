@@ -1,11 +1,9 @@
-﻿using JTest.Cli.Core;
+using JTest.Cli.Core;
 
 namespace JTest.Cli;
 
-/// <summary>
-/// Entry point for the JTest CLI application.
-/// </summary>
-internal static class Program
+[UsedImplicitly]
+internal class Program
 {
     /// <summary>
     /// Main entry point that delegates to the application orchestrator.

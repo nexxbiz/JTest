@@ -3,9 +3,11 @@ using Spectre.Console;
 using Spectre.Console.Cli;
 using System.ComponentModel;
 using System.Text.Json;
+using JetBrains.Annotations;
 
 namespace JTest.Cli.Settings;
 
+[UsedImplicitly]
 public sealed class RunCommandSettings : CommandSettings
 {
     private IEnumerable<string>? categories;
