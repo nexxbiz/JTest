@@ -1,4 +1,5 @@
-﻿using JTest.Cli.Settings;
+﻿using JTest.Cli.Services;
+using JTest.Cli.Settings;
 using JTest.Core.Execution;
 using JTest.Core.Models;
 using JTest.Core.Templates;
@@ -10,14 +11,36 @@ using System.Text.Json;
 
 namespace JTest.Cli.Commands;
 
-public class RunCommand(IAnsiConsole ansiConsole, IJTestSuiteExecutionResultProcessor testExecutionResultsProcessor, IJTestSuiteExecutor testSuiteExecutor, IVariablesContext variablesContext, ITemplateContext templateContext, JsonSerializerOptionsAccessor serializerOptionsCache)
-    : CommandBase<RunCommandSettings>(ansiConsole)
+public class RunCommand : CommandBase<RunCommandSettings>
 {
+    private readonly IJTestSuiteExecutionResultProcessor _testExecutionResultsProcessor;
+    private readonly IJTestSuiteExecutor _testSuiteExecutor;
+    private readonly IVariablesContext _variablesContext;
+    private readonly ITemplateContext _templateContext;
+    private readonly JsonSerializerOptionsAccessor _serializerOptionsCache;
+
     protected virtual bool IsDebug => false;
 
-    public override sealed async Task<int> ExecuteAsync(CommandContext context, RunCommandSettings settings, CancellationToken cancellationToken)
+    public RunCommand(
+        IAnsiConsole ansiConsole,
+        IErrorHandlingService errorHandlingService,
+        IJTestSuiteExecutionResultProcessor testExecutionResultsProcessor,
+        IJTestSuiteExecutor testSuiteExecutor,
+        IVariablesContext variablesContext,
+        ITemplateContext templateContext,
+        JsonSerializerOptionsAccessor serializerOptionsCache)
+        : base(ansiConsole, errorHandlingService)
     {
-        await templateContext.LoadGlobalTemplates();
+        _testExecutionResultsProcessor = testExecutionResultsProcessor;
+        _testSuiteExecutor = testSuiteExecutor;
+        _variablesContext = variablesContext;
+        _templateContext = templateContext;
+        _serializerOptionsCache = serializerOptionsCache;
+    }
+
+    public sealed override async Task<int> ExecuteAsync(CommandContext context, RunCommandSettings settings, CancellationToken cancellationToken)
+    {
+        await _templateContext.LoadGlobalTemplates();
 
         InitializeVariablesContext(settings);
 
@@ -28,7 +51,7 @@ public class RunCommand(IAnsiConsole ansiConsole, IJTestSuiteExecutionResultProc
         }
 
         var outputDirectory = GetOutputDirectory(settings);
-        testExecutionResultsProcessor.Process(results, outputDirectory, IsDebug, settings.SkipOutput == true, settings.OutputFormat);
+        _testExecutionResultsProcessor.Process(results, outputDirectory, IsDebug, settings.SkipOutput == true, settings.OutputFormat);
         if (results.All(x => x.CasesFailed == 0))
         {
             return 0;
@@ -40,7 +63,8 @@ public class RunCommand(IAnsiConsole ansiConsole, IJTestSuiteExecutionResultProc
     private async Task<IEnumerable<JTestSuiteExecutionResult>?> ExecuteRunCommand(RunCommandSettings settings)
     {
         var testSuites = ReadTestSuites(settings);
-        if (!testSuites.Any())
+        var jTestSuites = testSuites as JTestSuite[] ?? testSuites.ToArray();
+        if (jTestSuites.Length == 0)
         {
             Console.WriteLine(
                 $"Error: No test files found matching patterns: {string.Join(", ", settings.TestFilePatterns)}",
@@ -51,11 +75,11 @@ public class RunCommand(IAnsiConsole ansiConsole, IJTestSuiteExecutionResultProc
 
         if (settings.ParallelTestExecutionCount > 1)
         {
-            Console.WriteLine($"Running {testSuites.Count()} test files in parallel (max concurrent: {settings.ParallelTestExecutionCount})");
-            return testSuiteExecutor.ExecuteParallel(testSuites, settings.ParallelTestExecutionCount.Value);
+            Console.WriteLine($"Running {jTestSuites.Length} test files in parallel (max concurrent: {settings.ParallelTestExecutionCount})");
+            return _testSuiteExecutor.ExecuteParallel(jTestSuites, settings.ParallelTestExecutionCount.Value);
         }
 
-        return await testSuiteExecutor.Execute(testSuites);
+        return await _testSuiteExecutor.Execute(jTestSuites);
     }
 
     private IEnumerable<JTestSuite> ReadTestSuites(RunCommandSettings settings)
@@ -65,7 +89,7 @@ public class RunCommand(IAnsiConsole ansiConsole, IJTestSuiteExecutionResultProc
         return testFiles.Select(filePath =>
         {
             var json = File.ReadAllText(filePath);
-            var testSuite = JsonSerializer.Deserialize<JTestSuite>(json, serializerOptionsCache.Options)
+            var testSuite = JsonSerializer.Deserialize<JTestSuite>(json, _serializerOptionsCache.Options)
                 ?? throw new ArgumentException($"Test suite at path '{filePath}' is not a valid JTestSuite");
             testSuite.FilePath = filePath;
 
@@ -77,7 +101,7 @@ public class RunCommand(IAnsiConsole ansiConsole, IJTestSuiteExecutionResultProc
     {
         var environmentVariables = settings.GetEnvironmentVariables();
         var globalVariables = settings.GetGlobalVariables();
-        variablesContext.Initialize(environmentVariables, globalVariables);
+        _variablesContext.Initialize(environmentVariables, globalVariables);
     }
 
     private static string GetOutputDirectory(RunCommandSettings settings)

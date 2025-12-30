@@ -46,9 +46,9 @@ public sealed class TypeRegistrar(IServiceCollection builder) : ITypeRegistrar
             builder.AddSingleton(service, factory);
     }
 
-    internal TypeRegistrar RegisterInstance<TService>(object implemmentation)
+    internal TypeRegistrar RegisterInstance<TService>(object implementation)
     {
-        RegisterInstance(typeof(TService), implemmentation);
+        RegisterInstance(typeof(TService), implementation);
         return this;
     }
 

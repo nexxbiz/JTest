@@ -1,10 +1,12 @@
-﻿using JTest.Cli.Settings;
+﻿using JTest.Cli.Services;
+using JTest.Cli.Settings;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
 namespace JTest.Cli.Commands;
 
-public sealed class ExportCommand(IAnsiConsole ansiConsole) : CommandBase<ExportCommandSettings>(ansiConsole)
+public sealed class ExportCommand(IAnsiConsole ansiConsole, IErrorHandlingService errorHandlingService)
+    : CommandBase<ExportCommandSettings>(ansiConsole, errorHandlingService)
 {
     public override Task<int> ExecuteAsync(CommandContext context, ExportCommandSettings settings, CancellationToken cancellationToken)
     {
@@ -26,18 +28,13 @@ public sealed class ExportCommand(IAnsiConsole ansiConsole) : CommandBase<Export
         return Task.FromResult(0);
     }
 
-
     private static string GetOutputFileName(string format, string testFile)
     {
-        if (format == "postman")
+        return format switch
         {
-            return Path.ChangeExtension(testFile, ".postman_collection.json");
-        }
-        if (format == "karate")
-        {
-            return Path.ChangeExtension(testFile, ".feature");
-        }
-
-        throw new NotSupportedException($"");
+            "postman" => Path.ChangeExtension(testFile, ".postman_collection.json"),
+            "karate" => Path.ChangeExtension(testFile, ".feature"),
+            _ => throw new NotSupportedException($"Export format '{format}' is not supported")
+        };
     }
 }

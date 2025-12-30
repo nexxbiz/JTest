@@ -1,14 +1,17 @@
-﻿using Spectre.Console;
+﻿using JTest.Cli.Services;
+using Spectre.Console;
 using Spectre.Console.Cli;
 
 namespace JTest.Cli.Commands;
 
-public abstract class CommandBase<TSettings>(IAnsiConsole ansiConsole) : ICommand<TSettings>
+public abstract class CommandBase<TSettings>(IAnsiConsole ansiConsole, IErrorHandlingService errorHandlingService)
+    : ICommand<TSettings>
     where TSettings : CommandSettings
 {
-    public abstract Task<int> ExecuteAsync(CommandContext context, TSettings settings, CancellationToken cancellationToken);
+    protected IAnsiConsole Console { get; } = ansiConsole;
+    private IErrorHandlingService ErrorHandler { get; } = errorHandlingService;
 
-    protected IAnsiConsole Console => ansiConsole;
+    public abstract Task<int> ExecuteAsync(CommandContext context, TSettings settings, CancellationToken cancellationToken);
 
     public async Task<int> ExecuteAsync(CommandContext context, CommandSettings settings, CancellationToken cancellationToken)
     {
@@ -22,13 +25,7 @@ public abstract class CommandBase<TSettings>(IAnsiConsole ansiConsole) : IComman
             }
             catch (Exception e)
             {
-                AnsiConsole.WriteException(
-                    e,
-                    ExceptionFormats.NoStackTrace
-                );
-
-                Environment.ExitCode = -1;
-                return -1;
+                return ErrorHandler.HandleException(e, $"command '{context.Name}'");
             }
         }
 
@@ -36,13 +33,7 @@ public abstract class CommandBase<TSettings>(IAnsiConsole ansiConsole) : IComman
             $"Command settings were not expected type '{typeof(TSettings).FullName}'"
         );
 
-        ansiConsole.WriteException(
-            exception,
-            ExceptionFormats.NoStackTrace
-        );
-
-        Environment.ExitCode = -1;
-        return -1;
+        return ErrorHandler.HandleException(exception, "command initialization");
     }
 
     public ValidationResult Validate(CommandContext context, CommandSettings settings)
