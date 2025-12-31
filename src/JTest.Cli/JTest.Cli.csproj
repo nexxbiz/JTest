@@ -1,7 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <ItemGroup>
-    <PackageReference Include="JetBrains.Annotations" Version="2024.3.0" />
+  <ItemGroup>    
     <ProjectReference Include="..\JTest.Core\JTest.Core.csproj" />
   </ItemGroup>
 

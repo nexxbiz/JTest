@@ -201,17 +201,23 @@ public sealed class StepProcessor(IAssertionProcessor assertionProcessor) : ISte
         // Process assertions after storing result data
         var assertionResults = await ProcessAssertionsAsync(step.Configuration, context);
 
-        // Determine if step should be marked as failed based on assertion results
+        // Determine if step should be marked as failed based on assertion and inner step results
         var hasFailedAssertions = assertionResults.Any(r => !r.Success);
+        var hasFailedInnerSteps = stepExecutionResult.InnerProcessedResults.Any(x => !x.Success);
+        
         var errorMessage = hasFailedAssertions
                 ? GetFailedAssertionsErrorMessages(assertionResults)
-                : null;
+                : string.Empty;
+        if(hasFailedInnerSteps)
+        {
+            errorMessage += GetFailedInnerStepsErrorMessages(stepExecutionResult.InnerProcessedResults);
+        }
 
         // Create result - fail if any assertions failed
         var stepResult = new StepProcessedResult(context.StepNumber)
         {
             Step = step,
-            Success = !hasFailedAssertions,
+            Success = !hasFailedAssertions && !hasFailedInnerSteps,
             ErrorMessage = errorMessage,
             DurationMs = stopwatch.ElapsedMilliseconds,
             AssertionResults = assertionResults ?? [],
@@ -233,6 +239,18 @@ public sealed class StepProcessor(IAssertionProcessor assertionProcessor) : ISte
 
         return $"Assertions failed: {joinedErrorMessages}";
     }
+
+    private static string GetFailedInnerStepsErrorMessages(IEnumerable<StepProcessedResult> innerSteps)
+    {
+        var errorMessages = innerSteps
+            .Where(x => !x.Success)
+            .Select(x => x.ErrorMessage);
+
+        var joinedErrorMessages = string.Join(", ", errorMessages);
+
+        return joinedErrorMessages;
+    }
+
 
     /// <summary>
     /// Gets the save value from JSON element, handling different value types
