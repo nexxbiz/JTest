@@ -1,8 +1,6 @@
-using JTest.Core.Assertions;
-using JTest.Core.Debugging;
 using JTest.Core.Execution;
+using JTest.Core.Steps.Configuration;
 using JTest.Core.Utilities;
-using System.Diagnostics;
 using System.Text.Json;
 
 namespace JTest.Core.Steps;
@@ -10,319 +8,68 @@ namespace JTest.Core.Steps;
 /// <summary>
 /// Base class for step implementations providing common functionality
 /// </summary>
-public abstract class BaseStep : IStep
+public abstract class BaseStep<TConfiguration>(TConfiguration configuration) : IStep
+    where TConfiguration : StepConfigurationBase
 {
-    protected BaseStep(JsonElement configuration)
-    {
-        Configuration = configuration;
-        Name = GetStringValueFromConfiguration("name");
-        Description = GetStringValueFromConfiguration("description");
-        Id = GetStringValueFromConfiguration("id");
-    }
-
     /// <summary>
     /// Gets the step type identifier
     /// </summary>
-    public abstract string Type { get; }
-
-    /// <summary>
-    /// Gets or sets the step ID for context storage
-    /// </summary>
-    public string? Id { get; }
+    public string TypeName => GetType().Name
+        .Replace("Step", string.Empty)
+        .ToLowerInvariant();
 
     /// <summary>
     /// Gets the step configuration JSON element
     /// </summary>
-    protected JsonElement Configuration { get; }
+    protected TConfiguration Configuration { get; } = configuration;
 
-    public string? Name { get; }
-
-    public string? Description { get; protected set; }
-
-    private string? GetStringValueFromConfiguration(string elementName)
+    /// <summary>
+    /// Step description; can be assigned by derived classes. Initial value derived from configuration
+    /// </summary>
+    protected string? Description
     {
-        if(Configuration.ValueKind == JsonValueKind.Undefined || Configuration.ValueKind == JsonValueKind.Null)
+        get => Configuration.GetDescription();
+        set => Configuration.UpdateDescription(value);
+    }
+
+    IStepConfiguration IStep.Configuration => Configuration;
+
+    /// <summary>
+    /// Executes the step with the provided context. Returns output data of the step; or null if the step does not return output
+    /// </summary>
+    public abstract Task<StepExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken);
+
+    public bool Validate(IExecutionContext context, out IEnumerable<string> validationErrors)
+    {
+        var validationErrorsList = new List<string>();
+        Validate(context, validationErrorsList);
+        validationErrors = validationErrorsList;
+
+        return !validationErrors.Any();
+    }
+
+    protected virtual void Validate(IExecutionContext context, IList<string> validationErrors) { }
+
+    protected static string ResolveStringVariable(string? value, IExecutionContext context)
+    {
+        return ResolveVariable(value, context)?.ToString() ?? string.Empty;
+    }
+
+    protected static object? ResolveVariable(string? value, IExecutionContext context)
+    {
+        if (string.IsNullOrWhiteSpace(value))
         {
-            return null;
+            return string.Empty;
         }
 
-        if (Configuration.TryGetProperty(elementName, out var element) && element.ValueKind == JsonValueKind.String)
-        {
-            return element.GetString();
-        }
-
-        return null;
+        return VariableInterpolator.ResolveVariableTokens(value, context);
     }
 
-    /// <summary>
-    /// Executes the step with the provided context
-    /// </summary>
-    public abstract Task<StepResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken);
-    
-    bool IStep.ValidateConfiguration(List<string> validationErrors)
+    protected static JsonElement SerializeToJsonElement(object? value)
     {
-        ValidateConfiguration(validationErrors);
-        return validationErrors.Count == 0;
+        if (value is JsonElement jsonElement)
+            return jsonElement;
+
+        return JsonSerializer.SerializeToElement(value, JsonSerializerOptionsAccessor.Default);
     }
-
-    public virtual void ValidateConfiguration(List<string> validationErrors)
-    {        
-    }
-
-    /// <summary>
-    /// Processes assertions if present in step configuration
-    /// </summary>
-    protected async Task<List<AssertionResult>> ProcessAssertionsAsync(IExecutionContext context)
-    {
-        if (Configuration.ValueKind == JsonValueKind.Undefined || !Configuration.TryGetProperty("assert", out var assertElement))
-        {
-            return new List<AssertionResult>();
-        }
-
-        var processor = new DefaultAssertionProcessor();
-        return await processor.ProcessAssertionsAsync(assertElement, context);
-    }
-
-    /// <summary>
-    /// Checks if any assertions failed
-    /// </summary>
-    protected static bool HasFailedAssertions(List<AssertionResult> assertionResults)
-    {
-        return assertionResults.Any(r => !r.Success);
-    }
-
-    /// <summary>
-    /// Stores step result data in execution context
-    /// </summary>
-    protected virtual void StoreResultInContext(IExecutionContext context, object data)
-    {
-        context.Variables["this"] = data;
-        if (!string.IsNullOrEmpty(Id)) context.Variables[Id] = data; //todo test this
-
-        ProcessSaveOperations(context);
-    }
-
-    /// <summary>
-    /// Processes save operations from step configuration
-    /// </summary>
-    protected virtual void ProcessSaveOperations(IExecutionContext context)
-    {
-        if (Configuration.ValueKind == JsonValueKind.Undefined || !Configuration.TryGetProperty("save", out var saveElement))
-        {
-            return;
-        }
-
-        if (saveElement.ValueKind != JsonValueKind.Object)
-        {
-            context.Log.Add("Warning: 'save' property must be an object");
-            return;
-        }
-
-        foreach (var saveProperty in saveElement.EnumerateObject())
-        {
-            try
-            {
-                var resolvedValue = GetSaveValue(saveProperty.Value, context);
-
-                // Parse the target path to determine where to save
-                var targetPath = saveProperty.Name;
-                ApplySaveOperation(context, targetPath, resolvedValue);
-            }
-            catch (Exception ex)
-            {
-                context.Log.Add($"Warning: Failed to process save operation '{saveProperty.Name}': {ex.Message}");
-            }
-        }
-    }
-
-    /// <summary>
-    /// Applies a save operation to the execution context
-    /// </summary>
-    protected virtual void ApplySaveOperation(IExecutionContext context, string targetPath, object value)
-    {
-        // Handle JSONPath style target paths like $.globals.token, $.case.userId, etc.
-        if (targetPath.StartsWith("$."))
-        {
-            var pathParts = targetPath.Substring(2).Split('.');
-            if (pathParts.Length >= 2)
-            {
-                var scope = pathParts[0];
-                var key = pathParts[1];
-
-                // Ensure the scope exists as a dictionary
-                if (!context.Variables.ContainsKey(scope))
-                {
-                    context.Variables[scope] = new Dictionary<string, object>();
-                }
-
-                if (context.Variables[scope] is Dictionary<string, object> scopeDict)
-                {
-                    scopeDict[key] = value;
-                }
-                else
-                {
-                    context.Log.Add($"Warning: Cannot save to '{targetPath}' - '{scope}' is not a dictionary");
-                }
-            }
-            else if (pathParts.Length == 1)
-            {
-                // Simple variable like $.token
-                context.Variables[pathParts[0]] = value;
-            }
-        }
-        else
-        {
-            // Simple variable name
-            context.Variables[targetPath] = value;
-        }
-    }
-
-    /// <summary>
-    /// Detects context changes between before and after step execution
-    /// </summary>
-    protected virtual ContextChanges DetectContextChanges(Dictionary<string, object> before, Dictionary<string, object> after)
-    {
-        var changes = new ContextChanges();
-
-        DetectAddedVariables(before, after, changes);
-        DetectModifiedVariables(before, after, changes);
-        return changes;
-    }
-
-    /// <summary>
-    /// Detects variables that were added during step execution
-    /// </summary>
-    protected virtual void DetectAddedVariables(Dictionary<string, object> before, Dictionary<string, object> after, ContextChanges changes)
-    {
-        foreach (var kvp in after)
-        {
-            if (!before.ContainsKey(kvp.Key))
-            {
-
-                changes.Added.Add(kvp.Key, kvp.Value);
-            }
-        }
-    }
-
-    /// <summary>
-    /// Detects variables that were modified during step execution
-    /// </summary>
-    protected virtual void DetectModifiedVariables(Dictionary<string, object> before, Dictionary<string, object> after, ContextChanges changes)
-    {
-        foreach (var kvp in after)
-        {
-            if (before.ContainsKey(kvp.Key) && !ReferenceEquals(before[kvp.Key], kvp.Value))
-            {
-                changes.Modified.Add(kvp.Key, kvp.Value);
-            }
-        }
-    }
-
-
-
-
-    /// <summary>
-    /// Creates a copy of the context variables for change detection
-    /// </summary>
-    protected virtual Dictionary<string, object> CloneContext(IExecutionContext context)
-    {
-        return new Dictionary<string, object>(context.Variables);
-    }
-
-    /// <summary>
-    /// Processes the common step completion logic including storing results, processing assertions, 
-    /// logging debug info, and creating the final step result
-    /// </summary>
-    protected async Task<StepResult> ProcessStepCompletionAsync(
-        IExecutionContext context,
-        Dictionary<string, object> contextBefore,
-        Stopwatch stopwatch,
-        object resultData)
-    {
-        // Store result in context and process save operations
-        StoreResultInContext(context, resultData);
-
-        // Detect context changes after save operations
-        var contextChanges = DetectContextChanges(contextBefore, context.Variables);
-
-        // Process assertions after storing result data
-        var assertionResults = await ProcessAssertionsAsync(context);
-
-        // Determine if step should be marked as failed based on assertion results
-        var hasFailedAssertions = HasFailedAssertions(assertionResults);
-
-        // Create result - fail if any assertions failed
-        var stepResult = hasFailedAssertions
-            ? StepResult.CreateFailure(context.StepNumber, this,"One or more assertions failed", stopwatch.ElapsedMilliseconds)
-            : StepResult.CreateSuccess(context.StepNumber, this, resultData, stopwatch.ElapsedMilliseconds);
-
-        stepResult.Data = resultData;
-        stepResult.AssertionResults = assertionResults;
-        stepResult.ContextChanges = contextChanges;
-        return stepResult;
-    }
-
-    /// <summary>
-    /// Gets the save value from JSON element, handling different value types
-    /// </summary>
-    protected virtual object GetSaveValue(JsonElement element, IExecutionContext context)
-    {
-        return element.ValueKind switch
-        {
-            JsonValueKind.String => VariableInterpolator.ResolveVariableTokens(element.GetString() ?? "", context),
-            JsonValueKind.Number => element.TryGetInt32(out var intValue) ? intValue : element.GetDouble(),
-            JsonValueKind.True => true,
-            JsonValueKind.False => false,
-            JsonValueKind.Null => null,
-            JsonValueKind.Object => JsonElementToDictionary(element),
-            JsonValueKind.Array => JsonElementToArray(element),
-            _ => element.GetString() ?? ""
-        };
-    }
-
-    /// <summary>
-    /// Converts JSON object to dictionary
-    /// </summary>
-    protected virtual Dictionary<string, object> JsonElementToDictionary(JsonElement element)
-    {
-        var dictionary = new Dictionary<string, object>();
-        foreach (var property in element.EnumerateObject())
-        {
-            dictionary[property.Name] = GetValueFromJsonElement(property.Value);
-        }
-        return dictionary;
-    }
-
-    /// <summary>
-    /// Converts JSON array to object array
-    /// </summary>
-    protected virtual object[] JsonElementToArray(JsonElement element)
-    {
-        var list = new List<object>();
-        foreach (var item in element.EnumerateArray())
-        {
-            list.Add(GetValueFromJsonElement(item));
-        }
-        return list.ToArray();
-    }
-
-    /// <summary>
-    /// Gets value from JSON element without variable interpolation
-    /// </summary>
-    protected virtual object GetValueFromJsonElement(JsonElement element)
-    {
-        return element.ValueKind switch
-        {
-            JsonValueKind.String => element.GetString() ?? "",
-            JsonValueKind.Number => element.TryGetInt32(out var intValue) ? intValue : element.GetDouble(),
-            JsonValueKind.True => true,
-            JsonValueKind.False => false,
-            JsonValueKind.Null => null,
-            JsonValueKind.Object => JsonElementToDictionary(element),
-            JsonValueKind.Array => JsonElementToArray(element),
-            _ => element.GetString() ?? ""
-        };
-    }
-
-    
 }

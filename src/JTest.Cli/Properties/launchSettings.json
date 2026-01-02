@@ -22,7 +22,7 @@
 
     "run all tests in subfolders": {
       "commandName": "Project",
-      "commandLineArgs": "run tests/**/* --env-file \"./environments/dev.json\"",
+      "commandLineArgs": "run \"tests/**/*\" \"!tests/obsolete-tests/*\" --env-file \"./environments/dev.json\"",
       "workingDirectory": "<path-to-project>",
       "environmentVariables": {
         "JTEST_CONFIG_FILE": "global-configuration.json"
@@ -36,6 +36,10 @@
       "environmentVariables": {
         "JTEST_CONFIG_FILE": "global-configuration.json"
       }
+    },
+    "help": {
+      "commandName": "Project",
+      "commandLineArgs": "--help"
     }
   }
 }

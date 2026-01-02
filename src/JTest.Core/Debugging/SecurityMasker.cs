@@ -5,7 +5,7 @@ namespace JTest.Core.Debugging;
 /// </summary>
 public class SecurityMasker
 {
-    private readonly List<(string original, string masked)> _maskingPairs = new();
+    private readonly List<(string original, string masked)> _maskingPairs = [];
     private readonly string[] _securityKeys = { "password", "token", "secret", "key", "credential", "auth", "authorization", "bearer" };
 
     /// <summary>

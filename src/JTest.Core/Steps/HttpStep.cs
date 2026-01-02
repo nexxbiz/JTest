@@ -1,6 +1,6 @@
 using JTest.Core.Execution;
+using JTest.Core.Steps.Configuration;
 using JTest.Core.Utilities;
-using System.Diagnostics;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
@@ -10,83 +10,81 @@ namespace JTest.Core.Steps;
 /// <summary>
 /// HTTP step implementation for making HTTP requests
 /// </summary>
-public class HttpStep(HttpClient httpClient, JsonElement configuration) : BaseStep(configuration)
+public sealed class HttpStep(HttpClient httpClient, HttpStepConfiguration configuration) : BaseStep<HttpStepConfiguration>(configuration)
 {
-    private const string stepType = "http";
-    private const string defaultHttpMethod = "GET";
-    private const string methodConfigurationProperty = "method";
-    private const string urlConfigurationProperty = "url";
-    private const string bodyConfigurationProperty = "body";
-    private const string headersConfigurationProperty = "headers";
-    private const string queryConfigurationProperty = "query";
-    private const string fileConfigurationProperty = "file";
-    private const string formFilesConfigurationProperty = "formFiles";
-    private const string formFileContentPathConfigurationProperty = "path";
-    private const string formFileContentNameConfigurationProperty = "name";
-    private const string formFileContentFileNameConfigurationProperty = "fileName";
-    private const string contentTypeConfigurationProperty = "contentType";
     private const string jsonContentType = "application/json";
 
-    public override sealed string Type => stepType;
-
-    public override void ValidateConfiguration(List<string> validationErrors)
+    protected override void Validate(IExecutionContext context, IList<string> validationErrors)
     {
-        if (!Configuration.TryGetProperty(methodConfigurationProperty, out _))
+        if (OnlyOneBodyTypeDefined() == false)
         {
-            validationErrors.Add($"HTTP step configuration must have a '{methodConfigurationProperty}' property");
+            validationErrors.Add("You can only specify 1 body type. Choose only of the following: 'body', 'file', or 'formFiles'.");
         }
-        if (!Configuration.TryGetProperty(urlConfigurationProperty, out _))
-        {
-            validationErrors.Add($"HTTP step configuration must have a '{urlConfigurationProperty}' property");
-        }
-    }
 
-    public override async Task<StepResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
-    {
-        var contextBefore = CloneContext(context);
-        var stopwatch = Stopwatch.StartNew();
+        var file = ResolveStringVariable(Configuration.File, context);
+        if (!string.IsNullOrWhiteSpace(file) && !File.Exists(file))
+        {
+            validationErrors.Add($"No file found at path '{file}'.");
+        }
+        if (Configuration.FormFiles?.Any() == true)
+        {
+            foreach (var formFile in Configuration.FormFiles)
+            {
+                var path = ResolveStringVariable(formFile.Path, context);
+                if (!File.Exists(path))
+                {
+                    validationErrors.Add($"No file found at path '{path}'.");
+                }
+            }
+        }
+
+        var method = ResolveStringVariable(Configuration.Method, context);
         try
         {
-            var responseData = await PerformHttpRequest(context, stopwatch);
-            stopwatch.Stop();
-
-            // Use common step completion logic from BaseStep
-            var result = await ProcessStepCompletionAsync(context, contextBefore, stopwatch, responseData);
-
-            if(string.IsNullOrWhiteSpace(Description))
-            {
-                Description = $"HTTP {GetResolvedMethod(context)} {GetResolvedUrl(context)}";
-            }
-
-            return result;
+            _ = new HttpMethod(method);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            stopwatch.Stop();
-            context.Log.Add($"HTTP request failed: {ex.Message}");
+            validationErrors.Add($"Invalid HTTP Method '{method}'");
+        }
 
-            // Still process assertions even when HTTP request fails - this provides valuable debugging info
-            var assertionResults = await ProcessAssertionsAsync(context);
-
-            var result = StepResult.CreateFailure(context.StepNumber, this, ex.Message, stopwatch.ElapsedMilliseconds);
-            result.AssertionResults = assertionResults;
-            return result;
+        var uri = ResolveStringVariable(Configuration.Url, context);
+        try
+        {
+            _ = new Uri(uri);
+        }
+        catch (Exception)
+        {
+            validationErrors.Add($"Invalid url '{uri}'");
         }
     }
 
-    private async Task<object> PerformHttpRequest(IExecutionContext context, Stopwatch stopwatch)
+    public override async Task<StepExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
+    {
+        var responseData = await PerformHttpRequest(context);
+
+        if (string.IsNullOrWhiteSpace(Description))
+        {
+            Description = $"HTTP {ResolveVariable(Configuration.Method, context)} {ResolveVariable(Configuration.Url, context)}";
+        }
+
+        return new(responseData);
+    }
+
+    private async Task<Dictionary<string, object?>> PerformHttpRequest(IExecutionContext context)
     {
         var request = BuildHttpRequest(context);
         var requestDetails = await CaptureRequestDetails(request, context);
         var response = await httpClient.SendAsync(request);
-        return await CreateResponseData(response, stopwatch, requestDetails);
+        return await CreateResponseData(response, requestDetails);
     }
 
     private HttpRequestMessage BuildHttpRequest(IExecutionContext context)
     {
-        var method = GetResolvedMethod(context);
-        var url = GetResolvedUrl(context);
+        var url = ResolveStringVariable(Configuration.Url, context);
         var finalUrl = AddQueryParameters(url, context);
+
+        var method = ResolveStringVariable(Configuration.Method, context);
         var request = new HttpRequestMessage(new HttpMethod(method), finalUrl)
         {
             Content = GetRequestBodyContent(context)
@@ -95,197 +93,137 @@ public class HttpStep(HttpClient httpClient, JsonElement configuration) : BaseSt
         return request;
     }
 
-    private string GetResolvedMethod(IExecutionContext context)
-    {
-        var method = Configuration.GetProperty(methodConfigurationProperty).GetString() ?? defaultHttpMethod;
-        return VariableInterpolator.ResolveVariableTokens(method, context).ToString() ?? defaultHttpMethod;
-    }
-
-    private string GetResolvedUrl(IExecutionContext context)
-    {
-        var url = Configuration.GetProperty(urlConfigurationProperty).GetString() ?? string.Empty;
-        return VariableInterpolator.ResolveVariableTokens(url, context).ToString() ?? string.Empty;
-    }
 
     private string AddQueryParameters(string url, IExecutionContext context)
     {
-        if (!Configuration.TryGetProperty(queryConfigurationProperty, out var queryElement)) return url;
-        if (queryElement.ValueKind != JsonValueKind.Object) return url;
-        var queryString = BuildQueryString(queryElement, context);
-        return string.IsNullOrEmpty(queryString) ? url : $"{url}?{queryString}";
+        if (Configuration.Query is null || Configuration.Query.Count == 0)
+        {
+            return url;
+        }
+
+        var queryComponents = Configuration.Query.Select(q => BuildQueryComponent(q, context));
+        var queryString = string.Join("&", queryComponents.Where(p => !string.IsNullOrEmpty(p)));
+
+        return string.IsNullOrEmpty(queryString)
+            ? url
+            : $"{url}?{queryString}";
     }
 
-    private string BuildQueryString(JsonElement queryElement, IExecutionContext context)
+    private static string BuildQueryComponent(KeyValuePair<string, string> query, IExecutionContext context)
     {
-        var parameters = new List<string>();
-        foreach (var property in queryElement.EnumerateObject())
-            parameters.Add(BuildQueryParameter(property, context));
-        return string.Join("&", parameters.Where(p => !string.IsNullOrEmpty(p)));
-    }
+        var key = Uri.EscapeDataString(query.Key);
+        var value = ResolveStringVariable(query.Value, context);
 
-    private static string BuildQueryParameter(JsonProperty property, IExecutionContext context)
-    {
-        var key = Uri.EscapeDataString(property.Name);
-        var value = ResolveQueryValue(property.Value, context);
         return string.IsNullOrEmpty(value)
             ? string.Empty
             : $"{key}={Uri.EscapeDataString(value)}";
     }
 
-    private static string ResolveQueryValue(JsonElement value, IExecutionContext context)
-    {
-        if (value.ValueKind == JsonValueKind.String)
-        {
-            return VariableInterpolator.ResolveVariableTokens(value.GetString() ?? string.Empty, context).ToString() ?? string.Empty;
-        }
-
-        return GetJsonElementValue(value).ToString() ?? string.Empty;
-    }
-
     private void AddResolvedHeaders(HttpRequestMessage request, IExecutionContext context)
     {
-        if (!Configuration.TryGetProperty(headersConfigurationProperty, out var headersElement))
-            return;
-        if (headersElement.ValueKind != JsonValueKind.Array)
+        if (Configuration.Headers is null || !Configuration.Headers.Any())
             return;
 
-        foreach (var header in headersElement.EnumerateArray())
+        foreach (var header in Configuration.Headers)
         {
-            AddSingleHeader(request, header, context);
+            var name = ResolveStringVariable(header.Name, context);
+            var value = ResolveStringVariable(header.Value, context);
+
+            if (!string.IsNullOrEmpty(name) && !string.IsNullOrEmpty(value))
+            {
+                request.Headers.TryAddWithoutValidation(name, value);
+            }
         }
-    }
-
-    private static void AddSingleHeader(HttpRequestMessage request, JsonElement header, IExecutionContext context)
-    {
-        var name = GetHeaderName(header, context);
-        var value = GetHeaderValue(header, context);
-
-        if (!string.IsNullOrEmpty(name) && !string.IsNullOrEmpty(value))
-        {
-            request.Headers.TryAddWithoutValidation(name, value);
-        }
-    }
-
-    private static string GetHeaderName(JsonElement header, IExecutionContext context)
-    {
-        var name = header.GetProperty("name").GetString() ?? string.Empty;
-        return VariableInterpolator.ResolveVariableTokens(name, context).ToString() ?? string.Empty;
-    }
-
-    private static string GetHeaderValue(JsonElement header, IExecutionContext context)
-    {
-        var value = header.GetProperty("value").GetString() ?? string.Empty;
-        return VariableInterpolator.ResolveVariableTokens(value, context).ToString() ?? string.Empty;
     }
 
     private HttpContent? GetRequestBodyContent(IExecutionContext context)
     {
-        if (Configuration.TryGetProperty(bodyConfigurationProperty, out var bodyElement))
+        if (Configuration.Body is not null)
         {
-            return CreateJsonStringContent(bodyElement, context);
+            return CreateJsonStringContent(context);
         }
 
-        else if (Configuration.TryGetProperty(formFilesConfigurationProperty, out var formFiles))
+        else if (Configuration.FormFiles is not null && Configuration.FormFiles.Any())
         {
-            return CreateMultipartFormDataContent(formFiles, context);
+            return CreateMultipartFormDataContent(context);
         }
 
-        else if (Configuration.TryGetProperty(fileConfigurationProperty, out var filePath))
+        else if (!string.IsNullOrWhiteSpace(Configuration.File))
         {
-            return CreateFileStreamContent(filePath, context);
+            return CreateFileStreamContent(context);
         }
 
         return null;
     }
 
-    private StringContent? CreateJsonStringContent(JsonElement bodyElement, IExecutionContext context)
+    private StringContent? CreateJsonStringContent(IExecutionContext context)
     {
+        var bodyElement = SerializeToJsonElement(Configuration.Body);
         var resolvedBody = ResolveJsonElement(bodyElement, context);
         var jsonString = SerializeBodyToJson(resolvedBody);
         return CreateStringContent(jsonString);
     }
 
-    private StreamContent? CreateFileStreamContent(JsonElement filePathElement, IExecutionContext context)
+    private StreamContent CreateFileStreamContent(IExecutionContext context)
     {
-        var filePath = $"{ResolveJsonElement(filePathElement, context)}";
+        var filePath = ResolveStringVariable(Configuration.File!, context);
         if (!File.Exists(filePath))
         {
-            context.Log.Add($"File at path '{filePath}' does not eixst");
-            return null;
+            throw new InvalidOperationException($"Cannot find file at path '{filePath}'");
         }
 
         var fileContent = File.OpenRead(filePath);
         var result = new StreamContent(fileContent);
 
-        if (Configuration.TryGetProperty(contentTypeConfigurationProperty, out var contentType))
-        {
-            result.Headers.ContentType = new MediaTypeHeaderValue($"{ResolveJsonElement(contentType, context)}");
-        }
-        else
-        {
-            context.Log.Add($"No content type specified; default {jsonContentType} content type is applied");
-            result.Headers.ContentType = new MediaTypeHeaderValue(jsonContentType);
-        }
+        var contentType = !string.IsNullOrWhiteSpace(Configuration.ContentType)
+            ? Configuration.ContentType
+            : jsonContentType;
 
-        return result;
-    }
-
-    private MultipartFormDataContent CreateMultipartFormDataContent(JsonElement formFilesElement, IExecutionContext context)
-    {
-        var resolvedFormFilesElement = JsonSerializer.SerializeToElement(
-            ResolveJsonElement(formFilesElement, context)
+        result.Headers.ContentType = new MediaTypeHeaderValue(
+            ResolveStringVariable(contentType, context)
         );
 
-        if (resolvedFormFilesElement.ValueKind != JsonValueKind.Array)
-        {
-            throw new ArgumentException($"Form files configuration property is not valid. Expecte value kind {JsonValueKind.Array}, but got '{formFilesElement.ValueKind}'");
-        }
+        return result;
+    }
 
+    private MultipartFormDataContent CreateMultipartFormDataContent(IExecutionContext context)
+    {
         var result = new MultipartFormDataContent();
-        foreach (var formFileElement in resolvedFormFilesElement.EnumerateArray())
-        {
-            if (!formFileElement.TryGetProperty(formFileContentNameConfigurationProperty, out var name) || string.IsNullOrWhiteSpace(name.GetString()))
-            {
-                throw new ArgumentException($"Form file configuration property '{formFileContentNameConfigurationProperty}' does not exist, or is null/empty");
-            }
-            if (!formFileElement.TryGetProperty(formFileContentPathConfigurationProperty, out var path) || string.IsNullOrWhiteSpace(path.GetString()))
-            {
-                throw new ArgumentException($"Form file configuration property '{formFileContentPathConfigurationProperty}' does not exist, or is null/empty");
-            }
-            if (!formFileElement.TryGetProperty(formFileContentFileNameConfigurationProperty, out var fileName) || string.IsNullOrWhiteSpace(fileName.GetString()))
-            {
-                throw new ArgumentException($"Form file configuration property '{formFileContentFileNameConfigurationProperty}' does not exist, or is null/empty");
-            }
-            if (!formFileElement.TryGetProperty(contentTypeConfigurationProperty, out var contentType) || string.IsNullOrWhiteSpace(contentType.GetString()))
-            {
-                throw new ArgumentException($"Form file configuration property '{contentTypeConfigurationProperty}' does not exist, or is null/empty");
-            }
 
+        foreach (var formFile in Configuration.FormFiles!)
+        {
+            var path = $"{ResolveVariable(formFile.Path, context)}";
             var streamContent = new StreamContent(
-                File.OpenRead(path.GetString()!)
+                File.OpenRead(path)
             );
-            streamContent.Headers.ContentType = new MediaTypeHeaderValue(contentType.GetString()!);
-            result.Add(streamContent, name.GetString()!, fileName.GetString()!);
+            streamContent.Headers.ContentType = new MediaTypeHeaderValue(
+                $"{ResolveVariable(formFile.ContentType, context)}"
+            );
+            result.Add(
+                streamContent,
+                ResolveStringVariable(formFile.Name, context),
+                ResolveStringVariable(formFile.FileName, context)
+            );
         }
 
         return result;
     }
 
 
-    private object ResolveJsonElement(JsonElement bodyElement, IExecutionContext context)
+    private object? ResolveJsonElement(JsonElement bodyElement, IExecutionContext context)
     {
         return bodyElement.ValueKind switch
         {
-            JsonValueKind.String => VariableInterpolator.ResolveVariableTokens(bodyElement.GetString() ?? string.Empty, context),
+            JsonValueKind.String => ResolveVariable(bodyElement.GetString()!, context),
             JsonValueKind.Object => ResolveObjectTokens(bodyElement, context),
             JsonValueKind.Array => ResolveArrayToken(bodyElement, context),
             _ => GetJsonElementValue(bodyElement)
         };
     }
 
-    private Dictionary<string, object> ResolveObjectTokens(JsonElement objectElement, IExecutionContext context)
+    private Dictionary<string, object?> ResolveObjectTokens(JsonElement objectElement, IExecutionContext context)
     {
-        var resolved = new Dictionary<string, object>();
+        var resolved = new Dictionary<string, object?>();
         foreach (var property in objectElement.EnumerateObject())
         {
             resolved[property.Name] = ResolveJsonElement(property.Value, context);
@@ -293,9 +231,9 @@ public class HttpStep(HttpClient httpClient, JsonElement configuration) : BaseSt
         return resolved;
     }
 
-    private List<object> ResolveArrayToken(JsonElement arrayElement, IExecutionContext context)
+    private List<object?> ResolveArrayToken(JsonElement arrayElement, IExecutionContext context)
     {
-        var resolved = new List<object>();
+        var resolved = new List<object?>();
         foreach (var item in arrayElement.EnumerateArray())
         {
             var resolvedItem = ResolveJsonElement(item, context);
@@ -317,9 +255,9 @@ public class HttpStep(HttpClient httpClient, JsonElement configuration) : BaseSt
         };
     }
 
-    private static string SerializeBodyToJson(object body)
+    private static string SerializeBodyToJson(object? body)
     {
-        return body is string str ? str : JsonSerializer.Serialize(body);
+        return body is string str ? str : JsonSerializer.Serialize(body, JsonSerializerOptionsAccessor.Default);
     }
 
     private static StringContent CreateStringContent(string content)
@@ -339,26 +277,25 @@ public class HttpStep(HttpClient httpClient, JsonElement configuration) : BaseSt
             ? await bodyContent.ReadAsStringAsync()
             : null;
 
-        return new
+        return new Dictionary<string, object?>
         {
-            url = request.RequestUri?.ToString() ?? string.Empty,
-            method = request.Method.Method,
-            headers,
-            body
+            ["url"] = request.RequestUri?.ToString() ?? string.Empty,
+            ["method"] = request.Method.Method,
+            ["headers"] = headers,
+            ["body"] = body
         };
     }
 
-    private static async Task<object> CreateResponseData(HttpResponseMessage response, Stopwatch stopwatch, object requestDetails)
+    private static async Task<Dictionary<string, object?>> CreateResponseData(HttpResponseMessage response, object requestDetails)
     {
         var body = await GetResponseBody(response);
         var headers = GetResponseHeaders(response);
-        return new
+        return new Dictionary<string, object?>
         {
-            status = (int)response.StatusCode,
-            headers,
-            body,
-            duration = stopwatch.ElapsedMilliseconds,
-            request = requestDetails
+            ["status"] = (int)response.StatusCode,
+            ["headers"] = headers,
+            ["body"] = body,
+            ["request"] = requestDetails
         };
     }
 
@@ -378,7 +315,7 @@ public class HttpStep(HttpClient httpClient, JsonElement configuration) : BaseSt
     {
         try
         {
-            return JsonSerializer.Deserialize<object>(content) ?? content;
+            return JsonSerializer.Deserialize<object>(content, JsonSerializerOptionsAccessor.Default) ?? content;
         }
         catch
         {
@@ -388,17 +325,30 @@ public class HttpStep(HttpClient httpClient, JsonElement configuration) : BaseSt
 
     private static object[] GetResponseHeaders(HttpResponseMessage response)
     {
-        return response.Headers
+        var result = response.Headers
             .Concat(response.Content.Headers)
-            .Select(h => new { name = h.Key, value = string.Join(", ", h.Value) })
-            .ToArray();
-    }
-}
+            .Select(h => new { name = h.Key, value = string.Join(", ", h.Value) });
 
-internal static class TypeExtensions
-{
-    public static bool IsAnonymousType(this Type type)
+        return [.. result];
+    }
+
+    private bool? OnlyOneBodyTypeDefined()
     {
-        return type.Name.Contains("AnonymousType");
+        if (!string.IsNullOrWhiteSpace(Configuration.File))
+        {
+            return Configuration.Body is null && Configuration.FormFiles?.Any() != true;
+        }
+
+        if (Configuration.Body is not null)
+        {
+            return string.IsNullOrWhiteSpace(Configuration.File) && Configuration.FormFiles?.Any() != true;
+        }
+
+        if (Configuration.FormFiles?.Any() == true)
+        {
+            return Configuration.Body is null && string.IsNullOrWhiteSpace(Configuration.File);
+        }
+
+        return null;
     }
 }

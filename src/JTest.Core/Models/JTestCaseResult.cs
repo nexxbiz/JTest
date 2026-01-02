@@ -8,16 +8,17 @@ namespace JTest.Core.Models;
 public class JTestCaseResult
 {
     private readonly List<string> errors = [];
+    private readonly List<StepProcessedResult> stepResults = [];
 
     /// <summary>
     /// Gets or sets the test case name
     /// </summary>
-    public string TestCaseName { get; set; } = string.Empty;
+    public string TestCaseName { get; init; } = string.Empty;
 
     /// <summary>
     /// Gets or sets the dataset reference (if executed with dataset)
     /// </summary>
-    public JTestDataset? Dataset { get; set; }
+    public JTestDataset? Dataset { get; init; }
 
     /// <summary>
     /// Gets or sets whether the test case execution was successful
@@ -32,18 +33,23 @@ public class JTestCaseResult
     /// <summary>
     /// Gets or sets the step results from the test execution
     /// </summary>
-    public List<StepResult> StepResults { get; set; } = new();
+    public IEnumerable<StepProcessedResult> StepResults => stepResults;
 
     /// <summary>
     /// Gets or sets any error message if execution failed
     /// </summary>
-    public string? ErrorMessage => errors.Count > 0 
-                                    ? string.Join("; ", errors) 
+    public string? ErrorMessage => errors.Count > 0
+                                    ? string.Join("; ", errors)
                                     : null;
+
+    public void AddStepResult(StepProcessedResult stepProcessedResult)
+    {
+        stepResults.Add(stepProcessedResult);
+    }
 
     public void AddError(string? error)
     {
-        if(!string.IsNullOrWhiteSpace(error))
+        if (!string.IsNullOrWhiteSpace(error))
         {
             errors.Add(error);
         }

@@ -17,5 +17,5 @@ public class JTestDataset
     /// Gets or sets the case variables for this dataset iteration
     /// </summary>
     [JsonPropertyName("case")]
-    public Dictionary<string, object> Case { get; set; } = new();
+    public Dictionary<string, object?> Case { get; set; } = [];
 }

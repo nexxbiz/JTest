@@ -1,7 +1,10 @@
-using JTest.Core.Debugging;
 using JTest.Core.Execution;
 using JTest.Core.Models;
+using JTest.Core.Steps.Configuration;
+using JTest.Core.Templates;
 using JTest.Core.Utilities;
+using Microsoft.Extensions.DependencyInjection;
+using Spectre.Console;
 using System.Diagnostics;
 using System.Text.Json;
 
@@ -10,145 +13,141 @@ namespace JTest.Core.Steps;
 /// <summary>
 /// Step that executes a template with provided parameters in an isolated context
 /// </summary>
-public class UseStep(ITemplateProvider templateProvider, StepFactory stepFactory, JsonElement configuration) 
-    : BaseStep(configuration)
+public sealed class UseStep(IAnsiConsole ansiConsole, ITemplateContext templateContext, IStepProcessor stepProcessor, IServiceProvider serviceProvider, UseStepConfiguration configuration)
+    : BaseStep<UseStepConfiguration>(configuration)
 {
-    public override string Type => "use";
-
-    public string? Template { get; private set; }
-
-    public override void ValidateConfiguration(List<string> validationErrors)
+    protected override void Validate(IExecutionContext context, IList<string> validationErrors)
     {
-        // Must have template property
-        if (!Configuration.TryGetProperty("template", out _))
-        {
-            validationErrors.Add("Use step configuration must have a 'template' property");
-        }        
-    }
-
-    public override async Task<StepResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
-    {
-        var contextBefore = CloneContext(context);
-        var stopwatch = Stopwatch.StartNew();
-
+        Template? template = null;
         try
         {
-            var (result, innerStepResults) = await ExecuteTemplateAsync(context, stopwatch);
-            stopwatch.Stop();
-
-            // Store result in context and process save operations (consistent with other steps)
-            StoreResultInContext(context, result);
-
-            //// Capture saved variables after save operations are processed
-            //CaptureSavedVariables(context, contextBefore, templateInfo);
-
-            // Use common step completion logic from BaseStep
-            var stepResult = await ProcessStepCompletionAsync(context, contextBefore, stopwatch, result);
-            stepResult.InnerResults = innerStepResults;
-            return stepResult;
+            var templateContext = serviceProvider.GetRequiredService<ITemplateContext>();
+            template = templateContext.GetTemplate(Configuration.Template);
         }
-        catch (Exception ex)
+        catch (Exception e)
         {
-            stopwatch.Stop();
-            context.Log.Add($"Template execution failed: {ex.Message}");
-
-            // Still process assertions even when template execution fails  
-            var assertionResults = await ProcessAssertionsAsync(context);
-
-            var result = StepResult.CreateFailure(context.StepNumber, this, ex.Message, stopwatch.ElapsedMilliseconds);
-            result.AssertionResults = assertionResults;
-            return result;
+            validationErrors.Add(e.Message);
         }
+
+        if (template?.Params is null)
+            return;
+
+        var contextIncludingParameters = CreateIsolatedTemplateContext(context, template);
+        template.Params
+            .Where(x => IsRequiredParameterMissing(x, contextIncludingParameters))
+            .Select(x => $"Required template parameter '{x.Key}' not provided")
+            .ToList()
+            .ForEach(validationErrors.Add);
+
     }
 
-    private async Task<(object, List<StepResult>)> ExecuteTemplateAsync(IExecutionContext context, Stopwatch stopwatch)
+    public override async Task<StepExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {
+        var stopWatch = Stopwatch.StartNew();
+
         // Get template name
-        var templateName = Configuration.GetProperty("template").GetString()
-            ?? throw new InvalidOperationException("Template name is required");
-        
-        Template = templateName;
+        var templateName = Configuration.Template;
 
         // Get template definition
-        var template = templateProvider.GetTemplate(templateName)
-            ?? throw new InvalidOperationException($"Template '{templateName}' not found");
+        var template = templateContext.GetTemplate(templateName);
 
         // Create isolated execution context for template
-        var templateContext = CreateIsolatedTemplateContext(context, template);
+        var isolatedContext = CreateIsolatedTemplateContext(context, template);
 
-        // Capture input parameters for debugging
-        var inputParameters = new Dictionary<string, object>();
-        if (Configuration.TryGetProperty("with", out var withElement) && withElement.ValueKind == JsonValueKind.Object)
+        if (IsAnyRequiredParameterMissing(template, isolatedContext))
         {
-            foreach (var param in withElement.EnumerateObject())
-            {
-                var resolvedValue = ResolveParameterValue(param.Value, context);
-                inputParameters[param.Name] = resolvedValue;
-            }
+            throw new InvalidOperationException("Not all required parameters are given a value");
         }
 
         // Execute template steps
         var templateResults = new List<object>();
-        var innerStepResults = new List<StepResult>();
-        foreach (var stepConfig in template.Steps)
+        var innerStepResults = new List<StepProcessedResult>();
+
+        foreach (var step in template.Steps)
         {
-            var step = stepFactory.CreateStep(stepConfig);
-            var stepResult = await step.ExecuteAsync(templateContext);
-            innerStepResults.Add(stepResult);   
+            var stepResult = await stepProcessor.ProcessStep(
+                step,
+                isolatedContext,
+                cancellationToken
+            );
+
+            innerStepResults.Add(stepResult);
+
             if (!stepResult.Success)
             {
-                throw new InvalidOperationException($"Template step failed: {stepResult.ErrorMessage} - {stepResult.DetailedAssertionFailures}");
+                ansiConsole.WriteLine(
+                    $"Template step failed: {stepResult.DetailedAssertionFailures}",
+                    new Style(foreground: Color.Yellow)
+                );
             }
 
             templateResults.Add(stepResult.Data ?? new object());
         }
 
+        stopWatch.Stop();
+
         // Map template outputs to parent context
-        var outputs = MapTemplateOutputs(template, templateContext);
+        var outputs = MapTemplateOutputs(template, isolatedContext);
 
         // Return step result data that will be stored by StoreResultInContext()
-        var resultData = new Dictionary<string, object>(outputs);
-        resultData["type"] = "template";
-        resultData["templateName"] = templateName;
-        resultData["steps"] = templateResults.Count;
+        var isSuccess = innerStepResults.All(x => x.Success);
 
-        return (resultData, innerStepResults);
+        var resultData = new Dictionary<string, object?>(outputs)
+        {
+            ["type"] = "template",
+            ["templateName"] = templateName,
+            ["stepsCount"] = templateResults.Count,
+            ["success"] = isSuccess,
+            ["innerSteps"] = innerStepResults
+        };
+
+        var errorMessage = !isSuccess
+            ? "Template execution failed"
+            : string.Empty;
+
+        if (!isSuccess)
+        {
+            resultData["errorMessage"] = errorMessage;
+        }
+
+        return new(resultData, innerStepResults);
     }
+
+
     private TestExecutionContext CreateIsolatedTemplateContext(IExecutionContext parentContext, Template template)
     {
         var templateContext = new TestExecutionContext();
 
         // Copy case data variables from parent context if they exist
         // This ensures templates can access case variables for data-driven testing
-        if (parentContext.Variables.ContainsKey("case"))
+        if (parentContext.Variables.TryGetValue("case", out object? value))
         {
-            templateContext.Variables["case"] = parentContext.Variables["case"];
+            templateContext.Variables["case"] = value;
         }
 
-        // Add template parameters from 'with' configuration
-        if (Configuration.TryGetProperty("with", out var withElement) && withElement.ValueKind == JsonValueKind.Object)
+        // Add template parameters from 'with' configuration        
+        if (Configuration.With?.Any() == true)
         {
-            foreach (var param in withElement.EnumerateObject())
+            foreach (var param in Configuration.With)
             {
                 var resolvedValue = ResolveParameterValue(param.Value, parentContext);
-                templateContext.Variables[param.Name] = resolvedValue;
+                templateContext.Variables[param.Key] = resolvedValue;
             }
         }
-
-        // Validate required parameters
-        ValidateRequiredParameters(template, templateContext);
 
         // Add default values for missing optional parameters
         AddDefaultParameterValues(template, templateContext);
 
         // Initialize template's internal context
-        templateContext.Variables["ctx"] = new Dictionary<string, object>();
+        templateContext.Variables["ctx"] = new Dictionary<string, object?>();
 
         return templateContext;
     }
 
-    private object ResolveParameterValue(JsonElement paramValue, IExecutionContext parentContext)
+    private object? ResolveParameterValue(object? param, IExecutionContext parentContext)
     {
+        var paramValue = SerializeToJsonElement(param);
+
         if (paramValue.ValueKind == JsonValueKind.String)
         {
             var stringValue = paramValue.GetString() ?? "";
@@ -156,19 +155,6 @@ public class UseStep(ITemplateProvider templateProvider, StepFactory stepFactory
         }
 
         return GetJsonElementValue(paramValue);
-    }
-
-    private void ValidateRequiredParameters(Template template, TestExecutionContext templateContext)
-    {
-        if (template.Params == null) return;
-
-        foreach (var param in template.Params)
-        {
-            if (param.Value.Required && !templateContext.Variables.ContainsKey(param.Key))
-            {
-                throw new InvalidOperationException($"Required template parameter '{param.Key}' not provided");
-            }
-        }
     }
 
     private void AddDefaultParameterValues(Template template, TestExecutionContext templateContext)
@@ -191,9 +177,9 @@ public class UseStep(ITemplateProvider templateProvider, StepFactory stepFactory
         }
     }
 
-    private Dictionary<string, object> MapTemplateOutputs(Template template, TestExecutionContext templateContext)
+    private Dictionary<string, object?> MapTemplateOutputs(Template template, TestExecutionContext templateContext)
     {
-        var outputs = new Dictionary<string, object>();
+        var outputs = new Dictionary<string, object?>();
 
         if (template.Output == null) return outputs;
 
@@ -206,7 +192,7 @@ public class UseStep(ITemplateProvider templateProvider, StepFactory stepFactory
         return outputs;
     }
 
-    private object ResolveOutputValue(object outputValue, TestExecutionContext templateContext)
+    private object? ResolveOutputValue(object? outputValue, TestExecutionContext templateContext)
     {
         return outputValue switch
         {
@@ -216,7 +202,7 @@ public class UseStep(ITemplateProvider templateProvider, StepFactory stepFactory
         };
     }
 
-    private object ResolveJsonElementValue(JsonElement element, TestExecutionContext templateContext)
+    private object? ResolveJsonElementValue(JsonElement element, TestExecutionContext templateContext)
     {
         return element.ValueKind switch
         {
@@ -241,63 +227,21 @@ public class UseStep(ITemplateProvider templateProvider, StepFactory stepFactory
         };
     }
 
-
-
-    private bool TryGetValueFromPath(Dictionary<string, object> context, string path, out object? value)
+    private static bool IsAnyRequiredParameterMissing(Template template, IExecutionContext context)
     {
-        value = null;
-
-        if (path.StartsWith("$."))
+        foreach (var param in template.Params ?? [])
         {
-            var pathParts = path.Substring(2).Split('.');
-            if (pathParts.Length >= 2)
+            if (IsRequiredParameterMissing(param, context))
             {
-                var scope = pathParts[0];
-                var key = pathParts[1];
-
-                if (context.ContainsKey(scope) && context[scope] is Dictionary<string, object> scopeDict)
-                {
-                    if (scopeDict.ContainsKey(key))
-                    {
-                        value = scopeDict[key];
-                        return true;
-                    }
-                }
+                return true;
             }
-            else if (pathParts.Length == 1)
-            {
-                if (context.ContainsKey(pathParts[0]))
-                {
-                    value = context[pathParts[0]];
-                    return true;
-                }
-            }
-        }
-        else if (context.ContainsKey(path))
-        {
-            value = context[path];
-            return true;
         }
 
         return false;
     }
 
-    private StepDebugInfo CreateStepDebugInfo(IExecutionContext context, Stopwatch stopwatch, bool success)
+    private static bool IsRequiredParameterMissing(KeyValuePair<string, TemplateParameter> param, IExecutionContext context)
     {
-        var templateName = Configuration.TryGetProperty("template", out var templateElement)
-            ? templateElement.GetString() ?? "unknown"
-            : "unknown";
-
-        return new StepDebugInfo
-        {
-            TestNumber = context.TestNumber,
-            StepNumber = context.StepNumber,
-            StepType = Type,
-            StepId = Id ?? "",
-
-            Result = success ? "Success" : "Failed",
-            Duration = stopwatch.Elapsed,
-            Description = $"Execute template '{templateName}'"
-        };
+        return param.Value.Required && !context.Variables.ContainsKey(param.Key);
     }
 }

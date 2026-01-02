@@ -29,17 +29,20 @@ public class JTestSuite
     /// Gets or sets the environment variables for the test suite
     /// </summary>
     [JsonPropertyName("env")]
-    public Dictionary<string, object>? Env { get; set; }
+    public Dictionary<string, object?>? Env { get; set; }
 
     /// <summary>
     /// Gets or sets the global variables for the test suite
     /// </summary>
     [JsonPropertyName("globals")]
-    public Dictionary<string, object>? Globals { get; set; }
+    public Dictionary<string, object?>? Globals { get; set; }
 
     /// <summary>
     /// Gets or sets the list of test cases in the suite
     /// </summary>
     [JsonPropertyName("tests")]
-    public List<JTestCase> Tests { get; set; } = new();
+    public List<JTestCase> Tests { get; set; } = [];
+
+    [JsonIgnore]
+    public string FilePath { get; set; } = string.Empty;
 }
