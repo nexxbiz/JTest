@@ -7,6 +7,7 @@ public sealed record WhileStepConfiguration(
     [property: JsonRequired] IEnumerable<IStep> Steps,
     [property: JsonRequired] object TimeoutMs,
     [property: JsonRequired] IAssertionOperation Condition,
+    object? DelayMs = null,
     string? Id = null,
     string? Name = null,
     string? Description = null,

@@ -141,5 +141,33 @@ public sealed class WhileStepTests
         Assert.True(result.InnerProcessedResults.All(x => x.Success));
     }
 
+    [Fact]
+    public async Task When_Execute_Then_PerformsDelay()
+    {
+        // Arrange
+        const double delayMs = 700;
+        var context = new TestExecutionContext();        
+        var configuration = new WhileStepConfiguration(
+            [                
+                new WaitStep(new(Ms: 1)),
+            ],
+            TimeoutMs: 10000,
+            DelayMs: delayMs,
+            Condition: new EqualsAssertion(0, 1) // always returns false; hence breaking the loop after 1 iteration
+        );
+        var step = GetSut(configuration);
+
+        // Act
+        var result = await step.ExecuteAsync(context, default);
+
+        // Assert
+        Assert.NotNull(result.Data);
+        Assert.Equal(false, result.Data["timeoutTriggered"]);
+        Assert.Equal(1, result.Data["iterationCount"]);
+
+        var durationMs = (double)result.Data["durationMs"]!;
+        Assert.True(durationMs > delayMs);
+    }
+
     private static WhileStep GetSut(WhileStepConfiguration configuration) => new(StepProcessor.Default, configuration);
 }

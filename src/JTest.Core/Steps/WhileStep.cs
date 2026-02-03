@@ -63,6 +63,8 @@ public sealed class WhileStep(IStepProcessor stepProcessor, WhileStepConfigurati
             }
 
             conditionMet = Configuration.Condition.Execute(context).Success;
+
+            await Delay(context);
         }
         while (!stepError && !timeoutTriggered && conditionMet);
 
@@ -76,6 +78,15 @@ public sealed class WhileStep(IStepProcessor stepProcessor, WhileStepConfigurati
         };
 
         return new(data, innerStepResults);
+    }
+
+    async Task Delay(IExecutionContext context)
+    {
+        if(Configuration.DelayMs is not null)
+        {
+            var delayMs = Configuration.DelayMs.ConvertToDouble(context);
+            await Task.Delay((int)delayMs);
+        }
     }
 
     async Task<StepProcessedResult> ExecuteStep(IStep step, IExecutionContext context, CancellationToken cancellationToken)
