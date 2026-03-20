@@ -96,6 +96,8 @@ public sealed class StepProcessor(IAssertionProcessor assertionProcessor) : ISte
     /// </summary>
     private static void ApplySaveOperation(IExecutionContext context, string targetPath, object? value)
     {
+        targetPath = $"{VariableInterpolator.ResolveVariableTokens(targetPath, context)}";
+
         // Handle JSONPath style target paths like $.globals.token, $.case.userId, etc.
         if (!targetPath.StartsWith("$."))
         {
