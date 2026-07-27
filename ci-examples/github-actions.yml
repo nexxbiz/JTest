@@ -1,0 +1,23 @@
+# Runs JTest suites in GitHub Actions once the JTest.Tool package is
+# published to a reachable feed. Until then, build this repository and run
+# src/JTest.Cli.Host/bin/Release/net10.0/GeneratedHost.dll instead.
+name: api-tests
+on: [push]
+jobs:
+  jtest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.302"
+      - name: Install jtest
+        run: dotnet tool install --global JTest.Tool
+      - name: Run suites
+        run: jtest run "tests/**/*.suite.json" --env baseUrl=${{ vars.API_BASE_URL }} --report standalone --report-out jtest-report --diagnostics json
+      - name: Publish report artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jtest-report
+          path: jtest-report
