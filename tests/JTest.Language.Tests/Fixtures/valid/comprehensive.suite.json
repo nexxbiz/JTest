@@ -1,0 +1,66 @@
+{
+  "jtest": "2.0",
+  "info": { "name": "Comprehensive", "description": "Exercises every step kind." },
+  "env": { "baseUrl": "https://api.example.test", "apiToken": "${API_TOKEN}" },
+  "globals": { "attempt": 0 },
+  "secrets": [ "$.env.apiToken" ],
+  "tests": [
+    {
+      "name": "order lifecycle",
+      "description": "Creates and polls an order.",
+      "steps": [
+        {
+          "type": "http",
+          "id": "create",
+          "name": "Create order",
+          "method": "POST",
+          "url": "{{$.env.baseUrl}}/orders",
+          "headers": { "Authorization": "Bearer {{$.env.apiToken}}" },
+          "query": { "notify": "true" },
+          "body": { "sku": "{{$.case.sku}}", "quantity": 2 },
+          "timeoutMs": 5000,
+          "save": { "$.ctx.orderId": "{{$.this.response.body.id}}" },
+          "assert": [
+            { "op": "equals", "actual": "{{$.this.response.status}}", "expected": 201 }
+          ]
+        },
+        {
+          "type": "while",
+          "name": "Poll until ready",
+          "condition": { "op": "notEquals", "actual": "{{$.this.response.body.state}}", "expected": "ready" },
+          "timeoutMs": 30000,
+          "delayMs": 250,
+          "steps": [
+            { "type": "http", "method": "GET", "url": "{{$.env.baseUrl}}/orders/{{$.ctx.orderId}}" }
+          ]
+        },
+        {
+          "type": "for",
+          "items": [ "a", "b" ],
+          "as": "sku",
+          "indexAs": "position",
+          "delayMs": 10,
+          "steps": [
+            { "type": "http", "method": "GET", "url": "{{$.env.baseUrl}}/stock/{{$.sku}}" },
+            { "type": "assert", "assert": [ { "op": "exists", "actual": "{{$.this.response.body}}" } ] }
+          ]
+        },
+        { "type": "wait", "ms": "{{$.globals.attempt}}" },
+        {
+          "type": "assert",
+          "assert": [
+            { "op": "between", "actual": "{{$.create.durationMs}}", "expected": [0, 5000], "description": "latency budget" }
+          ]
+        }
+      ],
+      "datasets": [
+        { "name": "small", "case": { "sku": "widget" } },
+        { "name": "large", "case": { "sku": "gadget" } }
+      ]
+    },
+    {
+      "name": "second case",
+      "steps": [ { "type": "wait", "ms": 1 } ]
+    }
+  ]
+}

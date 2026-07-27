@@ -1,0 +1,9 @@
+{
+  "jtest": "2.0",
+  "tests": [
+    {
+      "name": "t",
+      "steps": [ { "type": "http", "method": "POST", "url": "https://x.test", "body": {}, "file": "payload.json" } ]
+    }
+  ]
+}

@@ -1,0 +1,132 @@
+{
+  "manifest": "jtest-language",
+  "manifestVersion": "2.0.0",
+  "language": "2.0",
+  "description": "Machine-readable description of the JTest 2.0 language for agents and tooling. The JSON Schemas are the authoritative shape contract; this manifest adds semantics the schemas cannot express.",
+  "schemas": [
+    { "artifact": "suite", "version": "2.0.0", "file": "jtest-suite-2.0.0.schema.json" },
+    { "artifact": "templates", "version": "2.0.0", "file": "jtest-templates-2.0.0.schema.json" }
+  ],
+  "expressions": {
+    "forms": [
+      {
+        "form": "{{$.path}}",
+        "meaning": "Resolves a JSONPath over the execution context. A string that is exactly one token yields the typed value; tokens embedded in longer strings are stringified with invariant culture.",
+        "failure": "A path that resolves to nothing fails the step with diagnostic JT02xx; there is no silent null."
+      },
+      {
+        "form": "${NAME}",
+        "meaning": "Substitutes a process environment variable when the suite is loaded. Names use letters, digits, and underscores.",
+        "failure": "An undefined variable fails loading; values are treated as sensitive by default."
+      }
+    ],
+    "maxNestingDepth": 8
+  },
+  "scopes": [
+    { "name": "env", "writable": false, "visibleInTemplates": true, "meaning": "Immutable run-level values from the suite and CLI." },
+    { "name": "globals", "writable": true, "visibleInTemplates": true, "meaning": "Suite-scoped mutable values; persist across cases and dataset runs in file order. Templates may read but never write them." },
+    { "name": "ctx", "writable": true, "visibleInTemplates": true, "meaning": "Frame-local scratch space; loops share their case frame, templates get a fresh one." },
+    { "name": "case", "writable": false, "visibleInTemplates": true, "meaning": "The current dataset row." },
+    { "name": "this", "writable": false, "visibleInTemplates": true, "meaning": "The result of the previous step in the current frame." }
+  ],
+  "saveTargets": {
+    "allowed": ["$.ctx.<name>", "$.globals.<name>"],
+    "templateRestriction": "Inside templates only $.ctx.* is writable; export values through the template output map."
+  },
+  "steps": [
+    {
+      "type": "http",
+      "summary": "Performs one HTTP request and exposes { request, response } as the step result.",
+      "required": ["method", "url"],
+      "optional": ["headers", "query", "body", "file", "formFiles", "timeoutMs", "id", "name", "description", "save", "assert"],
+      "rules": [
+        "Exactly one of body, file, or formFiles may be declared.",
+        "The step result exposes response.status, response.headers, response.body (parsed JSON when possible), response.raw, and durationMs."
+      ]
+    },
+    {
+      "type": "assert",
+      "summary": "Evaluates assertions against the current context without side effects.",
+      "required": ["assert"],
+      "optional": ["id", "name", "description", "save"],
+      "rules": ["assert must contain at least one assertion."]
+    },
+    {
+      "type": "wait",
+      "summary": "Delays execution.",
+      "required": ["ms"],
+      "optional": ["id", "name", "description", "save", "assert"],
+      "rules": ["ms is a non-negative number or an expression string resolving to one."]
+    },
+    {
+      "type": "use",
+      "summary": "Invokes a template; the step result exposes the template's declared outputs.",
+      "required": ["template"],
+      "optional": ["with", "id", "name", "description", "save", "assert"],
+      "rules": [
+        "Every with key must name a declared parameter.",
+        "Every required parameter without a default must receive an argument.",
+        "Template invocations may not form cycles."
+      ]
+    },
+    {
+      "type": "for",
+      "summary": "Executes child steps once per item; every iteration is preserved in the execution trace.",
+      "required": ["items", "steps"],
+      "optional": ["as", "indexAs", "delayMs", "id", "name", "description", "save", "assert"],
+      "rules": [
+        "items is an array literal or an expression resolving to an array.",
+        "as (default 'item') and indexAs (default 'index') bind in a child frame and may not use reserved scope names."
+      ]
+    },
+    {
+      "type": "while",
+      "summary": "Repeats child steps while the condition holds, bounded by a mandatory timeout.",
+      "required": ["condition", "timeoutMs", "steps"],
+      "optional": ["delayMs", "id", "name", "description", "save", "assert"],
+      "rules": [
+        "condition is an assertion object evaluated after each pass.",
+        "Timeout expiry yields a timedOut outcome that fails the case; every pass is preserved in the trace."
+      ]
+    }
+  ],
+  "assertions": [
+    { "op": "equals", "operands": ["actual", "expected"], "meaning": "Deep equality with invariant-culture comparison." },
+    { "op": "notEquals", "operands": ["actual", "expected"], "meaning": "Negation of equals." },
+    { "op": "contains", "operands": ["actual", "expected"], "meaning": "String contains substring, or array contains an equal element." },
+    { "op": "notContains", "operands": ["actual", "expected"], "meaning": "Negation of contains." },
+    { "op": "exists", "operands": ["actual"], "meaning": "The actual path resolves to a value (null counts as existing)." },
+    { "op": "notExists", "operands": ["actual"], "meaning": "The actual path resolves to nothing." },
+    { "op": "greaterThan", "operands": ["actual", "expected"], "meaning": "Numeric comparison." },
+    { "op": "lessThan", "operands": ["actual", "expected"], "meaning": "Numeric comparison." },
+    { "op": "greaterOrEqual", "operands": ["actual", "expected"], "meaning": "Numeric comparison." },
+    { "op": "lessOrEqual", "operands": ["actual", "expected"], "meaning": "Numeric comparison." },
+    { "op": "between", "operands": ["actual", "expected"], "meaning": "expected is [min, max]; inclusive numeric range." },
+    { "op": "in", "operands": ["actual", "expected"], "meaning": "expected is an array; actual equals one element." },
+    { "op": "matches", "operands": ["actual", "expected"], "meaning": "expected is an ECMAScript regular expression matched against the actual string." },
+    { "op": "startsWith", "operands": ["actual", "expected"], "meaning": "String prefix, ordinal." },
+    { "op": "endsWith", "operands": ["actual", "expected"], "meaning": "String suffix, ordinal." },
+    { "op": "length", "operands": ["actual", "expected"], "meaning": "String length, array length, or object member count equals expected." },
+    { "op": "empty", "operands": ["actual"], "meaning": "String, array, or object has no content." },
+    { "op": "notEmpty", "operands": ["actual"], "meaning": "Negation of empty." },
+    { "op": "type", "operands": ["actual", "expected"], "meaning": "expected is one of: string, number, boolean, object, array, null." }
+  ],
+  "secrets": {
+    "declaration": "The suite-level secrets array lists context paths (e.g. $.env.token) whose values are replaced by redaction markers when evidence is captured.",
+    "defaults": "Values resolved from ${NAME} process variables and the Authorization, Proxy-Authorization, Cookie, Set-Cookie, and X-Api-Key headers are always redacted.",
+    "limitation": "Values derived from secrets (for example a substring saved to $.ctx) are not taint-tracked in 2.0; assert on secrets with exists or matches instead of copying them."
+  },
+  "diagnostics": {
+    "registry": "docs/language/diagnostics.md",
+    "format": "Every finding carries a stable JT**** code, severity, message, source document, and RFC 6901 JSON pointer.",
+    "ranges": {
+      "JT00xx": "document and syntax",
+      "JT01xx": "structure",
+      "JT02xx": "expressions",
+      "JT03xx": "templates",
+      "JT04xx": "datasets",
+      "JT05xx": "assertions",
+      "JT9xxx": "internal"
+    }
+  }
+}

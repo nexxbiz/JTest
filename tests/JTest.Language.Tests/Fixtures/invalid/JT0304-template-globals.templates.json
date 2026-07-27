@@ -1,0 +1,11 @@
+{
+  "jtest": "2.0",
+  "components": {
+    "templates": [
+      {
+        "name": "leaky",
+        "steps": [ { "type": "wait", "ms": 0, "save": { "$.globals.x": "1" } } ]
+      }
+    ]
+  }
+}

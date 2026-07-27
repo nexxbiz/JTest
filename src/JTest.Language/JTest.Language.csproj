@@ -10,4 +10,10 @@
     <PackageReference Include="Orbyss.ProgramKit.Serialization.JSON" />
   </ItemGroup>
 
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\schemas\jtest-suite-2.0.0.schema.json" Link="Schemas\jtest-suite-2.0.0.schema.json" LogicalName="JTest.Language.Schemas.jtest-suite-2.0.0.schema.json" />
+    <EmbeddedResource Include="..\..\schemas\jtest-templates-2.0.0.schema.json" Link="Schemas\jtest-templates-2.0.0.schema.json" LogicalName="JTest.Language.Schemas.jtest-templates-2.0.0.schema.json" />
+    <EmbeddedResource Include="..\..\schemas\jtest-language-manifest-2.0.0.json" Link="Schemas\jtest-language-manifest-2.0.0.json" LogicalName="JTest.Language.Schemas.jtest-language-manifest-2.0.0.json" />
+  </ItemGroup>
+
 </Project>

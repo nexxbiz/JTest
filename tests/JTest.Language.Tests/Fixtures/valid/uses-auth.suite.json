@@ -1,0 +1,14 @@
+{
+  "jtest": "2.0",
+  "using": [ "auth.templates.json" ],
+  "env": { "baseUrl": "https://api.example.test" },
+  "tests": [
+    {
+      "name": "authenticated call",
+      "steps": [
+        { "type": "use", "id": "login", "template": "authenticate", "with": { "baseUrl": "{{$.env.baseUrl}}" } },
+        { "type": "http", "method": "GET", "url": "{{$.env.baseUrl}}/me", "headers": { "Authorization": "Bearer {{$.login.token}}" } }
+      ]
+    }
+  ]
+}

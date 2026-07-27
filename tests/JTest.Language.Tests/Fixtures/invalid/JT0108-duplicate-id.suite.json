@@ -1,0 +1,12 @@
+{
+  "jtest": "2.0",
+  "tests": [
+    {
+      "name": "t",
+      "steps": [
+        { "type": "wait", "id": "a", "ms": 0 },
+        { "type": "wait", "id": "a", "ms": 0 }
+      ]
+    }
+  ]
+}

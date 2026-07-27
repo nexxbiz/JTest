@@ -1,0 +1,16 @@
+{
+  "jtest": "2.0",
+  "tests": [
+    {
+      "name": "t",
+      "steps": [
+        {
+          "type": "while",
+          "condition": { "op": "exists", "actual": "{{$.ctx.x}}" },
+          "timeoutMs": 0,
+          "steps": [ { "type": "wait", "ms": 0 } ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,202 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:jtest:schemas:suite:2.0.0",
+  "title": "JTest suite document",
+  "description": "A JTest 2.0 test suite: declarative end-to-end API integration tests (arrange, act, assert).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["jtest", "tests"],
+  "properties": {
+    "jtest": { "const": "2.0", "description": "Language version discriminator." },
+    "info": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string" },
+        "description": { "type": "string" }
+      }
+    },
+    "using": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "description": "Template file paths, relative to the suite file."
+    },
+    "env": { "type": "object", "description": "Initial immutable environment values." },
+    "globals": { "type": "object", "description": "Initial suite-scoped mutable values." },
+    "secrets": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^\\$\\..+" },
+      "description": "Context paths whose values are redacted in all evidence."
+    },
+    "tests": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/testCase" }
+    }
+  },
+  "$defs": {
+    "testCase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "steps"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "description": { "type": "string" },
+        "steps": { "$ref": "#/$defs/stepList" },
+        "datasets": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "case"],
+            "properties": {
+              "name": { "type": "string", "minLength": 1 },
+              "case": { "type": "object" }
+            }
+          }
+        }
+      }
+    },
+    "stepList": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/step" }
+    },
+    "step": {
+      "oneOf": [
+        { "$ref": "#/$defs/httpStep" },
+        { "$ref": "#/$defs/assertStep" },
+        { "$ref": "#/$defs/waitStep" },
+        { "$ref": "#/$defs/useStep" },
+        { "$ref": "#/$defs/forStep" },
+        { "$ref": "#/$defs/whileStep" }
+      ]
+    },
+    "commonStepProperties": {
+      "type": "object",
+      "properties": {
+        "type": { "type": "string" },
+        "id": { "type": "string", "minLength": 1, "not": { "enum": ["env", "globals", "ctx", "case", "this"] } },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "save": {
+          "type": "object",
+          "propertyNames": { "pattern": "^\\$\\.(ctx|globals)\\..+" }
+        },
+        "assert": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/assertion" }
+        }
+      }
+    },
+    "assertion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["op"],
+      "properties": {
+        "op": {
+          "enum": [
+            "between", "contains", "empty", "endsWith", "equals", "exists",
+            "greaterOrEqual", "greaterThan", "in", "length", "lessOrEqual",
+            "lessThan", "matches", "notContains", "notEmpty", "notEquals",
+            "notExists", "startsWith", "type"
+          ]
+        },
+        "actual": {},
+        "expected": {},
+        "description": { "type": "string" }
+      }
+    },
+    "httpStep": {
+      "allOf": [{ "$ref": "#/$defs/commonStepProperties" }],
+      "unevaluatedProperties": false,
+      "required": ["type", "method", "url"],
+      "properties": {
+        "type": { "const": "http" },
+        "method": { "type": "string", "minLength": 1 },
+        "url": { "type": "string", "minLength": 1 },
+        "headers": { "type": "object", "additionalProperties": { "type": "string" } },
+        "query": { "type": "object", "additionalProperties": { "type": "string" } },
+        "body": {},
+        "file": { "type": "string", "minLength": 1 },
+        "formFiles": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "path"],
+            "properties": {
+              "name": { "type": "string", "minLength": 1 },
+              "path": { "type": "string", "minLength": 1 },
+              "contentType": { "type": "string" }
+            }
+          }
+        },
+        "timeoutMs": { "type": "number", "minimum": 1 }
+      }
+    },
+    "assertStep": {
+      "allOf": [{ "$ref": "#/$defs/commonStepProperties" }],
+      "unevaluatedProperties": false,
+      "required": ["type", "assert"],
+      "properties": {
+        "type": { "const": "assert" },
+        "assert": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/assertion" } }
+      }
+    },
+    "waitStep": {
+      "allOf": [{ "$ref": "#/$defs/commonStepProperties" }],
+      "unevaluatedProperties": false,
+      "required": ["type", "ms"],
+      "properties": {
+        "type": { "const": "wait" },
+        "ms": {
+          "oneOf": [
+            { "type": "number", "minimum": 0 },
+            { "type": "string", "pattern": "\\{\\{|\\$\\{" }
+          ]
+        }
+      }
+    },
+    "useStep": {
+      "allOf": [{ "$ref": "#/$defs/commonStepProperties" }],
+      "unevaluatedProperties": false,
+      "required": ["type", "template"],
+      "properties": {
+        "type": { "const": "use" },
+        "template": { "type": "string", "minLength": 1 },
+        "with": { "type": "object" }
+      }
+    },
+    "forStep": {
+      "allOf": [{ "$ref": "#/$defs/commonStepProperties" }],
+      "unevaluatedProperties": false,
+      "required": ["type", "items", "steps"],
+      "properties": {
+        "type": { "const": "for" },
+        "items": {
+          "oneOf": [
+            { "type": "array" },
+            { "type": "string", "pattern": "\\{\\{" }
+          ]
+        },
+        "as": { "type": "string", "minLength": 1, "not": { "enum": ["env", "globals", "ctx", "case", "this"] } },
+        "indexAs": { "type": "string", "minLength": 1, "not": { "enum": ["env", "globals", "ctx", "case", "this"] } },
+        "steps": { "$ref": "#/$defs/stepList" },
+        "delayMs": { "type": "number", "minimum": 0 }
+      }
+    },
+    "whileStep": {
+      "allOf": [{ "$ref": "#/$defs/commonStepProperties" }],
+      "unevaluatedProperties": false,
+      "required": ["type", "condition", "timeoutMs", "steps"],
+      "properties": {
+        "type": { "const": "while" },
+        "condition": { "$ref": "#/$defs/assertion" },
+        "timeoutMs": { "type": "number", "minimum": 1 },
+        "delayMs": { "type": "number", "minimum": 0 },
+        "steps": { "$ref": "#/$defs/stepList" }
+      }
+    }
+  }
+}

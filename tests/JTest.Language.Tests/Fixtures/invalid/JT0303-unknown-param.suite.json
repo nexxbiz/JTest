@@ -1,0 +1,12 @@
+{
+  "jtest": "2.0",
+  "using": [ "../valid/auth.templates.json" ],
+  "tests": [
+    {
+      "name": "t",
+      "steps": [
+        { "type": "use", "template": "authenticate", "with": { "baseUrl": "https://x.test", "bogus": 1 } }
+      ]
+    }
+  ]
+}

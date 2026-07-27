@@ -1,0 +1,9 @@
+{
+  "jtest": "2.0",
+  "components": {
+    "templates": [
+      { "name": "alpha", "steps": [ { "type": "use", "template": "beta" } ] },
+      { "name": "beta", "steps": [ { "type": "use", "template": "alpha" } ] }
+    ]
+  }
+}

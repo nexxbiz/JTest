@@ -4,6 +4,7 @@
     <CentralPackageTransitivePinningEnabled>false</CentralPackageTransitivePinningEnabled>
   </PropertyGroup>
   <ItemGroup>
+    <PackageVersion Include="JsonSchema.Net" Version="9.3.0" />
     <PackageVersion Include="Orbyss.ProgramKit.Artifacts" Version="0.1.0-alpha.1" />
     <PackageVersion Include="Orbyss.ProgramKit.Serialization.JSON" Version="0.1.0-alpha.1" />
   </ItemGroup>

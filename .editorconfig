@@ -18,7 +18,7 @@ indent_size = 2
 # remainder are review-enforced.
 
 csharp_style_namespace_declarations = file_scoped:error
-dotnet_style_require_accessibility_modifiers = always:error
+dotnet_style_require_accessibility_modifiers = for_non_interface_members:error
 dotnet_diagnostic.IDE0161.severity = error
 
 # One type per file / naming-follows-type are review-enforced (no built-in

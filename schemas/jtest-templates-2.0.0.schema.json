@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:jtest:schemas:templates:2.0.0",
+  "title": "JTest template file",
+  "description": "A JTest 2.0 template file: reusable parameterized step sequences with explicit outputs.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["jtest", "components"],
+  "properties": {
+    "jtest": { "const": "2.0", "description": "Language version discriminator." },
+    "components": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["templates"],
+      "properties": {
+        "templates": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/template" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "template": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "steps"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "description": { "type": "string" },
+        "params": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "type": { "enum": ["string", "number", "boolean", "object", "array"] },
+              "required": { "type": "boolean" },
+              "description": { "type": "string" },
+              "default": {}
+            }
+          }
+        },
+        "steps": { "$ref": "urn:jtest:schemas:suite:2.0.0#/$defs/stepList" },
+        "output": { "type": "object" }
+      }
+    }
+  }
+}

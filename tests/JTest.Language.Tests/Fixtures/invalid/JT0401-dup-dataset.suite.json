@@ -1,0 +1,13 @@
+{
+  "jtest": "2.0",
+  "tests": [
+    {
+      "name": "t",
+      "steps": [ { "type": "wait", "ms": 0 } ],
+      "datasets": [
+        { "name": "same", "case": { "x": 1 } },
+        { "name": "same", "case": { "x": 2 } }
+      ]
+    }
+  ]
+}

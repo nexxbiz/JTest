@@ -1,0 +1,12 @@
+{
+  "jtest": "2.0",
+  "components": {
+    "templates": [
+      {
+        "name": "x",
+        "params": { "n": { "type": "int" } },
+        "steps": [ { "type": "wait", "ms": 0 } ]
+      }
+    ]
+  }
+}

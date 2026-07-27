@@ -1,0 +1,5 @@
+{
+  "jtest": "2.0",
+  "using": [ "JT0306-cycle.templates.json" ],
+  "tests": [ { "name": "t", "steps": [ { "type": "use", "template": "alpha" } ] } ]
+}

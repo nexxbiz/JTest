@@ -1,0 +1,6 @@
+{
+  "jtest": "2.0",
+  "tests": [
+    { "name": "t", "steps": [ { "type": "http", "method": "GET", "url": "{{}}" } ] }
+  ]
+}

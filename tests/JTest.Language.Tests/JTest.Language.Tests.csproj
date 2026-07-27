@@ -2,6 +2,11 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\JTest.Language\JTest.Language.csproj" />
+    <PackageReference Include="JsonSchema.Net" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Fixtures\**" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>
