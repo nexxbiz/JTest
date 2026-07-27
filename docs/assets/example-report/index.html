@@ -1,0 +1,692 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>JTest Reports</title>
+<style>
+/* JTest report viewer — hand-authored, no toolchain, no external requests. */
+
+:root {
+  --bg: #f6f7f9;
+  --panel: #ffffff;
+  --panel-2: #eef0f4;
+  --text: #1a2230;
+  --muted: #5c6779;
+  --line: #dde2ea;
+  --accent: #2f6fed;
+  --pass: #1e9e6a;
+  --pass-bg: #e3f6ee;
+  --fail: #d64545;
+  --fail-bg: #fdeaea;
+  --error: #b03fd4;
+  --error-bg: #f7eafd;
+  --warn: #c77d17;
+  --warn-bg: #fdf3e2;
+  --skip: #8b95a6;
+  --skip-bg: #eff1f5;
+  --mono: ui-monospace, "Cascadia Code", Consolas, monospace;
+  --sans: system-ui, "Segoe UI", Roboto, sans-serif;
+  --radius: 10px;
+  --shadow: 0 1px 3px rgb(16 24 40 / 8%), 0 1px 2px rgb(16 24 40 / 6%);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #12151b;
+    --panel: #1a1f28;
+    --panel-2: #212835;
+    --text: #e6eaf1;
+    --muted: #97a1b3;
+    --line: #2c3442;
+    --accent: #6b9bff;
+    --pass: #34c98e;
+    --pass-bg: #12352a;
+    --fail: #ff7373;
+    --fail-bg: #3c2023;
+    --error: #d98bef;
+    --error-bg: #34203d;
+    --warn: #e8a83e;
+    --warn-bg: #3a2f18;
+    --skip: #7d8798;
+    --skip-bg: #232936;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.app { max-width: 1100px; margin: 0 auto; padding: 24px 20px 80px; }
+
+.masthead {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.masthead h1 { font-size: 22px; margin: 0; letter-spacing: -0.02em; }
+.masthead .sub { color: var(--muted); font-size: 13px; }
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin: 14px 0;
+}
+
+.toolbar input[type="search"] {
+  flex: 1;
+  min-width: 180px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+}
+
+button.ghost {
+  padding: 7px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+button.ghost:hover { border-color: var(--accent); }
+button.ghost[aria-pressed="true"] { background: var(--panel-2); border-color: var(--accent); }
+
+.badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.badge.passed { color: var(--pass); background: var(--pass-bg); }
+.badge.failed { color: var(--fail); background: var(--fail-bg); }
+.badge.error { color: var(--error); background: var(--error-bg); }
+.badge.timedOut { color: var(--warn); background: var(--warn-bg); }
+.badge.cancelled { color: var(--warn); background: var(--warn-bg); }
+.badge.skipped { color: var(--skip); background: var(--skip-bg); }
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 14px 16px;
+  margin-bottom: 10px;
+}
+
+.catalog-run {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  cursor: pointer;
+  transition: transform 0.12s ease, border-color 0.12s ease;
+}
+
+.catalog-run:hover { transform: translateY(-1px); border-color: var(--accent); }
+.catalog-run .grow { flex: 1; min-width: 0; }
+.catalog-run .title { font-weight: 600; }
+.catalog-run .meta { color: var(--muted); font-size: 12.5px; }
+.counts { display: flex; gap: 6px; font-size: 12px; color: var(--muted); white-space: nowrap; }
+.counts b { color: var(--text); }
+
+.run-header { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.run-header h2 { margin: 0; font-size: 18px; flex: 1; min-width: 0; }
+.run-header .meta { color: var(--muted); font-size: 12.5px; width: 100%; }
+
+.crumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+  font-size: 12.5px;
+  color: var(--muted);
+  margin: 10px 0;
+}
+
+.crumbs a { color: var(--accent); text-decoration: none; cursor: pointer; }
+.crumbs a:hover { text-decoration: underline; }
+.crumbs .sep { opacity: 0.5; }
+
+.node { border-left: 2px solid var(--line); margin: 6px 0 6px 6px; padding-left: 10px; }
+.node.failed, .node.error, .node.timedOut { border-left-color: var(--fail); }
+.node.skipped { opacity: 0.65; }
+
+.node-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.node-row:hover { background: var(--panel-2); }
+.node-row .twist { width: 14px; color: var(--muted); font-size: 11px; transition: transform 0.15s ease; flex: none; }
+.node-row.open .twist { transform: rotate(90deg); }
+.node-row .kind {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  flex: none;
+}
+
+.node-row .label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.node-row .dur { color: var(--muted); font-size: 12px; flex: none; }
+.node-row .dive { color: var(--accent); font-size: 12px; flex: none; visibility: hidden; }
+.node-row:hover .dive { visibility: visible; }
+
+.node-body { overflow: hidden; }
+.node-body.collapsed { display: none; }
+
+.detail {
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin: 6px 0;
+  font-size: 13px;
+}
+
+.detail h4 {
+  margin: 0 0 6px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+
+.kv { display: grid; grid-template-columns: 130px 1fr; gap: 3px 12px; }
+.kv .k { color: var(--muted); }
+.kv .v { font-family: var(--mono); font-size: 12.5px; word-break: break-all; }
+
+pre.json {
+  margin: 4px 0 0;
+  padding: 8px 10px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font-family: var(--mono);
+  font-size: 12px;
+  overflow: auto;
+  max-height: 340px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+table.asserts { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 4px; }
+table.asserts th, table.asserts td {
+  text-align: left;
+  padding: 5px 8px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+
+table.asserts th { color: var(--muted); font-weight: 600; font-size: 11.5px; text-transform: uppercase; }
+table.asserts td.mono { font-family: var(--mono); word-break: break-all; }
+
+.diag {
+  display: flex;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  margin: 4px 0;
+  font-size: 12.5px;
+  background: var(--fail-bg);
+  color: var(--fail);
+}
+
+.diag.warning { background: var(--warn-bg); color: var(--warn); }
+.diag code { font-family: var(--mono); font-weight: 700; }
+
+.empty { color: var(--muted); text-align: center; padding: 40px 0; }
+.back { margin-bottom: 12px; }
+.hidden { display: none !important; }
+
+</style>
+</head>
+<body>
+<div id="app" class="app">
+  <noscript>JTest reports need JavaScript to render. The canonical evidence lives in runs/&lt;runId&gt;/result.json.</noscript>
+</div>
+<script>window.__JTEST_RUN__ = {"counts":{"assertions":{"failed":1,"total":6},"caseRuns":{"cancelled":0,"error":0,"failed":1,"passed":2,"skipped":0,"timedOut":0,"total":3}},"durationMs":20.405,"language":"2.0","outcome":"failed","result":"jtest-run","resultVersion":"2.0.0","runId":"20260727T171400868Z-be03723b","startUtc":"2026-07-27T17:14:00.868Z","toolVersion":"2.0.0-alpha.1","trace":{"children":[{"children":[{"children":[{"children":[{"children":[{"children":[{"durationMs":0,"evidence":{"actual":5,"expected":0,"message":"","op":"greaterThan"},"kind":"assertion","name":"stock is positive","ordinal":1,"outcome":"passed","path":"suites/0/cases/0/steps/0/iterations/0/steps/0/assertions/0","startUtc":"0001-01-01T00:00:00.000Z"}],"durationMs":4.118,"kind":"step","ordinal":1,"outcome":"passed","path":"suites/0/cases/0/steps/0/iterations/0/steps/0","startUtc":"2026-07-27T17:14:00.877Z","stepType":"assert"}],"durationMs":5.007,"evidence":{"item":5},"iterationIndex":0,"kind":"iteration","ordinal":1,"outcome":"passed","path":"suites/0/cases/0/steps/0/iterations/0","startUtc":"2026-07-27T17:14:00.877Z"},{"children":[{"children":[{"durationMs":0,"evidence":{"actual":12,"expected":0,"message":"","op":"greaterThan"},"kind":"assertion","name":"stock is positive","ordinal":1,"outcome":"passed","path":"suites/0/cases/0/steps/0/iterations/1/steps/0/assertions/0","startUtc":"0001-01-01T00:00:00.000Z"}],"durationMs":0.025,"kind":"step","ordinal":1,"outcome":"passed","path":"suites/0/cases/0/steps/0/iterations/1/steps/0","startUtc":"2026-07-27T17:14:00.882Z","stepType":"assert"}],"durationMs":0.042,"evidence":{"item":12},"iterationIndex":1,"kind":"iteration","ordinal":2,"outcome":"passed","path":"suites/0/cases/0/steps/0/iterations/1","startUtc":"2026-07-27T17:14:00.882Z"},{"children":[{"children":[{"durationMs":0,"evidence":{"actual":42,"expected":0,"message":"","op":"greaterThan"},"kind":"assertion","name":"stock is positive","ordinal":1,"outcome":"passed","path":"suites/0/cases/0/steps/0/iterations/2/steps/0/assertions/0","startUtc":"0001-01-01T00:00:00.000Z"}],"durationMs":0.004,"kind":"step","ordinal":1,"outcome":"passed","path":"suites/0/cases/0/steps/0/iterations/2/steps/0","startUtc":"2026-07-27T17:14:00.882Z","stepType":"assert"}],"durationMs":0.006,"evidence":{"item":42},"iterationIndex":2,"kind":"iteration","ordinal":3,"outcome":"passed","path":"suites/0/cases/0/steps/0/iterations/2","startUtc":"2026-07-27T17:14:00.882Z"}],"durationMs":7.619,"kind":"step","name":"Check quantities","ordinal":1,"outcome":"passed","path":"suites/0/cases/0/steps/0","startUtc":"2026-07-27T17:14:00.874Z","stepType":"for"},{"durationMs":5.416,"evidence":{"requestedMs":0},"kind":"step","ordinal":2,"outcome":"passed","path":"suites/0/cases/0/steps/1","startUtc":"2026-07-27T17:14:00.882Z","stepType":"wait"},{"children":[{"durationMs":0,"evidence":{"actual":3,"expected":3,"message":"","op":"equals"},"kind":"assertion","ordinal":1,"outcome":"passed","path":"suites/0/cases/0/steps/2/assertions/0","startUtc":"0001-01-01T00:00:00.000Z"}],"durationMs":0.197,"kind":"step","name":"All quantities checked","ordinal":3,"outcome":"passed","path":"suites/0/cases/0/steps/2","startUtc":"2026-07-27T17:14:00.887Z","stepType":"assert"}],"durationMs":14.095,"kind":"case","name":"inventory invariants","ordinal":1,"outcome":"passed","path":"suites/0/cases/0","startUtc":"2026-07-27T17:14:00.873Z"},{"children":[{"children":[{"children":[{"durationMs":0,"evidence":{"actual":10,"expected":15,"message":"","op":"lessOrEqual"},"kind":"assertion","name":"price within budget","ordinal":1,"outcome":"passed","path":"suites/0/cases/1/datasets/0/steps/0/assertions/0","startUtc":"0001-01-01T00:00:00.000Z"}],"durationMs":0.025,"kind":"step","name":"Tier price stays within budget","ordinal":1,"outcome":"passed","path":"suites/0/cases/1/datasets/0/steps/0","startUtc":"2026-07-27T17:14:00.888Z","stepType":"assert"}],"dataset":"basic","durationMs":0.238,"kind":"datasetRun","name":"pricing by tier [basic]","ordinal":1,"outcome":"passed","path":"suites/0/cases/1/datasets/0","startUtc":"2026-07-27T17:14:00.888Z"},{"children":[{"children":[{"durationMs":0,"evidence":{"actual":30,"expected":25,"message":"Expected lessOrEqual to hold; actual was 30 and expected operand was 25.","op":"lessOrEqual"},"kind":"assertion","name":"price within budget","ordinal":1,"outcome":"failed","path":"suites/0/cases/1/datasets/1/steps/0/assertions/0","startUtc":"0001-01-01T00:00:00.000Z"}],"durationMs":0.41,"kind":"step","name":"Tier price stays within budget","ordinal":1,"outcome":"failed","path":"suites/0/cases/1/datasets/1/steps/0","startUtc":"2026-07-27T17:14:00.888Z","stepType":"assert"}],"dataset":"premium","durationMs":0.414,"kind":"datasetRun","name":"pricing by tier [premium]","ordinal":2,"outcome":"failed","path":"suites/0/cases/1/datasets/1","startUtc":"2026-07-27T17:14:00.888Z"}],"durationMs":0.717,"kind":"case","name":"pricing by tier","ordinal":2,"outcome":"failed","path":"suites/0/cases/1","startUtc":"2026-07-27T17:14:00.887Z"}],"durationMs":17.715,"evidence":{"source":"example.suite.json"},"kind":"suite","name":"Order lifecycle","ordinal":1,"outcome":"failed","path":"suites/0","startUtc":"2026-07-27T17:14:00.870Z"}],"durationMs":20.405,"kind":"run","ordinal":1,"outcome":"failed","path":"","startUtc":"2026-07-27T17:14:00.868Z"}};</script>
+<script>
+// JTest report viewer. Hand-authored, no toolchain, no external requests.
+// Every piece of run data is rendered through textContent/createElement —
+// data can never become markup.
+"use strict";
+
+(function () {
+  const app = document.getElementById("app");
+
+  // --- tiny DOM helpers (element structure is static; data goes in as text) ---
+  function el(tag, className, text) {
+    const node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text !== undefined && text !== null) node.textContent = String(text);
+    return node;
+  }
+
+  function clear(node) {
+    while (node.firstChild) node.removeChild(node.firstChild);
+  }
+
+  function fmtMs(ms) {
+    if (typeof ms !== "number") return "";
+    if (ms < 1000) return ms.toFixed(0) + " ms";
+    return (ms / 1000).toFixed(2) + " s";
+  }
+
+  function badge(outcome) {
+    return el("span", "badge " + outcome, outcome);
+  }
+
+  // --- routing ---
+  function currentRoute() {
+    const hash = window.location.hash.replace(/^#/, "");
+    const params = new URLSearchParams(hash);
+    return { run: params.get("run"), node: params.get("node") };
+  }
+
+  function setRoute(runId, nodePath) {
+    const params = new URLSearchParams();
+    if (runId) params.set("run", runId);
+    if (nodePath) params.set("node", nodePath);
+    window.location.hash = params.toString();
+  }
+
+  // --- catalog view ---
+  function renderCatalog(catalog) {
+    clear(app);
+    const head = el("div", "masthead");
+    head.appendChild(el("h1", null, "JTest Reports"));
+    head.appendChild(el("span", "sub", catalog.runs.length + " run(s) — refresh after a new run"));
+    app.appendChild(head);
+
+    const toolbar = el("div", "toolbar");
+    const search = el("input");
+    search.type = "search";
+    search.placeholder = "Filter runs by suite, outcome, or run id…";
+    toolbar.appendChild(search);
+    app.appendChild(toolbar);
+
+    const list = el("div");
+    app.appendChild(list);
+
+    function draw() {
+      clear(list);
+      const needle = search.value.toLowerCase();
+      let shown = 0;
+      for (const run of catalog.runs) {
+        const haystack = (run.runId + " " + run.outcome + " " + (run.suites || []).join(" ")).toLowerCase();
+        if (needle && !haystack.includes(needle)) continue;
+        shown++;
+        const card = el("div", "card catalog-run");
+        card.appendChild(badge(run.outcome));
+        const grow = el("div", "grow");
+        grow.appendChild(el("div", "title", (run.suites || []).join(", ") || run.runId));
+        grow.appendChild(el("div", "meta", run.startUtc + "  ·  " + fmtMs(run.durationMs) + "  ·  " + run.runId));
+        card.appendChild(grow);
+        const counts = el("div", "counts");
+        const c = run.counts || {};
+        const parts = [["passed", c.passed], ["failed", c.failed], ["error", c.error], ["timedOut", c.timedOut]];
+        for (const [label, value] of parts) {
+          if (value) {
+            const chip = el("span");
+            chip.appendChild(el("b", null, value));
+            chip.appendChild(document.createTextNode(" " + label));
+            counts.appendChild(chip);
+          }
+        }
+        card.appendChild(counts);
+        card.addEventListener("click", function () { setRoute(run.runId, null); });
+        list.appendChild(card);
+      }
+      if (shown === 0) list.appendChild(el("div", "empty", "No runs match."));
+    }
+
+    search.addEventListener("input", draw);
+    draw();
+  }
+
+  // --- run loading (script injection works over file:// where fetch does not) ---
+  const runCache = Object.create(null);
+
+  function loadRun(runId, done, fail) {
+    if (runCache[runId]) { done(runCache[runId]); return; }
+    const script = document.createElement("script");
+    script.src = "runs/" + encodeURIComponent(runId) + "/result.js";
+    script.onload = function () {
+      const data = window.__JTEST_RUN__;
+      delete window.__JTEST_RUN__;
+      script.remove();
+      if (data && data.runId === runId) {
+        runCache[runId] = data;
+        done(data);
+      } else {
+        fail();
+      }
+    };
+    script.onerror = function () { script.remove(); fail(); };
+    document.body.appendChild(script);
+  }
+
+  // --- trace helpers ---
+  function findByPath(node, path) {
+    if (!path || node.path === path) return node;
+    for (const child of node.children || []) {
+      if (path === child.path || path.startsWith(child.path + "/")) {
+        const hit = findByPath(child, path);
+        if (hit) return hit;
+      }
+    }
+    return node.path === "" ? null : null;
+  }
+
+  function subtreeMatches(node, needle) {
+    const own = ((node.name || "") + " " + (node.stepType || "") + " " + (node.template || "") + " " +
+      (node.dataset || "") + " " + node.path + " " + node.outcome).toLowerCase();
+    if (own.includes(needle)) return true;
+    return (node.children || []).some(function (child) { return subtreeMatches(child, needle); });
+  }
+
+  // --- run view ---
+  function renderRun(data, focusPath) {
+    clear(app);
+    const state = { failFirst: true, needle: "" };
+    const focus = focusPath ? findByPath(data.trace, focusPath) || data.trace : data.trace;
+
+    const back = el("div", "back");
+    if (window.__JTEST_CATALOG__) {
+      const link = el("button", "ghost", "← All runs");
+      link.addEventListener("click", function () { setRoute(null, null); });
+      back.appendChild(link);
+    }
+    app.appendChild(back);
+
+    const header = el("div", "card run-header");
+    header.appendChild(badge(data.outcome));
+    header.appendChild(el("h2", null, "Run " + data.runId));
+    const c = data.counts.caseRuns;
+    header.appendChild(el("div", "meta",
+      data.startUtc + "  ·  " + fmtMs(data.durationMs) +
+      "  ·  cases: " + c.total + " (" + c.passed + " passed, " + c.failed + " failed, " +
+      c.error + " error, " + c.skipped + " skipped, " + c.cancelled + " cancelled, " + c.timedOut + " timed out)" +
+      "  ·  assertions: " + data.counts.assertions.total + " (" + data.counts.assertions.failed + " failed)" +
+      "  ·  jtest " + data.toolVersion));
+    app.appendChild(header);
+
+    if (focus !== data.trace) {
+      const crumbs = el("div", "crumbs");
+      const segments = focus.path.split("/");
+      const rootLink = el("a", null, "run");
+      rootLink.addEventListener("click", function () { setRoute(data.runId, null); });
+      crumbs.appendChild(rootLink);
+      for (let i = 2; i <= segments.length; i += 2) {
+        const partial = segments.slice(0, i).join("/");
+        crumbs.appendChild(el("span", "sep", "›"));
+        const link = el("a", null, segments[i - 2] + "/" + segments[i - 1]);
+        link.addEventListener("click", function () { setRoute(data.runId, partial); });
+        crumbs.appendChild(link);
+      }
+      app.appendChild(crumbs);
+    }
+
+    const toolbar = el("div", "toolbar");
+    const search = el("input");
+    search.type = "search";
+    search.placeholder = "Filter steps, templates, outcomes…";
+    toolbar.appendChild(search);
+    const failFirst = el("button", "ghost", "Failures first");
+    failFirst.setAttribute("aria-pressed", "true");
+    const expandAll = el("button", "ghost", "Expand all");
+    const collapseAll = el("button", "ghost", "Collapse all");
+    toolbar.appendChild(failFirst);
+    toolbar.appendChild(expandAll);
+    toolbar.appendChild(collapseAll);
+    app.appendChild(toolbar);
+
+    const tree = el("div");
+    app.appendChild(tree);
+
+    function orderedChildren(node) {
+      const children = (node.children || []).slice();
+      if (state.failFirst) {
+        const rank = { error: 0, timedOut: 1, cancelled: 2, failed: 3, skipped: 5, passed: 4 };
+        children.sort(function (a, b) {
+          const byOutcome = rank[a.outcome] - rank[b.outcome];
+          return byOutcome !== 0 ? byOutcome : a.ordinal - b.ordinal;
+        });
+      }
+      return children;
+    }
+
+    function renderNode(node, depth) {
+      const wrap = el("div", "node " + node.outcome);
+      const row = el("div", "node-row");
+      const hasBody = (node.children || []).length > 0 || node.evidence || (node.diagnostics || []).length > 0;
+      const open = depth < 2 || node.outcome !== "passed";
+      if (open) row.classList.add("open");
+
+      row.appendChild(el("span", "twist", hasBody ? "▶" : ""));
+      row.appendChild(el("span", "kind", node.stepType || kindLabel(node.kind)));
+      row.appendChild(el("span", "label", labelFor(node)));
+      row.appendChild(badge(node.outcome));
+      row.appendChild(el("span", "dur", fmtMs(node.durationMs)));
+      const canDive = node.kind === "step" || node.kind === "templateInvocation" ||
+        node.kind === "iteration" || node.kind === "case" || node.kind === "datasetRun" || node.kind === "suite";
+      if (canDive && node.path) {
+        const dive = el("span", "dive", "step into ▸");
+        dive.addEventListener("click", function (event) {
+          event.stopPropagation();
+          setRoute(data.runId, node.path);
+        });
+        row.appendChild(dive);
+      }
+      wrap.appendChild(row);
+
+      const body = el("div", "node-body" + (open ? "" : " collapsed"));
+      if (hasBody) {
+        row.addEventListener("click", function () {
+          body.classList.toggle("collapsed");
+          row.classList.toggle("open");
+        });
+      }
+
+      appendDiagnostics(body, node);
+      appendEvidence(body, node);
+      for (const child of orderedChildren(node)) {
+        if (child.kind === "assertion") continue; // rendered as a table below
+        body.appendChild(renderNode(child, depth + 1));
+      }
+      appendAssertions(body, node);
+
+      wrap.appendChild(body);
+      return wrap;
+    }
+
+    function draw() {
+      clear(tree);
+      const needle = state.needle.toLowerCase();
+      const roots = focus === data.trace ? orderedChildren(data.trace) : [focus];
+      let shown = 0;
+      for (const node of roots) {
+        if (needle && !subtreeMatches(node, needle)) continue;
+        shown++;
+        tree.appendChild(renderNode(node, 0));
+      }
+      if (shown === 0) tree.appendChild(el("div", "empty", "Nothing matches."));
+    }
+
+    search.addEventListener("input", function () { state.needle = search.value; draw(); });
+    failFirst.addEventListener("click", function () {
+      state.failFirst = !state.failFirst;
+      failFirst.setAttribute("aria-pressed", String(state.failFirst));
+      draw();
+    });
+    expandAll.addEventListener("click", function () { setAll(false); });
+    collapseAll.addEventListener("click", function () { setAll(true); });
+
+    function setAll(collapsed) {
+      for (const body of tree.querySelectorAll(".node-body")) body.classList.toggle("collapsed", collapsed);
+      for (const row of tree.querySelectorAll(".node-row")) row.classList.toggle("open", !collapsed);
+    }
+
+    draw();
+  }
+
+  function kindLabel(kind) {
+    if (kind === "datasetRun") return "dataset";
+    if (kind === "templateInvocation") return "template";
+    return kind;
+  }
+
+  function labelFor(node) {
+    if (node.kind === "iteration") return "iteration " + node.iterationIndex;
+    if (node.kind === "templateInvocation") return node.template || "template";
+    return node.name || node.template || node.dataset || node.stepId || node.path.split("/").slice(-2).join("/");
+  }
+
+  function appendDiagnostics(body, node) {
+    for (const diagnostic of node.diagnostics || []) {
+      const row = el("div", "diag " + diagnostic.severity);
+      row.appendChild(el("code", null, diagnostic.code));
+      row.appendChild(el("span", null, diagnostic.message + (diagnostic.pointer ? "  (" + diagnostic.pointer + ")" : "")));
+      body.appendChild(row);
+    }
+  }
+
+  function appendEvidence(body, node) {
+    const evidence = node.evidence;
+    if (!evidence) return;
+    if (evidence.request || evidence.response) {
+      if (evidence.request) body.appendChild(exchangePanel("Request", evidence.request));
+      if (evidence.response) body.appendChild(exchangePanel("Response", evidence.response));
+      return;
+    }
+    if (node.kind === "assertion") return;
+    const panel = el("div", "detail");
+    panel.appendChild(el("h4", null, "Evidence"));
+    panel.appendChild(jsonBlock(evidence));
+    body.appendChild(panel);
+  }
+
+  function exchangePanel(title, exchange) {
+    const panel = el("div", "detail");
+    panel.appendChild(el("h4", null, title));
+    const kv = el("div", "kv");
+    for (const key of ["method", "url", "status", "timedOutAfterMs"]) {
+      if (exchange[key] !== undefined && exchange[key] !== null) {
+        kv.appendChild(el("span", "k", key));
+        kv.appendChild(el("span", "v", exchange[key]));
+      }
+    }
+    panel.appendChild(kv);
+    if (exchange.headers && Object.keys(exchange.headers).length) {
+      const headers = el("div", "kv");
+      for (const name of Object.keys(exchange.headers)) {
+        headers.appendChild(el("span", "k", name));
+        headers.appendChild(el("span", "v", exchange.headers[name]));
+      }
+      const head = el("div", "detail");
+      head.appendChild(el("h4", null, title + " headers"));
+      head.appendChild(headers);
+      panel.appendChild(head);
+    }
+    if (exchange.body !== undefined && exchange.body !== null) panel.appendChild(jsonBlock(exchange.body));
+    if (exchange.raw) panel.appendChild(jsonBlock(exchange.raw));
+    return panel;
+  }
+
+  function jsonBlock(value) {
+    const pre = el("pre", "json");
+    pre.textContent = typeof value === "string" ? value : JSON.stringify(value, null, 2);
+    return pre;
+  }
+
+  function appendAssertions(body, node) {
+    const assertions = (node.children || []).filter(function (child) { return child.kind === "assertion"; });
+    if (!assertions.length) return;
+    const panel = el("div", "detail");
+    panel.appendChild(el("h4", null, "Assertions"));
+    const table = el("table", "asserts");
+    const head = el("tr");
+    for (const title of ["", "Operator", "Actual", "Expected", "Detail"]) head.appendChild(el("th", null, title));
+    table.appendChild(head);
+    for (const assertion of assertions) {
+      const evidence = assertion.evidence || {};
+      const row = el("tr");
+      const cell = el("td");
+      cell.appendChild(badge(assertion.outcome));
+      row.appendChild(cell);
+      row.appendChild(el("td", "mono", evidence.op));
+      row.appendChild(el("td", "mono", short(evidence.actual)));
+      row.appendChild(el("td", "mono", short(evidence.expected)));
+      row.appendChild(el("td", null, assertion.outcome === "passed" ? (assertion.name || "") : (evidence.message || "")));
+      table.appendChild(row);
+    }
+    panel.appendChild(table);
+    body.appendChild(panel);
+  }
+
+  function short(value) {
+    if (value === undefined) return "";
+    const text = typeof value === "string" ? value : JSON.stringify(value);
+    return text && text.length > 200 ? text.slice(0, 200) + "…" : text;
+  }
+
+  // --- boot ---
+  function boot() {
+    const route = currentRoute();
+    if (window.__JTEST_RUN__ && !window.__JTEST_CATALOG__) {
+      renderRun(window.__JTEST_RUN__, route.node);
+      return;
+    }
+    const catalog = window.__JTEST_CATALOG__;
+    if (!catalog) {
+      clear(app);
+      app.appendChild(el("div", "empty",
+        "No catalog found. Run jtest to produce reports, then refresh this page."));
+      return;
+    }
+    if (route.run) {
+      loadRun(route.run, function (data) { renderRun(data, route.node); }, function () {
+        clear(app);
+        app.appendChild(el("div", "empty", "Run " + route.run + " could not be loaded."));
+      });
+    } else {
+      renderCatalog(catalog);
+    }
+  }
+
+  window.addEventListener("hashchange", boot);
+  boot();
+})();
+
+</script>
+</body>
+</html>

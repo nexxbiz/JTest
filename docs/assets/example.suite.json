@@ -1,0 +1,51 @@
+{
+  "jtest": "2.0",
+  "info": {
+    "name": "Order lifecycle",
+    "description": "Representative JTest 2.0 suite: templates, polling, loops, and datasets."
+  },
+  "env": { "baseUrl": "https://api.example.test" },
+  "tests": [
+    {
+      "name": "inventory invariants",
+      "steps": [
+        {
+          "type": "for",
+          "name": "Check quantities",
+          "items": [ 5, 12, 42 ],
+          "as": "quantity",
+          "steps": [
+            {
+              "type": "assert",
+              "assert": [
+                { "op": "greaterThan", "actual": "{{$.quantity}}", "expected": 0, "description": "stock is positive" }
+              ]
+            }
+          ]
+        },
+        { "type": "wait", "ms": 0, "save": { "$.ctx.checked": "{{$.this.completedIterations}}" } },
+        {
+          "type": "assert",
+          "name": "All quantities checked",
+          "assert": [ { "op": "equals", "actual": "{{$.ctx.checked}}", "expected": 3 } ]
+        }
+      ]
+    },
+    {
+      "name": "pricing by tier",
+      "steps": [
+        {
+          "type": "assert",
+          "name": "Tier price stays within budget",
+          "assert": [
+            { "op": "lessOrEqual", "actual": "{{$.case.price}}", "expected": "{{$.case.budget}}", "description": "price within budget" }
+          ]
+        }
+      ],
+      "datasets": [
+        { "name": "basic", "case": { "price": 10, "budget": 15 } },
+        { "name": "premium", "case": { "price": 30, "budget": 25 } }
+      ]
+    }
+  ]
+}

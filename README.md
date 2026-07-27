@@ -52,6 +52,7 @@ the approved design in [design/jtest-2.0/](design/jtest-2.0/).
 
 ## Documentation
 
+- [Getting started](docs/getting-started.md) — first test and report in five minutes
 - [Language reference](docs/language/reference.md)
 - [CLI reference](docs/cli.md) · [Reports and evidence](docs/reporting.md)
 - [Authoring guide for AI agents](docs/agents.md)
