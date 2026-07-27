@@ -1,0 +1,39 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+[*.{json,yml,yaml,props,targets,csproj,config,html,css,js}]
+indent_size = 2
+
+[*.cs]
+# JTest governance: adopted from the Program Kit C# source quality gate
+# (see governance/csharp-source-quality-gate.md). Rules the compiler and
+# built-in analyzers can carry are enforced here at error severity; the
+# remainder are review-enforced.
+
+csharp_style_namespace_declarations = file_scoped:error
+dotnet_style_require_accessibility_modifiers = always:error
+dotnet_diagnostic.IDE0161.severity = error
+
+# One type per file / naming-follows-type are review-enforced (no built-in
+# analyzer exists); folder-namespace alignment:
+dotnet_diagnostic.IDE0130.severity = error
+
+dotnet_style_qualification_for_field = false:suggestion
+csharp_style_var_when_type_is_apparent = true:suggestion
+csharp_prefer_braces = true:error
+dotnet_diagnostic.IDE0011.severity = error
+
+# Static-helper and injection discipline supported by:
+dotnet_diagnostic.CA1822.severity = error
+dotnet_diagnostic.CA1852.severity = error
+dotnet_diagnostic.CA2007.severity = none
+
+dotnet_sort_system_directives_first = true
+csharp_using_directive_placement = outside_namespace:error

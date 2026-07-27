@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+    <PackageId>JTest.Engine</PackageId>
+    <Description>The JTest 2.0 execution engine: context and scope semantics, fail-closed expression resolution, step execution, assertions, and the truthful execution trace.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\JTest.Language\JTest.Language.csproj" />
+  </ItemGroup>
+
+</Project>

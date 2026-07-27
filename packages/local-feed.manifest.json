@@ -1,0 +1,75 @@
+{
+    "programKitCommit":  "74c1abc4379ea3dfc39f624ade22a3a4191787bb",
+    "programKitDirty":  false,
+    "feedDirectory":  "packages/local-feed",
+    "packages":  [
+                     {
+                         "file":  "Orbyss.ProgramKit.Architecture.0.1.0-alpha.1.nupkg",
+                         "digest":  "sha256:590fb91d28964de8eae97a723cacab74ab088831fc94e297a6d017f6e6e928a8"
+                     },
+                     {
+                         "file":  "Orbyss.ProgramKit.Artifacts.0.1.0-alpha.1.nupkg",
+                         "digest":  "sha256:f03d0822442eb0677ccad84a300a5c89ebb54925faa234dbd5886c8a7299aa27"
+                     },
+                     {
+                         "file":  "Orbyss.ProgramKit.CommandLine.0.1.0-alpha.1.nupkg",
+                         "digest":  "sha256:eed1e103261e17ff622c9c872cb7a7a18193ac5d35547a84c4dec92332a93c53"
+                     },
+                     {
+                         "file":  "Orbyss.ProgramKit.Development.0.1.0-alpha.1.nupkg",
+                         "digest":  "sha256:729fa5b748b981ac0057d9a73cd7094a90ec23536a43adaca875d206f7ab5cca"
+                     },
+                     {
+                         "file":  "Orbyss.ProgramKit.DotNet.0.1.0-alpha.1.nupkg",
+                         "digest":  "sha256:cf253b3e2b70b65a6b827bcc5a8c188e53d59cb5483a4182831835f8f9a70a6a"
+                     },
+                     {
+                         "file":  "Orbyss.ProgramKit.Modularity.0.1.0-alpha.1.nupkg",
+                         "digest":  "sha256:5b2804cb2f47531cd48fd3f41664051a35651584857b4f8d80469ade94e8e15c"
+                     },
+                     {
+                         "file":  "Orbyss.ProgramKit.Modularity.InProcess.0.1.0-alpha.1.nupkg",
+                         "digest":  "sha256:bbe47f8bc33728ffc42cf75b0c019026deeb824dee5c181553eca9b3cb5c01b9"
+                     },
+                     {
+                         "file":  "Orbyss.ProgramKit.Planning.0.1.0-alpha.1.nupkg",
+                         "digest":  "sha256:81176115b2571c5b22a61dd95f00127cbb67293d8e61f9e59a0e8a4b4acc7d00"
+                     },
+                     {
+                         "file":  "Orbyss.ProgramKit.Quality.0.1.0-alpha.1.nupkg",
+                         "digest":  "sha256:2c89c787babbb03dab0aeb8f9ec6a297587cae34e6f923fd881a9f9053509a9f"
+                     },
+                     {
+                         "file":  "Orbyss.ProgramKit.Serialization.JSON.0.1.0-alpha.1.nupkg",
+                         "digest":  "sha256:c99a84741a8d280698641ef2f3c65905fa5c18e7a65a81bbf6828745bcbdf93d"
+                     },
+                     {
+                         "file":  "Orbyss.ProgramKit.Tasks.0.1.0-alpha.1.nupkg",
+                         "digest":  "sha256:c8744383daeab059ad9c55a3407af5a6d869625ae588ed954586a9f57fdb4221"
+                     },
+                     {
+                         "file":  "Orbyss.ProgramKit.Tasks.Core.0.1.0-alpha.1.nupkg",
+                         "digest":  "sha256:b9f5dd5d4a35002bcbb3e30f5e67e37f2dde7e8fe4b1afb8791137255929b490"
+                     },
+                     {
+                         "file":  "Orbyss.ProgramKit.Tasks.Hosting.0.1.0-alpha.1.nupkg",
+                         "digest":  "sha256:8db7028c2fb7d62cc2b857569dad9842ee27458f53851269ad54f58f2ea08290"
+                     },
+                     {
+                         "file":  "Orbyss.ProgramKit.Tasks.InProcess.0.1.0-alpha.1.nupkg",
+                         "digest":  "sha256:3c1d4e301a877631f7981d7e43a3990827c1ec338b250c4ddce74899ffa36255"
+                     },
+                     {
+                         "file":  "Orbyss.ProgramKit.Tasks.Schedules.0.1.0-alpha.1.nupkg",
+                         "digest":  "sha256:dc4f05074a1f62acefa9dd2bbfc61e14112fe35d02494fee613952105cb7bb09"
+                     },
+                     {
+                         "file":  "Orbyss.ProgramKit.Tasks.Schedules.Cronos.0.1.0-alpha.1.nupkg",
+                         "digest":  "sha256:ddef7904d0dd6b138c5f0ef64be13b0224817d2489d4914f25164e5f18ab002c"
+                     },
+                     {
+                         "file":  "Orbyss.ProgramKit.Workbench.0.1.0-alpha.1.nupkg",
+                         "digest":  "sha256:9e472ee2366d974173cfcc5e8ac0a99eac1c08033a6850b0d56576e83a1c26c0"
+                     }
+                 ]
+}

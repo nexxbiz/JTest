@@ -1,294 +1,47 @@
 # JTest
 
-A powerful JSON-based API testing framework that lets you write comprehensive tests using simple JSON configuration files.
+JTest is a declarative JSON language and command-line tool for end-to-end
+API integration tests: arrange, act, and assert against real HTTP endpoints,
+with truthful execution evidence and human-readable reports.
 
-## Quick Start
+**Status: JTest 2.0 is being rebuilt from the ground up** on the approved
+design in [`design/jtest-2.0/`](design/jtest-2.0/), applying Program Kit
+engineering rules (deterministic generation, stable diagnostics, pinned
+dependencies, fail-closed validation). Version 1.x has been removed from the
+working tree (it remains in git history) and had no external consumers.
 
-Create your first test file `my-test.json`:
+## Building
 
-```json
-{
-    "version": "1.0",
-    "info": {
-        "name": "My First Test"
-    },
-    "env": {
-        "testValue": "hello-world"
-    },
-    "tests": [
-        {
-            "name": "Basic Variable Test",
-            "steps": [
-                {
-                    "type": "wait",
-                    "ms": 100,
-                    "assert": [
-                        {
-                            "op": "equals",
-                            "actualValue": "{{$.this.ms}}",
-                            "expectedValue": 100
-                        }
-                    ]
-                },
-                {
-                    "type": "assert",
-                    "assert": [
-                        {
-                            "op": "equals",
-                            "actualValue": "{{$.env.testValue}}",
-                            "expectedValue": "hello-world"
-                        }
-                    ]
-                }
-            ]
-        }
-    ]
-}
+Prerequisites: the exact .NET SDK pinned by [`global.json`](global.json),
+and a local Program Kit checkout (unreleased dependency, consumed as locally
+built packages — never as project references).
+
+```powershell
+# 1. Build the local Program Kit package feed (one-time per Program Kit pin)
+powershell -File tools/prepare-program-kit-feed.ps1 -ProgramKitRoot <path-to-program-kit>
+
+# 2. Restore, build, test
+dotnet restore JTest.sln --configfile NuGet.Config
+dotnet build JTest.sln -c Release --no-restore
+dotnet test JTest.sln -c Release --no-build --no-restore
 ```
 
-Build and run it:
-```bash
-# Clone and build the project
-git clone https://github.com/nexxbiz/JTest.git
-cd JTest
-dotnet build src/JTest.Cli
+The feed's exact package digests and source commit are recorded in
+[`packages/local-feed.manifest.json`](packages/local-feed.manifest.json).
 
-# Run your test
-./src/JTest.Cli/bin/Debug/net8.0/JTest run my-test.json
-```
+## Repository layout
 
-Or debug the solution:
-1. Go to launchsettings.json
-1. Replace "<path-to-root-of-project>" with the root path of your project
-1. Add or replace any environment variables
-1. Run the app with one of the launch profiles "debug tests" or "run tests"
-
-## Documentation
-
-📚 **[Complete Documentation](docs/README.md)** - Start here for comprehensive guides
-
-### Quick Links
-
-- **[Getting Started](docs/01-getting-started.md)** - Your first test in minutes
-- **[Test Structure](docs/02-test-structure.md)** - Understanding the JSON format  
-- **[HTTP Step](docs/steps/http-step.md)** - Making HTTP requests
-- **[Assertions](docs/05-assertions.md)** - Validating responses
-- **[Templates](docs/04-templates.md)** - Reusable test components
-- **[CLI Usage](docs/07-cli-usage.md)** - Command-line options
-- **[Best Practices](docs/06-best-practices.md)** - Proven patterns
-- **[Troubleshooting](docs/08-troubleshooting.md)** - Debugging help
-
-## Key Features
-
-- **JSON-Based** - Write tests using familiar JSON syntax
-- **Powerful Assertions** - Comprehensive validation with JSONPath expressions
-- **Template System** - Create reusable test components
-- **Variable System** - Environment and global variables with JSONPath access
-- **Multiple Step Types** - HTTP requests, assertions, wait steps, and templates
-- **CLI Interface** - Command-line tool for running and debugging tests
-- **Extensible** - Add custom step types and functionality
-
-## Installation
-
-### 🚀 Quick Setup (Recommended)
-
-**One-command installation:**
-
-```bash
-# Linux/macOS
-git clone https://github.com/nexxbiz/JTest.git && cd JTest && ./setup.sh
-
-# Windows (PowerShell)  
-git clone https://github.com/nexxbiz/JTest.git; cd JTest; .\setup.ps1
-```
-
-This installs the `jtest` CLI tool globally. After setup:
-
-```bash
-jtest --help                    # Show help
-jtest create "My First Test"    # Create a new test
-jtest run my-test.json         # Run tests
-```
-
-### 📦 Version Management
-
-JTest offers different release channels:
-
-- **🚀 Stable releases**: Tagged versions (v1.0.0, etc.) for production use
-- **🚧 Development builds**: Auto-generated from main branch with latest features
-
-```bash
-# Use the version manager to download/install specific versions
-./scripts/version-manager.sh list                    # List all versions
-./scripts/version-manager.sh install development    # Install latest dev build
-./scripts/version-manager.sh install latest         # Install latest stable
-```
-
-### 📦 Other Installation Methods
-
-- **[Complete Installation Guide](INSTALLATION.md)** - All installation options
-- **Docker:** `./docker.sh build && ./docker.sh run --help`
-- **From Source:** `dotnet build && ./src/JTest.Cli/bin/Debug/net8.0/JTest --help`
-- **CI/CD Integration:** See [Installation Guide](INSTALLATION.md#cicd-integration) | [GitHub Actions Setup](.github/SETUP-ACTIONS.md)
-
-## Usage Examples
-
-### Basic Variable and Assertion Test
-```json
-{
-    "version": "1.0",
-    "env": {
-        "testValue": "hello-world",
-        "timeout": 1000
-    },
-    "globals": {
-        "expectedResult": "success"
-    },
-    "tests": [
-        {
-            "name": "Variable Test",
-            "steps": [
-                {
-                    "type": "wait",
-                    "ms": "{{$.env.timeout}}",
-                    "assert": [
-                        {
-                            "op": "greaterthan",
-                            "actualValue": "{{$.this.ms}}",
-                            "expectedValue": 500
-                        }
-                    ]
-                },
-                {
-                    "type": "assert",
-                    "assert": [
-                        {
-                            "op": "equals",
-                            "actualValue": "{{$.env.testValue}}",
-                            "expectedValue": "hello-world"
-                        }
-                    ]
-                }
-            ]
-        }
-    ]
-}
-```
-
-### Using Templates
-Templates allow you to reuse common patterns. First, create `auth-template.json`:
-
-```json
-{
-    "version": "1.0",
-    "components": {
-        "templates": [
-            {
-                "name": "authenticate",
-                "description": "Generate test authentication token",
-                "params": {
-                    "username": { "type": "string", "required": true },
-                    "password": { "type": "string", "required": true }
-                },
-                "steps": [],
-                "output": {
-                    "token": "{{$.username}}-{{$.password}}-token",
-                    "authHeader": "Bearer {{$.username}}-{{$.password}}-token"
-                }
-            }
-        ]
-    }
-}
-```
-
-Then use it in your test:
-
-```json
-{
-    "version": "1.0",
-    "using": ["./auth-template.json"],
-    "tests": [
-        {
-            "name": "Template Usage Example",
-            "steps": [
-                {
-                    "type": "use",
-                    "template": "authenticate",
-                    "with": {
-                        "username": "testuser",
-                        "password": "secret123"
-                    },
-                    "save": {
-                        "$.globals.authToken": "{{$.this.token}}"
-                    }
-                },
-                {
-                    "type": "assert",
-                    "assert": [
-                        {
-                            "op": "equals",
-                            "actualValue": "{{$.globals.authToken}}",
-                            "expectedValue": "testuser-secret123-token"
-                        }
-                    ]
-                }
-            ]
-        }
-    ]
-}
-```
-
-## CLI Commands
-
-```bash
-# Run tests (using globally installed tool)
-jtest run tests.json
-
-# Run multiple test files with wildcards
-jtest run tests/*.json
-
-# Run with environment variables
-jtest run tests.json --env baseUrl=https://api.example.com
-
-# Validate test files
-jtest validate tests.json
-
-# Debug mode with verbose output
-jtest debug tests.json
-```
-
-## Project Structure
-
-```
-JTest/
-├── src/                 # Source code
-│   ├── JTest.Core/      # Core framework library
-│   ├── JTest.Cli/       # Command-line interface
-│   └── JTest.UnitTests/ # Unit tests
-└── docs/                # Documentation
-    ├── README.md        # Documentation index
-    ├── 01-getting-started.md
-    ├── 02-test-structure.md
-    ├── steps/           # Step type documentation
-    ├── templates.md
-    ├── assertions.md
-    ├── best-practices.md
-    ├── cli-usage.md
-    ├── troubleshooting.md
-    ├── ci-cd-integration.md
-    └── extensibility.md
-```
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests for new functionality
-5. Submit a pull request
-
-See [Contributing Guidelines](CONTRIBUTING.md) for more details.
+- `src/JTest.Language` — the versioned JTest language: models, JSON Schema,
+  fail-closed validation, stable diagnostics, agent-facing manifest.
+- `src/JTest.Engine` — execution: contexts, expressions, steps, assertions,
+  and the truthful execution trace.
+- `src/JTest.Reporting` — canonical result evidence and deterministic report
+  writers with the static HTML viewer.
+- `src/JTest.Cli` — the `jtest` dotnet tool.
+- `tests/` — mirrored test projects plus acceptance fixtures.
+- `design/jtest-2.0/` — the approved design, plan, and findings register.
+- `governance/` — the adopted C# source quality gate.
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT — see [LICENSE](LICENSE).

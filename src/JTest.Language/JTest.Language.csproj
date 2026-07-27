@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+    <PackageId>JTest.Language</PackageId>
+    <Description>The JTest 2.0 language: typed test-suite models, the published JSON Schema, exhaustive fail-closed validation with stable machine-readable diagnostics, and the agent-facing language manifest.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Orbyss.ProgramKit.Serialization.JSON" />
+  </ItemGroup>
+
+</Project>

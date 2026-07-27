@@ -431,3 +431,12 @@ elsa-templates.json
 .idea/
 
 .DS_Store
+
+# JTest 2.0 local Program Kit feed: generated packages stay untracked,
+# the digest manifest is committed source truth.
+!packages/
+packages/local-feed/
+!packages/local-feed.manifest.json
+
+# Default local reports folder produced by jtest run
+.jtest/

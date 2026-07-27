@@ -1,46 +1,25 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <ItemGroup>    
-    <ProjectReference Include="..\JTest.Core\JTest.Core.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
-  </ItemGroup>
-
-  <ItemGroup>
-    
-    <PackageReference Include="JetBrains.Annotations" Version="2025.2.4" />
-    
-    <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.1" />
-    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.1" />
-  </ItemGroup>
-
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net8.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-    
-    <!-- NuGet Package Information -->
-    <PackageId>JTest.Cli</PackageId>    
-    <Title>JTest CLI Tool</Title>
-    <Authors>NexxBiz</Authors>
-    <Description>Command-line interface for JTest - A universal JSON-based API testing framework. Provides tools for running, debugging, validating and exporting API tests defined in JSON format.</Description>
-    <PackageProjectUrl>https://github.com/nexxbiz/JTest</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/nexxbiz/JTest</RepositoryUrl>
-    <RepositoryType>git</RepositoryType>
-    <PackageTags>api-testing;json;testing;cli;tool;automation</PackageTags>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
-    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <IncludeSymbols>true</IncludeSymbols>
-    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
-    
-    <!-- Tool Package Configuration -->
+    <IsPackable>true</IsPackable>
+    <PackageId>JTest.Cli</PackageId>
+    <Description>The jtest command-line tool: runs, validates, and describes JTest 2.0 suites and writes truthful reports.</Description>
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>jtest</ToolCommandName>
-    <AssemblyName>JTest</AssemblyName>
+    <AssemblyName>jtest</AssemblyName>
+    <RootNamespace>JTest.Cli</RootNamespace>
   </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="JTest.Cli.Tests" />
+    <InternalsVisibleTo Include="JTest.AcceptanceTests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\JTest.Language\JTest.Language.csproj" />
+    <ProjectReference Include="..\JTest.Engine\JTest.Engine.csproj" />
+    <ProjectReference Include="..\JTest.Reporting\JTest.Reporting.csproj" />
+  </ItemGroup>
 
 </Project>

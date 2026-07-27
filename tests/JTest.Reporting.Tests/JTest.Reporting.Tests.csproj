@@ -1,0 +1,7 @@
+<Project Sdk="MSTest.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\JTest.Reporting\JTest.Reporting.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+    <PackageId>JTest.Reporting</PackageId>
+    <Description>JTest 2.0 evidence and reporting: the canonical result document, capture-time redaction support, deterministic catalog and standalone report writers, and the embedded static viewer.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\JTest.Engine\JTest.Engine.csproj" />
+    <PackageReference Include="Orbyss.ProgramKit.Artifacts" />
+  </ItemGroup>
+
+</Project>
