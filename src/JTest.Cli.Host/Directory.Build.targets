@@ -1,0 +1,20 @@
+<Project>
+  <!-- Consumer-owned wiring, preserved by tools/generate-cli-host.ps1
+       across regenerations: the generated host dispatches into the gated
+       JTest.Cli command library, and the host packs as the jtest tool. -->
+  <PropertyGroup>
+    <Version>2.0.0-alpha.1</Version>
+    <PackageVersion>2.0.0-alpha.1</PackageVersion>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>jtest</ToolCommandName>
+    <IsPackable>true</IsPackable>
+    <PackageId>JTest.Tool</PackageId>
+    <Authors>NexxBiz</Authors>
+    <Description>jtest: declarative JSON end-to-end API tests with truthful evidence and reports.</Description>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\JTest.Cli\JTest.Cli.csproj" />
+  </ItemGroup>
+</Project>

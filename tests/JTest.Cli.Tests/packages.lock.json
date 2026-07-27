@@ -124,7 +124,8 @@
         "dependencies": {
           "JTest.Engine": "[2.0.0-alpha.1, )",
           "JTest.Language": "[2.0.0-alpha.1, )",
-          "JTest.Reporting": "[2.0.0-alpha.1, )"
+          "JTest.Reporting": "[2.0.0-alpha.1, )",
+          "Microsoft.Extensions.FileSystemGlobbing": "[10.0.0, )"
         }
       },
       "jtest.engine": {
@@ -156,6 +157,12 @@
         "dependencies": {
           "Json.More.Net": "2.1.1"
         }
+      },
+      "Microsoft.Extensions.FileSystemGlobbing": {
+        "type": "CentralTransitive",
+        "requested": "[10.0.0, )",
+        "resolved": "10.0.0",
+        "contentHash": "5hfVl/e+bx1px2UkN+1xXhd3hu7Ui6ENItBzckFaRDQXfr+SHT/7qrCDrlQekCF/PBtEu2vtk87U2+gDEF8EhQ=="
       },
       "Orbyss.ProgramKit.Artifacts": {
         "type": "CentralTransitive",

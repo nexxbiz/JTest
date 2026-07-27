@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>JTest.HostInputs</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Orbyss.ProgramKit.DotNet" />
+    <PackageReference Include="Orbyss.ProgramKit.Operations" />
+    <PackageReference Include="Orbyss.ProgramKit.Serialization.JSON" />
+    <PackageReference Include="Orbyss.ProgramKit.Artifacts" />
+  </ItemGroup>
+
+</Project>

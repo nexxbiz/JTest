@@ -1,0 +1,173 @@
+{
+  "version": 2,
+  "dependencies": {
+    "net10.0": {
+      "Orbyss.ProgramKit.Artifacts": {
+        "type": "Direct",
+        "requested": "[0.1.0-alpha.1, )",
+        "resolved": "0.1.0-alpha.1",
+        "contentHash": "itpgL1havCrz48khDXbl3+q5bh1YCVPp2VkPMWetYkNmL8g7Q7hZk7h5Wl7Cyf6JQSZJJ+ytPWHSk+brj9efBA=="
+      },
+      "Orbyss.ProgramKit.DotNet": {
+        "type": "Direct",
+        "requested": "[0.1.0-alpha.1, )",
+        "resolved": "0.1.0-alpha.1",
+        "contentHash": "jGGWrz0GRnTZlNUQPl3VW/tl8fiRHr6yO5YENgQSRD12lKr6jVWTWqH/Vo38p8yTRA8wznSPrHUeChMAH1Komg==",
+        "dependencies": {
+          "Orbyss.ProgramKit.Architecture": "[0.1.0-alpha.1]",
+          "Orbyss.ProgramKit.Operations": "[0.1.0-alpha.1]",
+          "Orbyss.ProgramKit.Planning": "[0.1.0-alpha.1]",
+          "Orbyss.ProgramKit.Quality": "[0.1.0-alpha.1]",
+          "Orbyss.ProgramKit.SecretResolution": "[0.1.0-alpha.1]",
+          "Orbyss.ProgramKit.Serialization.JSON": "[0.1.0-alpha.1]",
+          "Orbyss.ProgramKit.Tasks": "[0.1.0-alpha.1]",
+          "Orbyss.ProgramKit.Tasks.Core": "[0.1.0-alpha.1]",
+          "Orbyss.ProgramKit.Tasks.Schedules": "[0.1.0-alpha.1]",
+          "Orbyss.ProgramKit.Workbench": "[0.1.0-alpha.1]"
+        }
+      },
+      "Orbyss.ProgramKit.Operations": {
+        "type": "Direct",
+        "requested": "[0.1.0-alpha.1, )",
+        "resolved": "0.1.0-alpha.1",
+        "contentHash": "fl3QHO4my12FKFSACmBSzlwDZtGHRfTMT9bzsV38zdpl5krk5QlE81FdQSgzjbsSrdfghYPXT7AuZwbDIFElDQ==",
+        "dependencies": {
+          "Orbyss.ProgramKit.Artifacts": "[0.1.0-alpha.1]"
+        }
+      },
+      "Orbyss.ProgramKit.Serialization.JSON": {
+        "type": "Direct",
+        "requested": "[0.1.0-alpha.1, )",
+        "resolved": "0.1.0-alpha.1",
+        "contentHash": "gFTYU9sOGWfUuU5rKJIVoUxxmGVoUD7WDu+Vtug6IqjDPXZYRcY1B/U/kuOiX6rHL4uuxrTmRlSyAF7S7DDnZw==",
+        "dependencies": {
+          "Microsoft.Extensions.DependencyInjection.Abstractions": "[10.0.10]",
+          "Orbyss.ProgramKit.Artifacts": "[0.1.0-alpha.1]"
+        }
+      },
+      "Humanizer.Core": {
+        "type": "Transitive",
+        "resolved": "3.0.10",
+        "contentHash": "yZIhtw8sYuvsONzQbZxWpR60tMWYHXoo0DL6nyOqSFiU5POjBTSEyWFpTQtJEZuy+oqiYTXKXY/Mjx7KnqIQFw=="
+      },
+      "Json.More.Net": {
+        "type": "Transitive",
+        "resolved": "3.0.1",
+        "contentHash": "fRctF2J2SILYG6wqP21drmeEODmCVkVQ/b3MndDu2fT1swfySyUgq7ePCk+aENGlDcIm05fyfjh9vcuqDEfv3w=="
+      },
+      "JsonPointer.Net": {
+        "type": "Transitive",
+        "resolved": "7.0.1",
+        "contentHash": "5C497yxfktYFsqxKG+GUQPsMvBqIjzLkqtDEdMGsnBpl3/OB8DOvTo7LEyRX7AVc1kVVj0IX5zhmLrlbvAYEnw==",
+        "dependencies": {
+          "Humanizer.Core": "3.0.10",
+          "Json.More.Net": "3.0.1"
+        }
+      },
+      "Microsoft.Extensions.DependencyInjection.Abstractions": {
+        "type": "Transitive",
+        "resolved": "10.0.10",
+        "contentHash": "z/2xXlFw2aLGjHyEm6E0tQ+In6VfzQzTrtArbQ2c0TQE16ZbyDCMGPvaUT9I0s8rgy9sRWlU2P9waW37qV04qA=="
+      },
+      "Orbyss.ProgramKit.Architecture": {
+        "type": "Transitive",
+        "resolved": "0.1.0-alpha.1",
+        "contentHash": "lTcxa+k+pLkCVJXKg7x+8N9WEniKawdXMqdte2V9IGdH4WnzGkelWIbfHFg1jvhFcBi/5fV/PTcQyxAAVIEiGg==",
+        "dependencies": {
+          "Orbyss.ProgramKit.Artifacts": "[0.1.0-alpha.1]"
+        }
+      },
+      "Orbyss.ProgramKit.Development": {
+        "type": "Transitive",
+        "resolved": "0.1.0-alpha.1",
+        "contentHash": "N67JA/s8dkrSmepet29FX6SUzBrKzCvGWO2wR7anlGTbpCgQcgVprSKpYTxzcfWax6QH1GzimhrNH43oX2Gvow==",
+        "dependencies": {
+          "Orbyss.ProgramKit.Artifacts": "[0.1.0-alpha.1]",
+          "Orbyss.ProgramKit.Planning": "[0.1.0-alpha.1]"
+        }
+      },
+      "Orbyss.ProgramKit.Modularity": {
+        "type": "Transitive",
+        "resolved": "0.1.0-alpha.1",
+        "contentHash": "uCUj8YTqwMYfVx8DnfEvCvpkWDZyEFc9n+isQYpr9+TOqANxAPVy727O29rnstWhaC2yC9Ea5Jw1PJ4JnvIRKQ==",
+        "dependencies": {
+          "Orbyss.ProgramKit.Artifacts": "[0.1.0-alpha.1]"
+        }
+      },
+      "Orbyss.ProgramKit.Planning": {
+        "type": "Transitive",
+        "resolved": "0.1.0-alpha.1",
+        "contentHash": "xgKGhSIRlQIygcF/t5AW6WqteciMzq632SiipprgzQmt0zIElhPTjoUMt8ZM26Gf3TmNlldXLb6GjW0RbuJaXQ==",
+        "dependencies": {
+          "Orbyss.ProgramKit.Artifacts": "[0.1.0-alpha.1]",
+          "Orbyss.ProgramKit.Quality": "[0.1.0-alpha.1]"
+        }
+      },
+      "Orbyss.ProgramKit.Quality": {
+        "type": "Transitive",
+        "resolved": "0.1.0-alpha.1",
+        "contentHash": "QWsRV6GfQtBHbHI3Lih8ftoxSDRwknoc09UiQUMg1DjPXiX07BjojCTHY/VR3JO6+fmZWLnx2qj43ZbGtMWcfg==",
+        "dependencies": {
+          "Orbyss.ProgramKit.Artifacts": "[0.1.0-alpha.1]"
+        }
+      },
+      "Orbyss.ProgramKit.SecretResolution": {
+        "type": "Transitive",
+        "resolved": "0.1.0-alpha.1",
+        "contentHash": "FTC1V2kYEUJBDD66sNJeGNyiiPR2i59F2bH4Xq2jDarTfe8uzdLGzw7IPKhWl1WInDRAdNmGqN7OBIKjFlNoPA==",
+        "dependencies": {
+          "Orbyss.ProgramKit.Artifacts": "[0.1.0-alpha.1]"
+        }
+      },
+      "Orbyss.ProgramKit.Tasks": {
+        "type": "Transitive",
+        "resolved": "0.1.0-alpha.1",
+        "contentHash": "x5Ir8/psb6hdHdi786pcI5949yLAbLvAYZTUPoqqDzTDK7QfYwOnfrZKIgVF6s+JPZUb6mGzjCrYi3kExZglDg==",
+        "dependencies": {
+          "Microsoft.Extensions.DependencyInjection.Abstractions": "[10.0.10]",
+          "Orbyss.ProgramKit.Modularity": "[0.1.0-alpha.1]",
+          "Orbyss.ProgramKit.Tasks.Core": "[0.1.0-alpha.1]"
+        }
+      },
+      "Orbyss.ProgramKit.Tasks.Core": {
+        "type": "Transitive",
+        "resolved": "0.1.0-alpha.1",
+        "contentHash": "bUFEWRg4yl/s9nvCbyKKTlUbRvOxD8tjLB1Fmc205xDIttJLIahDXmVYsJuuY78pCmHTU6pFdX2Q6HHh1pJ8cw==",
+        "dependencies": {
+          "Orbyss.ProgramKit.Artifacts": "[0.1.0-alpha.1]"
+        }
+      },
+      "Orbyss.ProgramKit.Tasks.Schedules": {
+        "type": "Transitive",
+        "resolved": "0.1.0-alpha.1",
+        "contentHash": "yWIL4YFXAuR2wNNt6u4cpbFM71CODijUiV2xQZY+heTkpvuePbgbte7FyacrPtJfGR8AP5uh+e8FkLaYmwdbOw==",
+        "dependencies": {
+          "Orbyss.ProgramKit.Tasks.Core": "[0.1.0-alpha.1]"
+        }
+      },
+      "Orbyss.ProgramKit.Workbench": {
+        "type": "Transitive",
+        "resolved": "0.1.0-alpha.1",
+        "contentHash": "bCwdSX8QOorjvX+t24ILqQECbXloFGclMm9yhigc5KcbmUuv309J1cY7xlaZ8qbLU2sdB60+sPSnjpmgLKoDLg==",
+        "dependencies": {
+          "JsonSchema.Net": "[9.3.0]",
+          "Orbyss.ProgramKit.Architecture": "[0.1.0-alpha.1]",
+          "Orbyss.ProgramKit.Artifacts": "[0.1.0-alpha.1]",
+          "Orbyss.ProgramKit.Development": "[0.1.0-alpha.1]",
+          "Orbyss.ProgramKit.Planning": "[0.1.0-alpha.1]",
+          "Orbyss.ProgramKit.Quality": "[0.1.0-alpha.1]",
+          "Orbyss.ProgramKit.Serialization.JSON": "[0.1.0-alpha.1]"
+        }
+      },
+      "JsonSchema.Net": {
+        "type": "CentralTransitive",
+        "requested": "[9.3.0, )",
+        "resolved": "9.3.0",
+        "contentHash": "d780/OM10Vi3ZwXtWsdjSwg4T2Gv6PEs4QO1TOcfwYJsT3IpkV6u6RUJYDxNFifc4jsNeIk+0RgRh1X38R5ySA==",
+        "dependencies": {
+          "JsonPointer.Net": "7.0.1"
+        }
+      }
+    }
+  }
+}

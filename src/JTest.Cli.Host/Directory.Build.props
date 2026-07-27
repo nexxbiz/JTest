@@ -1,0 +1,15 @@
+<Project>
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>14.0</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <CodeAnalysisTreatWarningsAsErrors>true</CodeAnalysisTreatWarningsAsErrors>
+    <MSBuildTreatWarningsAsErrors>true</MSBuildTreatWarningsAsErrors>
+    <RestoreTreatWarningsAsErrors>true</RestoreTreatWarningsAsErrors>
+    <NoWarn>__ProgramKitNoWarningSuppression__</NoWarn>
+    <WarningsNotAsErrors>__ProgramKitNoWarningDemotion__</WarningsNotAsErrors>
+    <TargetFrameworks></TargetFrameworks>
+  </PropertyGroup>
+</Project>

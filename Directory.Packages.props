@@ -5,8 +5,11 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageVersion Include="JsonPath.Net" Version="2.1.1" />
+    <PackageVersion Include="Microsoft.Extensions.FileSystemGlobbing" Version="10.0.0" />
     <PackageVersion Include="JsonSchema.Net" Version="9.3.0" />
     <PackageVersion Include="Orbyss.ProgramKit.Artifacts" Version="0.1.0-alpha.1" />
+    <PackageVersion Include="Orbyss.ProgramKit.DotNet" Version="0.1.0-alpha.1" />
+    <PackageVersion Include="Orbyss.ProgramKit.Operations" Version="0.1.0-alpha.1" />
     <PackageVersion Include="Orbyss.ProgramKit.Serialization.JSON" Version="0.1.0-alpha.1" />
   </ItemGroup>
 </Project>

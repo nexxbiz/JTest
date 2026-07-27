@@ -1,14 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
     <IsPackable>true</IsPackable>
     <PackageId>JTest.Cli</PackageId>
-    <Description>The jtest command-line tool: runs, validates, and describes JTest 2.0 suites and writes truthful reports.</Description>
-    <PackAsTool>true</PackAsTool>
-    <ToolCommandName>jtest</ToolCommandName>
-    <AssemblyName>jtest</AssemblyName>
-    <RootNamespace>JTest.Cli</RootNamespace>
+    <Description>The jtest command implementations: suite discovery and loading, run/validate/describe execution with evidence-based exit codes, report location printing, and best-effort report opening. Hosted by the generated console host in JTest.Cli.Host.</Description>
   </PropertyGroup>
 
   <ItemGroup>
@@ -20,6 +15,7 @@
     <ProjectReference Include="..\JTest.Language\JTest.Language.csproj" />
     <ProjectReference Include="..\JTest.Engine\JTest.Engine.csproj" />
     <ProjectReference Include="..\JTest.Reporting\JTest.Reporting.csproj" />
+    <PackageReference Include="Microsoft.Extensions.FileSystemGlobbing" />
   </ItemGroup>
 
 </Project>

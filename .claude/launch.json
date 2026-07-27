@@ -1,0 +1,20 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "report-viewer",
+      "runtimeExecutable": "dotnet",
+      "runtimeArgs": [
+        "run",
+        "--project",
+        "C:\\Users\\JoeyBarten\\AppData\\Local\\Temp\\claude\\C--Users-JoeyBarten-source-ai-era-JTest\\1eb7defa-5cdf-472b-97f3-c547fb1fa231\\scratchpad\\static-server",
+        "-c",
+        "Release",
+        "--",
+        "C:\\Users\\JoeyBarten\\source\\ai-era\\JTest\\.jtest\\reports",
+        "8321"
+      ],
+      "port": 8321
+    }
+  ]
+}

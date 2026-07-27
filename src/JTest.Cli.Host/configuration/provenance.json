@@ -1,0 +1,6 @@
+{
+  "design": "pkid:design:program-kit:host-tooling@1.3.0#sha256:a9ad015470f3996ea09811d57007ec4ab90e3b2cbff91245e625bfdd82ad0d57",
+  "plan": "pkid:plan:program-kit:host-tooling@1.3.0#sha256:8144a67d5d919211f87a2d30a4d7a870f299c126e138986c6f079e133734f9a5",
+  "workUnit": "W020",
+  "host": "pkid:host:jtest:cli"
+}

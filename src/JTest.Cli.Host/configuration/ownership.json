@@ -1,0 +1,17 @@
+{
+  "generated": [
+    "ProgramKitGenerated/Configuration/",
+    "configuration/generated/",
+    "configuration/examples/",
+    "configuration/environment-map.json",
+    "configuration/key-per-file-map.json",
+    "configuration/provider-bindings.json",
+    "configuration/validation-report.json",
+    "configuration/provenance.json",
+    "configuration/ownership.json"
+  ],
+  "human": [
+    "configuration/developer/appsettings.Development.json"
+  ],
+  "collisionPolicy": "fail-never-merge-or-overwrite"
+}

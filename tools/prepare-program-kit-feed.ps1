@@ -50,6 +50,8 @@ $packageProjects = @(
     'src/Orbyss.ProgramKit.Development/Orbyss.ProgramKit.Development.csproj',
     'src/Orbyss.ProgramKit.DotNet/Orbyss.ProgramKit.DotNet.csproj',
     'src/Orbyss.ProgramKit.Modularity/Orbyss.ProgramKit.Modularity.csproj',
+    'src/Orbyss.ProgramKit.Operations/Orbyss.ProgramKit.Operations.csproj',
+    'src/Orbyss.ProgramKit.SecretResolution/Orbyss.ProgramKit.SecretResolution.csproj',
     'src/Orbyss.ProgramKit.Modularity.InProcess/Orbyss.ProgramKit.Modularity.InProcess.csproj',
     'src/Orbyss.ProgramKit.Planning/Orbyss.ProgramKit.Planning.csproj',
     'src/Orbyss.ProgramKit.Quality/Orbyss.ProgramKit.Quality.csproj',

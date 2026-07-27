@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>GeneratedHost</RootNamespace>
+    <AssemblyName>GeneratedHost</AssemblyName>
+    <EnableConfigurationBindingGenerator>true</EnableConfigurationBindingGenerator>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="CShells" Version="[0.0.28]" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="[10.0.10]" />
+  </ItemGroup>
+</Project>
