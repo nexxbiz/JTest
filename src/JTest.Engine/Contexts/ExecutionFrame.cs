@@ -91,12 +91,17 @@ public sealed class ExecutionFrame
         return frame;
     }
 
-    /// <summary>Records a completed step result as <c>$.this</c> and under its id.</summary>
+    /// <summary>Records a completed step result under its id and, for result-producing steps, as <c>$.this</c>.</summary>
     /// <param name="stepId">Optional frame-unique step id.</param>
     /// <param name="result">The step result value.</param>
-    public void SetStepResult(string? stepId, JsonNode? result)
+    /// <param name="updateThis">Whether the step produces data (<c>assert</c> and <c>wait</c> are transparent to <c>$.this</c>).</param>
+    public void SetStepResult(string? stepId, JsonNode? result, bool updateThis = true)
     {
-        This = result;
+        if (updateThis)
+        {
+            This = result;
+        }
+
         if (stepId is not null)
         {
             stepResults[stepId] = result;

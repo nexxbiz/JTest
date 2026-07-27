@@ -108,12 +108,15 @@ internal sealed class StepRunner
                 throw new InvalidOperationException($"Unknown step definition '{step.Type}'.");
         }
 
-        if (node.Outcome is TraceOutcome.Error or TraceOutcome.TimedOut or TraceOutcome.Cancelled)
+        if (node.Outcome != TraceOutcome.Passed)
         {
             return;
         }
 
-        frame.SetStepResult(step.Id, result);
+        frame.SetStepResult(
+            step.Id,
+            result,
+            updateThis: step is not (AssertStepDefinition or WaitStepDefinition));
         ApplySaves(step, frame, node);
         EvaluateAssertions(step, frame, node);
 

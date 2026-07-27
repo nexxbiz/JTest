@@ -31,7 +31,7 @@
     { "name": "globals", "writable": true, "visibleInTemplates": true, "meaning": "Suite-scoped mutable values; persist across cases and dataset runs in file order. Templates may read but never write them." },
     { "name": "ctx", "writable": true, "visibleInTemplates": true, "meaning": "Frame-local scratch space; loops share their case frame, templates get a fresh one." },
     { "name": "case", "writable": false, "visibleInTemplates": true, "meaning": "The current dataset row." },
-    { "name": "this", "writable": false, "visibleInTemplates": true, "meaning": "The result of the previous step in the current frame." }
+    { "name": "this", "writable": false, "visibleInTemplates": true, "meaning": "The result of the most recent result-producing step (http, use, for, while) in the current frame; assert and wait steps are transparent and do not change it." }
   ],
   "saveTargets": {
     "allowed": ["$.ctx.<name>", "$.globals.<name>"],
