@@ -16,11 +16,15 @@
       },
       {
         "form": "${NAME}",
-        "meaning": "Substitutes a process environment variable when the suite is loaded. Names use letters, digits, and underscores.",
-        "failure": "An undefined variable fails loading; values are treated as sensitive by default."
+        "meaning": "Substitutes a process environment variable when the suite is loaded. Names use letters, digits, and underscores. Permitted only inside suite env and globals values.",
+        "failure": "An undefined variable fails loading (JT0602); substituted values are treated as sensitive by default."
       }
     ],
-    "maxNestingDepth": 8
+    "rules": [
+      "Tokens do not nest.",
+      "Resolved values are never re-interpreted as expressions: data returned by an API cannot inject tokens.",
+      "An unresolvable path fails the step with JT0601; there is no silent null."
+    ]
   },
   "scopes": [
     { "name": "env", "writable": false, "visibleInTemplates": true, "meaning": "Immutable run-level values from the suite and CLI." },

@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\JTest.Language\JTest.Language.csproj" />
+    <PackageReference Include="JsonPath.Net" />
   </ItemGroup>
 
 </Project>

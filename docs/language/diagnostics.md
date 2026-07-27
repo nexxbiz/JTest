@@ -39,5 +39,11 @@ internal.
 | JT0502 | error | An assertion is missing an operand its operator requires. |
 | JT9001 | error | Validation itself failed unexpectedly; the document is treated as invalid. |
 
-Execution diagnostics (`JT06xx` runtime expression/step failures, `JT9xxx`
-engine errors) are registered here as they ship with the engine work units.
+Execution-time codes (shipped by the engine):
+
+| Code | Severity | Meaning |
+| --- | --- | --- |
+| JT0601 | error | An expression path resolved to nothing. |
+| JT0602 | error | A `${NAME}` token names an undefined process environment variable. |
+| JT0603 | error | A resolved value has the wrong type for its use. |
+| JT9101 | error | The engine failed unexpectedly; the affected node is an error, never a pass. |
