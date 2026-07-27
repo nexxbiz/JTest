@@ -1,7 +1,7 @@
 {
   "reviewSet": "jtest-2.0-design",
   "reviewSetVersion": "1.0.0",
-  "status": "awaiting-human-approval",
+  "status": "approved",
   "repository": "JTest",
   "branch": "design/jtest-2-review",
   "baseCommit": "79d58ba",
@@ -23,16 +23,23 @@
       "digest": "sha256:964617d0b25b75e9ed531599c42a9e6de9315d18fbd36a577ac4a388f1d54465"
     }
   ],
-  "openDecisions": ["D1", "D2", "D3", "D4"],
+  "openDecisions": [],
+  "decisionRecord": {
+    "D1": "generated Open Console host via backed Program Kit operation (recommended option)",
+    "D2": "source-gate rules adopted as JTest governance, enforced via .editorconfig + analyzers + review (recommended option)",
+    "D3": "delete 1.x source at JT2-W010 in one reviewable commit (recommended option)",
+    "D4": "fixed step catalog; public extensibility deferred (recommended option)"
+  },
   "validation": {
     "backedProgramKitOperations": "not-applicable",
     "note": "The Program Kit CLI validate/normalize/digest/render operations act on typed pkid-schema artifacts; this review set is prose design documentation, so those checks do not apply. Digests above were computed with SHA-256 over exact current bytes. No repository source files outside design/jtest-2.0/ were modified during the design flow.",
     "groundingEvidence": "Every 1.x finding cites file:line verified against branch bytes; Program Kit conventions cite files in the program-kit checkout read as read-only source truth."
   },
   "approval": {
-    "decision": null,
-    "decidedBy": null,
-    "decidedOnDate": null,
-    "note": "To approve, the human records a decision against the exact digests above; any byte change to an artifact supersedes this manifest."
+    "decision": "approved",
+    "decidedBy": "Joey Barten (joey.barten@nexxbiz.io)",
+    "decidedOnDate": "2026-07-27",
+    "decisionStatement": "Human approved the exact review set at the digests above, accepting all recommended options for D1-D4, and explicitly authorized implementation.",
+    "note": "Approval binds to the exact artifact digests above; any byte change to a bound artifact supersedes this approval."
   }
 }
