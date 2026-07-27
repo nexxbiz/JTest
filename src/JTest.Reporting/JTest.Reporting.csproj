@@ -14,6 +14,9 @@
 
   <ItemGroup>
     <EmbeddedResource Include="..\..\schemas\jtest-result-2.0.0.schema.json" Link="Schemas\jtest-result-2.0.0.schema.json" LogicalName="JTest.Reporting.Schemas.jtest-result-2.0.0.schema.json" />
+    <EmbeddedResource Include="Viewer\index.html" LogicalName="JTest.Reporting.Viewer.index.html" />
+    <EmbeddedResource Include="Viewer\viewer.css" LogicalName="JTest.Reporting.Viewer.viewer.css" />
+    <EmbeddedResource Include="Viewer\viewer.js" LogicalName="JTest.Reporting.Viewer.viewer.js" />
   </ItemGroup>
 
 </Project>
