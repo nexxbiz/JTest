@@ -1,0 +1,58 @@
+{
+  "jtest": "2.0",
+  "info": { "name": "Order lifecycle", "description": "Login, create an order, poll until ready, verify stock." },
+  "using": [ "auth.templates.json" ],
+  "env": { "baseUrl": "http://localhost:0" },
+  "tests": [
+    {
+      "name": "order lifecycle",
+      "steps": [
+        {
+          "type": "use",
+          "id": "login",
+          "name": "Authenticate",
+          "template": "authenticate",
+          "with": { "baseUrl": "{{$.env.baseUrl}}", "user": "{{$.case.user}}" }
+        },
+        {
+          "type": "http",
+          "id": "create",
+          "name": "Create order",
+          "method": "POST",
+          "url": "{{$.env.baseUrl}}/orders",
+          "headers": { "Authorization": "Bearer {{$.login.token}}" },
+          "body": { "sku": "{{$.case.sku}}" },
+          "assert": [ { "op": "equals", "actual": "{{$.this.response.status}}", "expected": 201 } ]
+        },
+        {
+          "type": "while",
+          "name": "Poll until ready",
+          "condition": { "op": "notEquals", "actual": "{{$.this.response.body.state}}", "expected": "ready" },
+          "timeoutMs": 30000,
+          "delayMs": 25,
+          "steps": [
+            { "type": "http", "method": "GET", "url": "{{$.env.baseUrl}}/orders/{{$.create.response.body.id}}" }
+          ]
+        },
+        {
+          "type": "for",
+          "name": "Check stock",
+          "items": [ "widget", "gadget" ],
+          "as": "sku",
+          "steps": [
+            {
+              "type": "http",
+              "method": "GET",
+              "url": "{{$.env.baseUrl}}/stock/{{$.sku}}",
+              "assert": [ { "op": "greaterOrEqual", "actual": "{{$.this.response.body.available}}", "expected": 1 } ]
+            }
+          ]
+        }
+      ],
+      "datasets": [
+        { "name": "alice", "case": { "user": "alice", "sku": "widget" } },
+        { "name": "bob", "case": { "user": "bob", "sku": "gadget" } }
+      ]
+    }
+  ]
+}

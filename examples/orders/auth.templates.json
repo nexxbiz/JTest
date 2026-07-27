@@ -1,0 +1,27 @@
+{
+  "jtest": "2.0",
+  "components": {
+    "templates": [
+      {
+        "name": "authenticate",
+        "description": "Logs in and exports the bearer token.",
+        "params": {
+          "baseUrl": { "type": "string", "required": true, "description": "API origin." },
+          "user": { "type": "string", "default": "demo" }
+        },
+        "steps": [
+          {
+            "type": "http",
+            "name": "POST /auth/login",
+            "method": "POST",
+            "url": "{{$.baseUrl}}/auth/login",
+            "body": { "user": "{{$.user}}" },
+            "save": { "$.ctx.token": "{{$.this.response.body.token}}" },
+            "assert": [ { "op": "equals", "actual": "{{$.this.response.status}}", "expected": 200 } ]
+          }
+        ],
+        "output": { "token": "{{$.ctx.token}}" }
+      }
+    ]
+  }
+}

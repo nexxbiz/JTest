@@ -1,0 +1,23 @@
+{
+  "jtest": "2.0",
+  "info": { "name": "Redaction", "description": "Proves secrets never enter the evidence." },
+  "env": { "baseUrl": "http://localhost:0", "apiToken": "placeholder" },
+  "secrets": [ "$.env.apiToken" ],
+  "tests": [
+    {
+      "name": "echoed credentials are redacted",
+      "steps": [
+        {
+          "type": "http",
+          "name": "GET /echo-auth",
+          "method": "GET",
+          "url": "{{$.env.baseUrl}}/echo-auth",
+          "headers": { "Authorization": "Bearer {{$.env.apiToken}}" },
+          "assert": [
+            { "op": "equals", "actual": "{{$.this.response.body.authorization}}", "expected": "Bearer {{$.env.apiToken}}" }
+          ]
+        }
+      ]
+    }
+  ]
+}
