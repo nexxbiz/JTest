@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\JTest.Reporting\JTest.Reporting.csproj" />
+    <PackageReference Include="JsonSchema.Net" />
   </ItemGroup>
 
 </Project>

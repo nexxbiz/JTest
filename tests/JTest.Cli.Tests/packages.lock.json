@@ -144,7 +144,8 @@
         "type": "Project",
         "dependencies": {
           "JTest.Engine": "[2.0.0-alpha.1, )",
-          "Orbyss.ProgramKit.Artifacts": "[0.1.0-alpha.1, )"
+          "Orbyss.ProgramKit.Artifacts": "[0.1.0-alpha.1, )",
+          "Orbyss.ProgramKit.Serialization.JSON": "[0.1.0-alpha.1, )"
         }
       },
       "JsonPath.Net": {

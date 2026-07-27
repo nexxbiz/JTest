@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:jtest:schemas:result:2.0.0",
+  "title": "JTest run result document",
+  "description": "The canonical evidence of one JTest run. Every report is a projection of this document.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["result", "resultVersion", "language", "toolVersion", "runId", "startUtc", "durationMs", "outcome", "counts", "trace"],
+  "properties": {
+    "result": { "const": "jtest-run" },
+    "resultVersion": { "const": "2.0.0" },
+    "language": { "const": "2.0" },
+    "toolVersion": { "type": "string", "minLength": 1 },
+    "runId": { "type": "string", "pattern": "^[0-9]{8}T[0-9]{9}Z-[0-9a-f]{8}$" },
+    "startUtc": { "$ref": "#/$defs/utcInstant" },
+    "durationMs": { "type": "number", "minimum": 0 },
+    "outcome": { "$ref": "#/$defs/outcome" },
+    "counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["caseRuns", "assertions"],
+      "properties": {
+        "caseRuns": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["total", "passed", "failed", "error", "skipped", "cancelled", "timedOut"],
+          "properties": {
+            "total": { "type": "integer", "minimum": 0 },
+            "passed": { "type": "integer", "minimum": 0 },
+            "failed": { "type": "integer", "minimum": 0 },
+            "error": { "type": "integer", "minimum": 0 },
+            "skipped": { "type": "integer", "minimum": 0 },
+            "cancelled": { "type": "integer", "minimum": 0 },
+            "timedOut": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "assertions": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["total", "failed"],
+          "properties": {
+            "total": { "type": "integer", "minimum": 0 },
+            "failed": { "type": "integer", "minimum": 0 }
+          }
+        }
+      }
+    },
+    "trace": { "$ref": "#/$defs/traceNode" }
+  },
+  "$defs": {
+    "utcInstant": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$"
+    },
+    "outcome": {
+      "enum": ["passed", "failed", "error", "skipped", "cancelled", "timedOut"]
+    },
+    "kind": {
+      "enum": ["run", "suite", "case", "datasetRun", "step", "templateInvocation", "iteration", "assertion"]
+    },
+    "diagnostic": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "severity", "message", "source", "pointer"],
+      "properties": {
+        "code": { "type": "string", "pattern": "^JT[0-9]{4}$" },
+        "severity": { "enum": ["error", "warning"] },
+        "message": { "type": "string" },
+        "source": { "type": "string" },
+        "pointer": { "type": "string" },
+        "hint": { "type": "string" }
+      }
+    },
+    "traceNode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "kind", "ordinal", "outcome", "startUtc", "durationMs"],
+      "properties": {
+        "path": { "type": "string" },
+        "kind": { "$ref": "#/$defs/kind" },
+        "ordinal": { "type": "integer", "minimum": 1 },
+        "iterationIndex": { "type": "integer", "minimum": 0 },
+        "stepType": { "enum": ["http", "assert", "wait", "use", "for", "while"] },
+        "stepId": { "type": "string" },
+        "name": { "type": "string" },
+        "template": { "type": "string" },
+        "dataset": { "type": "string" },
+        "outcome": { "$ref": "#/$defs/outcome" },
+        "startUtc": { "$ref": "#/$defs/utcInstant" },
+        "durationMs": { "type": "number", "minimum": 0 },
+        "diagnostics": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/diagnostic" }
+        },
+        "evidence": { "type": "object" },
+        "children": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/traceNode" }
+        }
+      }
+    }
+  }
+}

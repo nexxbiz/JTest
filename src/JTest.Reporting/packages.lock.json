@@ -8,6 +8,16 @@
         "resolved": "0.1.0-alpha.1",
         "contentHash": "itpgL1havCrz48khDXbl3+q5bh1YCVPp2VkPMWetYkNmL8g7Q7hZk7h5Wl7Cyf6JQSZJJ+ytPWHSk+brj9efBA=="
       },
+      "Orbyss.ProgramKit.Serialization.JSON": {
+        "type": "Direct",
+        "requested": "[0.1.0-alpha.1, )",
+        "resolved": "0.1.0-alpha.1",
+        "contentHash": "gFTYU9sOGWfUuU5rKJIVoUxxmGVoUD7WDu+Vtug6IqjDPXZYRcY1B/U/kuOiX6rHL4uuxrTmRlSyAF7S7DDnZw==",
+        "dependencies": {
+          "Microsoft.Extensions.DependencyInjection.Abstractions": "[10.0.10]",
+          "Orbyss.ProgramKit.Artifacts": "[0.1.0-alpha.1]"
+        }
+      },
       "Json.More.Net": {
         "type": "Transitive",
         "resolved": "2.1.1",
@@ -38,16 +48,6 @@
         "contentHash": "HYq/rUkfpChS2O1tnkR0ocBxHL60jZDORNXd6nO3D6I21MA1M7Idvd0m31X9yLkriNSatAih0Ho3QRDvU/G0cg==",
         "dependencies": {
           "Json.More.Net": "2.1.1"
-        }
-      },
-      "Orbyss.ProgramKit.Serialization.JSON": {
-        "type": "CentralTransitive",
-        "requested": "[0.1.0-alpha.1, )",
-        "resolved": "0.1.0-alpha.1",
-        "contentHash": "gFTYU9sOGWfUuU5rKJIVoUxxmGVoUD7WDu+Vtug6IqjDPXZYRcY1B/U/kuOiX6rHL4uuxrTmRlSyAF7S7DDnZw==",
-        "dependencies": {
-          "Microsoft.Extensions.DependencyInjection.Abstractions": "[10.0.10]",
-          "Orbyss.ProgramKit.Artifacts": "[0.1.0-alpha.1]"
         }
       }
     }
