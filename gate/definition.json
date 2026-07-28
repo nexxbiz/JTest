@@ -1,0 +1,274 @@
+{
+  "identity": "pkid:gate:jtest:csharp",
+  "version": "1.0.0",
+  "revisionDigest": "sha256:a22cd99a6ba4c3d533372ca391c348a236b0b7137eb6bef42f471279b6c2fc30",
+  "ownerId": "pkid:domain:jtest:cli",
+  "consumerPolicyId": "pkid:policy:jtest:csharp-source-quality-gate",
+  "disposition": {
+    "identity": "pkid:static-conformance-disposition:jtest:cli-host-rebuild",
+    "version": "1.0.0",
+    "digest": "sha256:26798e0d5a6e09aecc156557dd7723dbf4c98eb3e93f2dfb49c4717f67145f3a"
+  },
+  "compatibilityPolicy": {
+    "identity": "pkid:policy:jtest:cli-compatibility",
+    "version": "1.0.0",
+    "digest": "sha256:c6a5add35bf8d0374a2d902becde38ee24878e9a656063f12e119e3b218d9c53"
+  },
+  "semanticOwners": [
+    {
+      "identity": "pkid:domain:program-kit:generated-source-contract",
+      "kind": "program-kit-public-contract",
+      "governingContract": {
+        "identity": "pkid:contract:program-kit:generated-source-convention",
+        "version": "1.0.0",
+        "digest": "sha256:32beba7214f2b52af50eb03c8339203db83946ebd1d8ef73214368410c1f989c"
+      },
+      "diagnosticPrefix": "PKCC"
+    }
+  ],
+  "analyzerComponents": [
+    {
+      "identity": "pkid:manifest:program-kit:generated-source-contract-analyzer",
+      "kind": "program-kit-public-contract",
+      "semanticOwnerId": "pkid:domain:program-kit:generated-source-contract",
+      "artifact": {
+        "kind": "analyzer-package",
+        "repositoryRelativeProjectPath": null,
+        "package": {
+          "identity": "pkid:package:program-kit:generated-source-contract-analyzers",
+          "version": "0.1.0-alpha.1",
+          "digest": "sha256:2a35edf51f75b14128676708ae47400d6c4288b9fe66e262190896513863f5cf"
+        },
+        "assemblyFileName": "Orbyss.ProgramKit.GeneratedSourceContract.Analyzers.dll",
+        "assemblyDigest": "sha256:7b2780dba03c8a94d1024da8953fd7b21f278b7f1783d4c190b35c0a16b8f5e0",
+        "isPackable": true,
+        "hasRuntimeAssets": false,
+        "hasBuildTransitiveAssets": false
+      },
+      "ruleIds": ["pkid:rule:program-kit:generated-source-convention"],
+      "receiptGeneratorRevisions": [
+        {
+          "identity": "pkid:receipt-generator:program-kit:generated-source-contract",
+          "version": "1.0.0",
+          "digest": "sha256:32beba7214f2b52af50eb03c8339203db83946ebd1d8ef73214368410c1f989c"
+        }
+      ],
+      "sdkRange": "[10.0.302]",
+      "compilerRoslynRange": "[5.0.0]",
+      "languageRange": "[14.0.0]",
+      "targetFrameworkRange": "[10.0.0]",
+      "programKitMechanicsRange": "[0.1.0-alpha.1]"
+    }
+  ],
+  "ruleCatalog": {
+    "identity": "pkid:catalog:jtest:csharp-gate-rules",
+    "version": "1.0.0",
+    "rules": [
+      {
+        "identity": "pkid:rule:program-kit:generated-source-convention",
+        "revision": "1.0.0",
+        "kind": "program-kit-public-contract",
+        "semanticOwnerId": "pkid:domain:program-kit:generated-source-contract",
+        "sourceContract": {
+          "identity": "pkid:contract:program-kit:generated-source-convention",
+          "version": "1.0.0",
+          "digest": "sha256:32beba7214f2b52af50eb03c8339203db83946ebd1d8ef73214368410c1f989c"
+        },
+        "diagnosticId": "PKCC001",
+        "title": "Program Kit generated-source convention",
+        "category": "GeneratedSource",
+        "defaultSeverity": "error",
+        "rationale": "Generated Program Kit output must keep its exact ownership header and canonical ProgramKitGenerated path so tampering and misplacement are compilation-observable.",
+        "remediation": "Regenerate the tree with tools/generate-cli-host.ps1 instead of editing generated files; keep consumer sources outside ProgramKitGenerated/.",
+        "compilationObservableClaim": "For an opted-in compilation, a syntax tree that uses the exact Program Kit generated-source ownership header is under the exact ProgramKitGenerated/<intent>/<file>.cs logical path, and a tree under that path has the exact ownership header.",
+        "layer": "compiler",
+        "claimsOutsideRule": [
+          "Generator identity, ownership transfer, manifest selection, exact source inventory, and physical-source forgery resistance are gate-mechanics claims and are not established by PKCC001.",
+          "Program Kit repository layout, namespace, warning-ledger, behavior, and private generated-source policy remain PKCS-owned and are not established by PKCC001."
+        ],
+        "projectProfileIds": ["pkid:profile:jtest:cli-host-project"],
+        "sourceProfileIds": [
+          "pkid:profile:jtest:cli-host-generated",
+          "pkid:profile:jtest:cli-host-physical"
+        ],
+        "suppressionDisposition": "source-local-ledger",
+        "positiveFixture": {
+          "identity": "pkid:fixture:program-kit:pkcc001-positive",
+          "version": "1.0.0",
+          "digest": "sha256:32beba7214f2b52af50eb03c8339203db83946ebd1d8ef73214368410c1f989c"
+        },
+        "negativeFixture": {
+          "identity": "pkid:fixture:program-kit:pkcc001-negative",
+          "version": "1.0.0",
+          "digest": "sha256:32beba7214f2b52af50eb03c8339203db83946ebd1d8ef73214368410c1f989c"
+        },
+        "compatibility": {
+          "identity": "pkid:policy:jtest:cli-compatibility",
+          "version": "1.0.0",
+          "digest": "sha256:c6a5add35bf8d0374a2d902becde38ee24878e9a656063f12e119e3b218d9c53"
+        },
+        "migration": {
+          "identity": "pkid:migration:jtest:csharp-gate-none",
+          "version": "1.0.0",
+          "digest": "sha256:c6a5add35bf8d0374a2d902becde38ee24878e9a656063f12e119e3b218d9c53"
+        },
+        "deprecation": null,
+        "retirement": null,
+        "supersession": null,
+        "locationContract": "Report the offending syntax tree path.",
+        "messageContract": "Deterministic invariant message naming the violated convention.",
+        "focusedBudgetMilliseconds": 30000,
+        "fullBudgetMilliseconds": 60000
+      }
+    ],
+    "diagnostics": [
+      {
+        "diagnosticId": "PKCC001",
+        "semanticOwnerId": "pkid:domain:program-kit:generated-source-contract",
+        "ruleId": "pkid:rule:program-kit:generated-source-convention",
+        "ruleRevision": "1.0.0",
+        "title": "Program Kit generated-source convention",
+        "category": "GeneratedSource",
+        "defaultSeverity": "error",
+        "messageFormat": "The generated-source convention is violated."
+      }
+    ]
+  },
+  "profiles": {
+    "projects": [
+      {
+        "identity": "pkid:profile:jtest:cli-host-project",
+        "projectId": "pkid:project:jtest:cli-host",
+        "repositoryRelativeProjectPath": "src/JTest.Cli.Host/GeneratedHost.csproj",
+        "targetFrameworks": ["net10.0"],
+        "allowedProjectDependencies": [],
+        "allowedPackageDependencies": []
+      }
+    ],
+    "inputs": [
+      {
+        "identity": "pkid:profile:jtest:cli-host-physical",
+        "kind": "physical-source",
+        "inventory": [
+          {
+            "repositoryRelativePath": "src/JTest.Cli.Host/Commands/JTestConsoleCommandDispatcher.cs",
+            "digest": "sha256:ca0cbf324d3e4b4f3aacb69cfbfd2d01b144d03eb58ab1d0723ae7eee476c9eb"
+          },
+          {
+            "repositoryRelativePath": "src/JTest.Cli.Host/Composition/ProgramServices.cs",
+            "digest": "sha256:17b985a7a90b3a6624ead8d08f6b14b1776c276b37ac337f0450a1d2dc54aca4"
+          }
+        ],
+        "applicableRuleIds": ["pkid:rule:program-kit:generated-source-convention"]
+      }
+    ],
+    "generatedSources": [
+      {
+        "identity": "pkid:profile:jtest:cli-host-generated",
+        "generator": {
+          "identity": "pkid:generator:jtest:cli-host",
+          "version": "1.0.0",
+          "digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444"
+        },
+        "ownerId": "pkid:domain:jtest:cli",
+        "ownershipMarker": "// <auto-generated program-kit>",
+        "logicalHintPaths": ["ProgramKitGenerated/"],
+        "manifest": {
+          "identity": "pkid:manifest:program-kit:generated-source-contract-analyzer",
+          "version": "0.1.0-alpha.1",
+          "digest": "sha256:2a35edf51f75b14128676708ae47400d6c4288b9fe66e262190896513863f5cf"
+        },
+        "inventory": [
+          {
+            "repositoryRelativePath": "src/JTest.Cli.Host/ProgramKitGenerated/Commands/GeneratedConsoleParseResult.cs",
+            "digest": "sha256:a95b7bf78aea54d000c580e033faca7638b66accbe87ee7e8a7e9ebc734d1f61"
+          },
+          {
+            "repositoryRelativePath": "src/JTest.Cli.Host/ProgramKitGenerated/Commands/GeneratedConsoleParser.cs",
+            "digest": "sha256:d672a23be8d54fc6a1bcfdc8d9bf5a3935803fd3f99eb5e82b1e77d19138bb83"
+          },
+          {
+            "repositoryRelativePath": "src/JTest.Cli.Host/ProgramKitGenerated/Commands/IProgramKitConsoleCommandDispatcher.cs",
+            "digest": "sha256:cf6f6a66fc1a65af35e0349b118455e8dcb1b88e5fbafc13b78f1d0ff4556559"
+          },
+          {
+            "repositoryRelativePath": "src/JTest.Cli.Host/ProgramKitGenerated/Composition/Program.cs",
+            "digest": "sha256:d606a031b371c1b0791518a9df3758d23a1e62b0a10f8330ea04048af35e0d4c"
+          }
+        ],
+        "applicableRuleIds": ["pkid:rule:program-kit:generated-source-convention"]
+      }
+    ]
+  },
+  "activationMatrix": {
+    "identity": "pkid:activation-matrix:jtest:csharp-gate-build-spine",
+    "version": "1.0.0",
+    "activations": [
+      {
+        "projectProfileId": "pkid:profile:jtest:cli-host-project",
+        "sourceProfileId": "pkid:profile:jtest:cli-host-generated",
+        "command": "build",
+        "boundary": "work-unit",
+        "verificationProfile": "work-unit",
+        "analyzerComponentIds": ["pkid:manifest:program-kit:generated-source-contract-analyzer"]
+      },
+      {
+        "projectProfileId": "pkid:profile:jtest:cli-host-project",
+        "sourceProfileId": "pkid:profile:jtest:cli-host-generated",
+        "command": "test",
+        "boundary": "work-unit",
+        "verificationProfile": "work-unit",
+        "analyzerComponentIds": ["pkid:manifest:program-kit:generated-source-contract-analyzer"]
+      }
+    ]
+  },
+  "temporaryExceptions": [],
+  "suppressionLedger": {
+    "identity": "pkid:ledger:jtest:csharp-gate-suppressions",
+    "version": "1.0.0",
+    "entries": []
+  },
+  "assurance": {
+    "compatibility": {
+      "sdkRange": "[10.0.302]",
+      "compilerRoslynRange": "[5.0.0]",
+      "languageRange": "[14.0.0]",
+      "targetFrameworkRange": "[10.0.0]",
+      "programKitMechanicsRange": "[0.1.0-alpha.1]"
+    },
+    "migrations": [],
+    "threats": [
+      {
+        "identity": "pkid:threat:jtest:analyzer-removal",
+        "threat": "The selected analyzer package reference or opt-in property is removed, silently disabling PKCC001.",
+        "boundary": "Compiler attachment",
+        "mitigations": [
+          {
+            "identity": "pkid:evidence:jtest:csharp-gate-activation",
+            "version": "1.0.0",
+            "digest": "sha256:c6a5add35bf8d0374a2d902becde38ee24878e9a656063f12e119e3b218d9c53"
+          }
+        ],
+        "residualRisk": "Compiler defects and non-compilation tampering remain covered by verify-host, not this gate."
+      }
+    ],
+    "fixtures": [
+      {
+        "identity": "pkid:fixture:program-kit:pkcc001-positive",
+        "kind": "positive",
+        "input": {
+          "identity": "pkid:fixture:program-kit:pkcc001-positive",
+          "version": "1.0.0",
+          "digest": "sha256:32beba7214f2b52af50eb03c8339203db83946ebd1d8ef73214368410c1f989c"
+        },
+        "expectedDiagnosticsDigest": "sha256:32beba7214f2b52af50eb03c8339203db83946ebd1d8ef73214368410c1f989c",
+        "expectedEvidenceDigest": "sha256:32beba7214f2b52af50eb03c8339203db83946ebd1d8ef73214368410c1f989c"
+      }
+    ],
+    "performance": {
+      "focusedMilliseconds": 30000,
+      "fullClosureMilliseconds": 120000,
+      "maximumAllocatedMegabytes": 1024
+    }
+  }
+}

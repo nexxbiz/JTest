@@ -5,83 +5,87 @@
     "packages":  [
                      {
                          "file":  "Orbyss.ProgramKit.Architecture.0.1.0-alpha.1.nupkg",
-                         "digest":  "sha256:358f54ad1f9148a61f51f7f847019e79a7fb44739c9c15c74d33e6115c0acb08"
+                         "digest":  "sha256:4073253776d8dfabadcf5984f6de7d4d004f17fa60980ac53a26156bafcec85a"
                      },
                      {
                          "file":  "Orbyss.ProgramKit.Artifacts.0.1.0-alpha.1.nupkg",
-                         "digest":  "sha256:f40f150968cee44f110f2c5d195b855534d4500953f22fba946644c6b258d3ba"
+                         "digest":  "sha256:eeb9bd33993a8d4a4788188cb06d6893fd28d0a3e37a4445ecc26a0e5be19b87"
                      },
                      {
                          "file":  "Orbyss.ProgramKit.CapabilityBundle.0.1.0-alpha.1.nupkg",
-                         "digest":  "sha256:006ff550b54e4c9d809ba2ba01277cea0bd359311e7cad49cc186bef13710b4a"
+                         "digest":  "sha256:5940ab5d6c47a0987b7564bc0c9cd3ad24a2c61480228ed47e3bd3cbc532da03"
                      },
                      {
                          "file":  "Orbyss.ProgramKit.CommandLine.0.1.0-alpha.1.nupkg",
-                         "digest":  "sha256:d711e27693fa61d15c95727070517fef02851594979371f1973b45d8544ca2d7"
+                         "digest":  "sha256:ab2461f3fb3c60ee9182330e737e61af2dc46ccb63695e644dcb229b7511dc84"
                      },
                      {
                          "file":  "Orbyss.ProgramKit.Development.0.1.0-alpha.1.nupkg",
-                         "digest":  "sha256:6dbe059a4c50a1bae4fcd34d908a66c97733317a97992e01f68ace82cd63d398"
+                         "digest":  "sha256:1cab97c803db2399b583cea46d3302bdb2f9ecac44fac56fe5667d08fe91431f"
                      },
                      {
                          "file":  "Orbyss.ProgramKit.DotNet.0.1.0-alpha.1.nupkg",
-                         "digest":  "sha256:e62a054a7c093fbb04a24019d649115aeef0b482ab7186ad6800687f5e063dc7"
+                         "digest":  "sha256:75b8daf88fc56fe3d00ff0b3bbe7daefade661a22a0ca19791a09b302907e293"
+                     },
+                     {
+                         "file":  "Orbyss.ProgramKit.GeneratedSourceContract.Analyzers.0.1.0-alpha.1.nupkg",
+                         "digest":  "sha256:6fe2995457e05e79c8fe72f95aa29a2c01f133362f2c50976f07e52095a54668"
                      },
                      {
                          "file":  "Orbyss.ProgramKit.Modularity.0.1.0-alpha.1.nupkg",
-                         "digest":  "sha256:ce4ff098c193f33fc68a151b04fe01b23e4d4d186263a7926a693e99bd159f91"
+                         "digest":  "sha256:46c6a292133417f47b0595b2d9f3842551e8c62c958998123aad756ead4afabe"
                      },
                      {
                          "file":  "Orbyss.ProgramKit.Modularity.InProcess.0.1.0-alpha.1.nupkg",
-                         "digest":  "sha256:5912fab6d145f9762fd37c995c5f82ea8910fed7142b7a7b756a64369c3a852f"
+                         "digest":  "sha256:f5969f67841ace1ff497461674d8c6cbcba4a4db2b94547dfc64b1ba2ea24af0"
                      },
                      {
                          "file":  "Orbyss.ProgramKit.Operations.0.1.0-alpha.1.nupkg",
-                         "digest":  "sha256:340c22516c46334a71329965d12221dc4f4121329ac13a182df597472192cf0f"
+                         "digest":  "sha256:ab1daadb0b4fd57c99c3a9cfc65300dc5fcfaa31c085fd7119fea0742cd355af"
                      },
                      {
                          "file":  "Orbyss.ProgramKit.Planning.0.1.0-alpha.1.nupkg",
-                         "digest":  "sha256:356d94d4f2eae2e13a947518c2a7398ce5d10321039fc3d89730c280e9933155"
+                         "digest":  "sha256:04f64d0ab42194f06b7902409d42b8ac6709c0b5066e64d3defcbafb8d959d3c"
                      },
                      {
                          "file":  "Orbyss.ProgramKit.Quality.0.1.0-alpha.1.nupkg",
-                         "digest":  "sha256:56db4a8f960d968b7d5e14f470e26d385b4634b5c97a132d189a9f27102dbcc1"
+                         "digest":  "sha256:52e459ce2f8de613b8e4ff975b5c6268b245ede059913d2fed01e04d8ff8bb9d"
                      },
                      {
                          "file":  "Orbyss.ProgramKit.SecretResolution.0.1.0-alpha.1.nupkg",
-                         "digest":  "sha256:9364f1088e17785a4b8db84107c41463e9f1d17f3bad8cc507173d4c7d4ed91d"
+                         "digest":  "sha256:46c31c9d34dda949bd0eb7ef5d26eb468aa0cf12f2b3689c08428cee0aae611c"
                      },
                      {
                          "file":  "Orbyss.ProgramKit.Serialization.JSON.0.1.0-alpha.1.nupkg",
-                         "digest":  "sha256:0b534a428efbc7ca7c0a0aae0fd424b1da35103fa530db5d5c362f03f595d20a"
+                         "digest":  "sha256:463f642e7ab13f068371b7b9dbf59ff39eaafde71978d7a152b46cf89510564d"
                      },
                      {
                          "file":  "Orbyss.ProgramKit.Tasks.0.1.0-alpha.1.nupkg",
-                         "digest":  "sha256:bd55f474558a07ae5062a960af4f342b60e65d550a8589e8a802a5b953557b84"
+                         "digest":  "sha256:84e5a9a7556642c5886a5e55b33e671d18c23c7a41126529dacebed35615c4fa"
                      },
                      {
                          "file":  "Orbyss.ProgramKit.Tasks.Core.0.1.0-alpha.1.nupkg",
-                         "digest":  "sha256:103b81f56ff765ee07752a1e1c5383557229ba9f69a952c591462224b588b90a"
+                         "digest":  "sha256:8f21482070520d06474738803cc5536dc4be73f61d6cb6ae709b75066c289b77"
                      },
                      {
                          "file":  "Orbyss.ProgramKit.Tasks.Hosting.0.1.0-alpha.1.nupkg",
-                         "digest":  "sha256:aeedc9cccc0892a62e1531a72970766cb3b6db3024c53fd0cd1f34203a290398"
+                         "digest":  "sha256:7ac3f52124cee11787e2268099be64a36857de93601806000c191e6ee6bab498"
                      },
                      {
                          "file":  "Orbyss.ProgramKit.Tasks.InProcess.0.1.0-alpha.1.nupkg",
-                         "digest":  "sha256:40a2e4bc6966cdf0dba01683ec02d92cca33b2b2baa6ec677b506dd627f1092e"
+                         "digest":  "sha256:1c380b2385de2c4d3140bbfd01942e63252425b89acde6ea8516cddaa644b679"
                      },
                      {
                          "file":  "Orbyss.ProgramKit.Tasks.Schedules.0.1.0-alpha.1.nupkg",
-                         "digest":  "sha256:4141ab4a79219f520a27748c707a736623b577d93d439a6a999e08b2f965d7e1"
+                         "digest":  "sha256:6d781ea75031707ebe50d1ddef6bd0ba085c67e38066901fb29c05a784cf041e"
                      },
                      {
                          "file":  "Orbyss.ProgramKit.Tasks.Schedules.Cronos.0.1.0-alpha.1.nupkg",
-                         "digest":  "sha256:12874ed565a5201ab9fb8e41b7cd00b2ce197d8202038e2951d1d388b781782e"
+                         "digest":  "sha256:2b3bf3befe86427ba70ca939260eb48798aae47a65f0db480a8b11f052626780"
                      },
                      {
                          "file":  "Orbyss.ProgramKit.Workbench.0.1.0-alpha.1.nupkg",
-                         "digest":  "sha256:e3dda4be1486261d6f2241a50c9fd106f329e2478818ae01b53528bcb5bd44f7"
+                         "digest":  "sha256:9ee71e7cefb9d1e2d18855f33a73b697e754e33b2fa54071e395cce749a141d8"
                      }
                  ]
 }

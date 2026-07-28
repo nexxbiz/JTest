@@ -17,4 +17,23 @@
   <ItemGroup>
     <ProjectReference Include="..\JTest.Cli\JTest.Cli.csproj" />
   </ItemGroup>
+  <!-- JTest C# build gate (gate/definition.json): opt-in selection of the
+       public Program Kit generated-source contract analyzer (PKCC001) with
+       a deterministic participation-receipt nonce. The nonce is the first
+       32 hex characters of sha256("pkid:gate:jtest:csharp"). -->
+  <PropertyGroup>
+    <ProgramKitGeneratedSourceContract>1.0.0</ProgramKitGeneratedSourceContract>
+    <ProgramKitPublicAnalyzerReceiptNonce>b6c86d7dc7d1011c9c23ef55de0e2325</ProgramKitPublicAnalyzerReceiptNonce>
+    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+    <CompilerGeneratedFilesOutputPath>$(MSBuildProjectDirectory)\obj\ProgramKitCompilerGenerated</CompilerGeneratedFilesOutputPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <CompilerVisibleProperty Include="ProgramKitGeneratedSourceContract" />
+    <CompilerVisibleProperty Include="ProgramKitPublicAnalyzerReceiptNonce" />
+    <PackageReference
+      Include="Orbyss.ProgramKit.GeneratedSourceContract.Analyzers"
+      Version="0.1.0-alpha.1"
+      PrivateAssets="all"
+      IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />
+  </ItemGroup>
 </Project>

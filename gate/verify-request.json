@@ -1,0 +1,18 @@
+{
+  "workingDirectory": "C:/Users/JoeyBarten/source/ai-era/JTest",
+  "projectPath": "C:/Users/JoeyBarten/source/ai-era/JTest/src/JTest.Cli.Host/GeneratedHost.csproj",
+  "command": "build",
+  "boundary": "work-unit",
+  "verificationProfile": "work-unit",
+  "dotNetSdkVersion": "10.0.302",
+  "evidenceOutputPath": "C:/Users/JoeyBarten/source/ai-era/JTest/gate/activation-evidence.json",
+  "participationReceiptPaths": [
+    "src/JTest.Cli.Host/obj/ProgramKitCompilerGenerated/Orbyss.ProgramKit.GeneratedSourceContract.Analyzers/Orbyss.ProgramKit.GeneratedSourceContract.Operations.Generation.GeneratedSourceContractReceiptGenerator/ProgramKitGenerated/PublicAnalyzerReceipt/GeneratedSourceContractReceipt.b6c86d7dc7d1011c9c23ef55de0e2325.cs"
+  ],
+  "exceptionUseReceiptPaths": [],
+  "packagePaths": [
+    "packages/local-feed/Orbyss.ProgramKit.GeneratedSourceContract.Analyzers.0.1.0-alpha.1.nupkg"
+  ],
+  "maximumCapturedOutputBytes": 1048576,
+  "performanceBudgetMilliseconds": 120000
+}

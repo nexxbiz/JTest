@@ -1,0 +1,177 @@
+{
+  "repositoryRoot": "C:/Users/JoeyBarten/source/ai-era/JTest",
+  "candidateLock": {
+    "identity": "pkid:selection-lock:jtest:csharp-gate",
+    "version": "1.0.0",
+    "disposition": {
+      "identity": "pkid:static-conformance-disposition:jtest:cli-host-rebuild",
+      "version": "1.0.0",
+      "digest": "sha256:26798e0d5a6e09aecc156557dd7723dbf4c98eb3e93f2dfb49c4717f67145f3a"
+    },
+    "gateDefinition": {
+      "identity": "pkid:gate:jtest:csharp",
+      "version": "1.0.0",
+      "digest": "sha256:a22cd99a6ba4c3d533372ca391c348a236b0b7137eb6bef42f471279b6c2fc30"
+    },
+    "analyzerComponents": [
+      {
+        "identity": "pkid:manifest:program-kit:generated-source-contract-analyzer",
+        "version": "0.1.0-alpha.1",
+        "digest": "sha256:2a35edf51f75b14128676708ae47400d6c4288b9fe66e262190896513863f5cf"
+      }
+    ],
+    "ruleCatalog": {
+      "identity": "pkid:catalog:jtest:csharp-gate-rules",
+      "version": "1.0.0",
+      "digest": "sha256:a22cd99a6ba4c3d533372ca391c348a236b0b7137eb6bef42f471279b6c2fc30"
+    },
+    "recipes": [],
+    "activationMatrix": {
+      "identity": "pkid:activation-matrix:jtest:csharp-gate-build-spine",
+      "version": "1.0.0",
+      "digest": "sha256:6a956f2a3649f2bab5f59d4b28623d6d3b4bcc10adce1df3f610b1cefa556626"
+    },
+    "suppressionLedger": {
+      "identity": "pkid:ledger:jtest:csharp-gate-suppressions",
+      "version": "1.0.0",
+      "digest": "sha256:a22cd99a6ba4c3d533372ca391c348a236b0b7137eb6bef42f471279b6c2fc30"
+    },
+    "operationRevisions": [
+      {
+        "identity": "pkid:operation:program-kit:csharp-gate-verify",
+        "version": "0.1.0-alpha.1",
+        "digest": "sha256:ab2461f3fb3c60ee9182330e737e61af2dc46ccb63695e644dcb229b7511dc84"
+      }
+    ],
+    "projectInventory": [
+      {
+        "repositoryRelativePath": "src/JTest.Cli.Host/Directory.Build.props",
+        "digest": "sha256:e5e334f7a01ec959fbf1cddb5c8c939ceaf3d5d507036588a3c410b982c7bfe3"
+      },
+      {
+        "repositoryRelativePath": "src/JTest.Cli.Host/Directory.Build.targets",
+        "digest": "sha256:766c7c531fac5b1c0bb49dd9cd08e253c686b30441952eb6bd3fe46bd2766b3e"
+      },
+      {
+        "repositoryRelativePath": "src/JTest.Cli.Host/Directory.Packages.props",
+        "digest": "sha256:400b35829b2a391f4048da02e1108b98db09431b2947e806a184743bd1b33c3a"
+      },
+      {
+        "repositoryRelativePath": "src/JTest.Cli.Host/GeneratedHost.csproj",
+        "digest": "sha256:01c1f0f2f6fee15e139c547e3c7e357e2477b29f43fd0a134ee056794d82ffe3"
+      },
+      {
+        "repositoryRelativePath": "src/JTest.Cli.Host/global.json",
+        "digest": "sha256:8aec0feaf429664ee91942a4cd7d67b8bcf0a50d9cde2c9db62ef33315008233"
+      },
+      {
+        "repositoryRelativePath": "src/JTest.Cli.Host/packages.lock.json",
+        "digest": "sha256:1558c67e4c2fae1c382cfb58a70558c844291e89d5d8dbf3ad5e8e43b81c454f"
+      }
+    ],
+    "physicalSourceInventory": [
+      {
+        "repositoryRelativePath": "src/JTest.Cli.Host/Commands/JTestConsoleCommandDispatcher.cs",
+        "digest": "sha256:ca0cbf324d3e4b4f3aacb69cfbfd2d01b144d03eb58ab1d0723ae7eee476c9eb"
+      },
+      {
+        "repositoryRelativePath": "src/JTest.Cli.Host/Composition/ProgramServices.cs",
+        "digest": "sha256:17b985a7a90b3a6624ead8d08f6b14b1776c276b37ac337f0450a1d2dc54aca4"
+      }
+    ],
+    "generatedSourceInventory": [
+      {
+        "repositoryRelativePath": "src/JTest.Cli.Host/ProgramKitGenerated/Commands/GeneratedConsoleParseResult.cs",
+        "digest": "sha256:a95b7bf78aea54d000c580e033faca7638b66accbe87ee7e8a7e9ebc734d1f61"
+      },
+      {
+        "repositoryRelativePath": "src/JTest.Cli.Host/ProgramKitGenerated/Commands/GeneratedConsoleParser.cs",
+        "digest": "sha256:d672a23be8d54fc6a1bcfdc8d9bf5a3935803fd3f99eb5e82b1e77d19138bb83"
+      },
+      {
+        "repositoryRelativePath": "src/JTest.Cli.Host/ProgramKitGenerated/Commands/IProgramKitConsoleCommandDispatcher.cs",
+        "digest": "sha256:cf6f6a66fc1a65af35e0349b118455e8dcb1b88e5fbafc13b78f1d0ff4556559"
+      },
+      {
+        "repositoryRelativePath": "src/JTest.Cli.Host/ProgramKitGenerated/Composition/Program.cs",
+        "digest": "sha256:d606a031b371c1b0791518a9df3758d23a1e62b0a10f8330ea04048af35e0d4c"
+      }
+    ],
+    "referenceInventory": [
+      {
+        "repositoryRelativePath": "packages/local-feed/Orbyss.ProgramKit.GeneratedSourceContract.Analyzers.0.1.0-alpha.1.nupkg",
+        "digest": "sha256:6fe2995457e05e79c8fe72f95aa29a2c01f133362f2c50976f07e52095a54668"
+      }
+    ],
+    "additionalFileInventory": [],
+    "analyzerConfigurationInventory": [],
+    "sdkVersion": "10.0.302",
+    "compilerRoslynVersion": "5.0.0",
+    "languageVersion": "14.0.0",
+    "targetFramework": "net10.0",
+    "expectedReceipts": [
+      {
+        "projectProfileId": "pkid:profile:jtest:cli-host-project",
+        "analyzerComponentId": "pkid:manifest:program-kit:generated-source-contract-analyzer",
+        "verificationProfile": "work-unit",
+        "receiptIdentity": "pkid:receipt:jtest:cli-host-generated-source-contract"
+      }
+    ],
+    "inputDigest": "sha256:a92c16688f696ae736a0e2dd868dd5dccde635f397d5985abbc3c39b6bc8b933",
+    "outputDigest": "sha256:93178f88f6cd00d1d1ef2b9fe534876d03cc88d95a5f1eaa69fdbe49c5ff31d8"
+  },
+  "localAssets": [
+    {
+      "repositoryRelativePath": "packages/local-feed/Orbyss.ProgramKit.GeneratedSourceContract.Analyzers.0.1.0-alpha.1.nupkg",
+      "digest": "sha256:6fe2995457e05e79c8fe72f95aa29a2c01f133362f2c50976f07e52095a54668"
+    },
+    {
+      "repositoryRelativePath": "src/JTest.Cli.Host/Commands/JTestConsoleCommandDispatcher.cs",
+      "digest": "sha256:ca0cbf324d3e4b4f3aacb69cfbfd2d01b144d03eb58ab1d0723ae7eee476c9eb"
+    },
+    {
+      "repositoryRelativePath": "src/JTest.Cli.Host/Composition/ProgramServices.cs",
+      "digest": "sha256:17b985a7a90b3a6624ead8d08f6b14b1776c276b37ac337f0450a1d2dc54aca4"
+    },
+    {
+      "repositoryRelativePath": "src/JTest.Cli.Host/Directory.Build.props",
+      "digest": "sha256:e5e334f7a01ec959fbf1cddb5c8c939ceaf3d5d507036588a3c410b982c7bfe3"
+    },
+    {
+      "repositoryRelativePath": "src/JTest.Cli.Host/Directory.Build.targets",
+      "digest": "sha256:766c7c531fac5b1c0bb49dd9cd08e253c686b30441952eb6bd3fe46bd2766b3e"
+    },
+    {
+      "repositoryRelativePath": "src/JTest.Cli.Host/Directory.Packages.props",
+      "digest": "sha256:400b35829b2a391f4048da02e1108b98db09431b2947e806a184743bd1b33c3a"
+    },
+    {
+      "repositoryRelativePath": "src/JTest.Cli.Host/GeneratedHost.csproj",
+      "digest": "sha256:01c1f0f2f6fee15e139c547e3c7e357e2477b29f43fd0a134ee056794d82ffe3"
+    },
+    {
+      "repositoryRelativePath": "src/JTest.Cli.Host/ProgramKitGenerated/Commands/GeneratedConsoleParseResult.cs",
+      "digest": "sha256:a95b7bf78aea54d000c580e033faca7638b66accbe87ee7e8a7e9ebc734d1f61"
+    },
+    {
+      "repositoryRelativePath": "src/JTest.Cli.Host/ProgramKitGenerated/Commands/GeneratedConsoleParser.cs",
+      "digest": "sha256:d672a23be8d54fc6a1bcfdc8d9bf5a3935803fd3f99eb5e82b1e77d19138bb83"
+    },
+    {
+      "repositoryRelativePath": "src/JTest.Cli.Host/ProgramKitGenerated/Commands/IProgramKitConsoleCommandDispatcher.cs",
+      "digest": "sha256:cf6f6a66fc1a65af35e0349b118455e8dcb1b88e5fbafc13b78f1d0ff4556559"
+    },
+    {
+      "repositoryRelativePath": "src/JTest.Cli.Host/ProgramKitGenerated/Composition/Program.cs",
+      "digest": "sha256:d606a031b371c1b0791518a9df3758d23a1e62b0a10f8330ea04048af35e0d4c"
+    },
+    {
+      "repositoryRelativePath": "src/JTest.Cli.Host/global.json",
+      "digest": "sha256:8aec0feaf429664ee91942a4cd7d67b8bcf0a50d9cde2c9db62ef33315008233"
+    },
+    {
+      "repositoryRelativePath": "src/JTest.Cli.Host/packages.lock.json",
+      "digest": "sha256:1558c67e4c2fae1c382cfb58a70558c844291e89d5d8dbf3ad5e8e43b81c454f"
+    }
+  ]
+}

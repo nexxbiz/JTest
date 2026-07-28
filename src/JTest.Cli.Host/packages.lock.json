@@ -51,6 +51,12 @@
           "Microsoft.Extensions.Options": "10.0.10"
         }
       },
+      "Orbyss.ProgramKit.GeneratedSourceContract.Analyzers": {
+        "type": "Direct",
+        "requested": "[0.1.0-alpha.1, )",
+        "resolved": "0.1.0-alpha.1",
+        "contentHash": "exGTeucwaMLDorgMXZtbN/J7WxiVaTn5Fda+Im30i3m809srIs45Y2dAL2P4dfRa/Vsr1Vnf0HNjI7srLUihew=="
+      },
       "CShells.Abstractions": {
         "type": "Transitive",
         "resolved": "0.0.28",
