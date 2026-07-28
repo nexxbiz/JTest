@@ -1,7 +1,7 @@
 {
   "reviewSet": "jtest-cli-host-rebuild",
   "reviewSetVersion": "1.0.0",
-  "status": "awaiting-human-approval",
+  "status": "approved",
   "repository": "JTest",
   "branch": "design/jtest-2-review",
   "programKitPin": "773d7cf3859fe98c2fd72139872312994effeb8d",
@@ -58,13 +58,15 @@
     "StaticConformanceDisposition@1.0.0 = create-new (explicit start of design-csharp-build-gate@1.0.0), 2026-07-27.",
     "Consumer console contracts live inside JTest.Cli, 2026-07-27."
   ],
-  "openDecisions": [
-    "JT2H-D001: design a consumer-owned analyzer for the review-enforced governance rules? (non-blocking; recommendation: defer)"
-  ],
+  "openDecisions": [],
+  "decisionRecord": {
+    "JT2H-D001": "Deferred by the human on 2026-07-27 to a second design-csharp-build-gate iteration after the host rebuild lands; candidate inventory recorded in gate/analyzer-candidates.md (not digest-bound)."
+  },
   "approval": {
-    "decision": null,
-    "decidedBy": null,
-    "decidedOnDate": null,
-    "note": "To approve, record a decision against the exact digests above; any byte change supersedes this manifest."
+    "decision": "approved",
+    "decidedBy": "Joey Barten (joey.barten@nexxbiz.io)",
+    "decidedOnDate": "2026-07-27",
+    "decisionStatement": "Human approved the exact review set at the digests above ('I fully agree with this plan. I approve the implementation of it') and authorized implementation.",
+    "note": "Approval binds to the exact artifact digests above; any byte change to a bound artifact supersedes this approval."
   }
 }
