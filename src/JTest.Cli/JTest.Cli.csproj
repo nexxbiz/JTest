@@ -15,6 +15,7 @@
     <ProjectReference Include="..\JTest.Language\JTest.Language.csproj" />
     <ProjectReference Include="..\JTest.Engine\JTest.Engine.csproj" />
     <ProjectReference Include="..\JTest.Reporting\JTest.Reporting.csproj" />
+    <PackageReference Include="CShells.Abstractions" />
     <PackageReference Include="Microsoft.Extensions.FileSystemGlobbing" />
   </ItemGroup>
 

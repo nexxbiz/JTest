@@ -4,8 +4,8 @@ namespace JTest.Cli.Ports;
 public sealed class SystemConsoleWriter : IConsoleWriter
 {
     /// <inheritdoc />
-    public void Out(string line) => Console.Out.WriteLine(line);
+    public void Out(string line) => global::System.Console.Out.WriteLine(line);
 
     /// <inheritdoc />
-    public void ErrorLine(string line) => Console.Error.WriteLine(line);
+    public void ErrorLine(string line) => global::System.Console.Error.WriteLine(line);
 }

@@ -4,6 +4,7 @@
     <CentralPackageTransitivePinningEnabled>false</CentralPackageTransitivePinningEnabled>
   </PropertyGroup>
   <ItemGroup>
+    <PackageVersion Include="CShells.Abstractions" Version="[0.0.28]" />
     <PackageVersion Include="JsonPath.Net" Version="2.1.1" />
     <PackageVersion Include="Microsoft.Extensions.FileSystemGlobbing" Version="10.0.0" />
     <PackageVersion Include="JsonSchema.Net" Version="9.3.0" />
