@@ -46,6 +46,7 @@ if (-not (Test-Path -LiteralPath $packProject)) {
 $packageProjects = @(
     'src/Orbyss.ProgramKit.Architecture/Orbyss.ProgramKit.Architecture.csproj',
     'src/Orbyss.ProgramKit.Artifacts/Orbyss.ProgramKit.Artifacts.csproj',
+    'src/Orbyss.ProgramKit.CapabilityBundle/Orbyss.ProgramKit.CapabilityBundle.csproj',
     'src/Orbyss.ProgramKit.CommandLine/Orbyss.ProgramKit.CommandLine.csproj',
     'src/Orbyss.ProgramKit.Development/Orbyss.ProgramKit.Development.csproj',
     'src/Orbyss.ProgramKit.DotNet/Orbyss.ProgramKit.DotNet.csproj',

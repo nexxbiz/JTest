@@ -6,7 +6,7 @@ description: Design and plan repository software from current source truth, prod
 # design-software
 
 Load and follow the complete canonical definition at
-`../../../tools/program-kit-bundle/.agent-capabilities/capabilities/design-software/CAPABILITY.md` before acting.
+`{{PROGRAM_KIT_CANONICAL_CAPABILITY_PATH}}` before acting.
 
 This Claude Code skill is only a provider wrapper. Its front matter registers
 the trigger; the canonical provider-neutral capability owns the procedure and

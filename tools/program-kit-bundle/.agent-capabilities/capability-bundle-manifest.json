@@ -1,0 +1,164 @@
+{
+  "bundleVersion": "3.0.0",
+  "capabilities": [
+    {
+      "capabilityId": "develop-software",
+      "packagePath": "contentFiles/any/any/.agent-capabilities/capabilities/develop-software/CAPABILITY.md",
+      "sha256": "sha256:d45f4db86f68064f53744548ed3134a84d751e6623ff825d9ce3fd7cf5d0bb69",
+      "sourcePath": ".agent-capabilities/capabilities/develop-software/CAPABILITY.md"
+    },
+    {
+      "capabilityId": "design-csharp-build-gate",
+      "packagePath": "contentFiles/any/any/.agent-capabilities/capabilities/design-csharp-build-gate/CAPABILITY.md",
+      "sha256": "sha256:c498d0da7cdc9e0e6a3f320848980bb5a8f26f998da3f6dd8dfb1c382ddc4852",
+      "sourcePath": ".agent-capabilities/capabilities/design-csharp-build-gate/CAPABILITY.md"
+    },
+    {
+      "capabilityId": "design-software",
+      "packagePath": "contentFiles/any/any/.agent-capabilities/capabilities/design-software/CAPABILITY.md",
+      "sha256": "sha256:6233d792c1b5e671c1c464040c8e13869157006eb70ca01f31420cada2da1f69",
+      "sourcePath": ".agent-capabilities/capabilities/design-software/CAPABILITY.md"
+    },
+    {
+      "capabilityId": "implement-software-plan",
+      "packagePath": "contentFiles/any/any/.agent-capabilities/capabilities/implement-software-plan/CAPABILITY.md",
+      "sha256": "sha256:a42d76fdf4659b790404fa462ec832bb732a845836c53ce33485d307f0416161",
+      "sourcePath": ".agent-capabilities/capabilities/implement-software-plan/CAPABILITY.md"
+    },
+    {
+      "capabilityId": "maintain-software",
+      "packagePath": "contentFiles/any/any/.agent-capabilities/capabilities/maintain-software/CAPABILITY.md",
+      "sha256": "sha256:26f3f21036ba46d879c020fed233e5034276fe1d90f9d4baafbf40f74be8405d",
+      "sourcePath": ".agent-capabilities/capabilities/maintain-software/CAPABILITY.md"
+    }
+  ],
+  "kitVersion": "0.1.0-alpha.1",
+  "optionalProviderAdapters": [
+    {
+      "capabilityId": "develop-software",
+      "packagePath": "contentFiles/any/any/.agent-capabilities/provider-adapters/codex/develop-software/SKILL.md",
+      "provider": "codex",
+      "sha256": "sha256:f61519d828a8ec130a899d21cb67df70c19542fd0ee9ca6e7f88d33adad36ecb",
+      "sourcePath": ".agent-capabilities/provider-adapters/codex/develop-software/SKILL.md"
+    },
+    {
+      "capabilityId": "design-csharp-build-gate",
+      "packagePath": "contentFiles/any/any/.agent-capabilities/provider-adapters/codex/design-csharp-build-gate/SKILL.md",
+      "provider": "codex",
+      "sha256": "sha256:892888bd0d8dcfa590163abe7c9fdd7660fd8c4d6b7630a01dc0ffa447636aad",
+      "sourcePath": ".agent-capabilities/provider-adapters/codex/design-csharp-build-gate/SKILL.md"
+    },
+    {
+      "capabilityId": "design-software",
+      "packagePath": "contentFiles/any/any/.agent-capabilities/provider-adapters/codex/design-software/SKILL.md",
+      "provider": "codex",
+      "sha256": "sha256:4a902a7357cdcfd24741bc65fbce5ebb1d4b12b644f90dc55db10ed4b73d8620",
+      "sourcePath": ".agent-capabilities/provider-adapters/codex/design-software/SKILL.md"
+    },
+    {
+      "capabilityId": "implement-software-plan",
+      "packagePath": "contentFiles/any/any/.agent-capabilities/provider-adapters/codex/implement-software-plan/SKILL.md",
+      "provider": "codex",
+      "sha256": "sha256:d66214f6a196b72974974f24ed5f36d92e2fe437376de28f288f65c02850f1c1",
+      "sourcePath": ".agent-capabilities/provider-adapters/codex/implement-software-plan/SKILL.md"
+    },
+    {
+      "capabilityId": "maintain-software",
+      "packagePath": "contentFiles/any/any/.agent-capabilities/provider-adapters/codex/maintain-software/SKILL.md",
+      "provider": "codex",
+      "sha256": "sha256:3f15eddf3027b21160e73b4998f484a460b4789672e40a14b333cc8d15f5064c",
+      "sourcePath": ".agent-capabilities/provider-adapters/codex/maintain-software/SKILL.md"
+    },
+    {
+      "capabilityId": "develop-software",
+      "packagePath": "contentFiles/any/any/.agent-capabilities/provider-adapters/claude/develop-software/SKILL.md",
+      "provider": "claude",
+      "sha256": "sha256:2512e0042477265559c8ecfac5f3cfb8c903d3bc6695bf237960c58d1c164f51",
+      "sourcePath": ".agent-capabilities/provider-adapters/claude/develop-software/SKILL.md"
+    },
+    {
+      "capabilityId": "design-csharp-build-gate",
+      "packagePath": "contentFiles/any/any/.agent-capabilities/provider-adapters/claude/design-csharp-build-gate/SKILL.md",
+      "provider": "claude",
+      "sha256": "sha256:b538d3335702b75548085781563ab05621fa4a8887e8a84e11218d04a3d97a7d",
+      "sourcePath": ".agent-capabilities/provider-adapters/claude/design-csharp-build-gate/SKILL.md"
+    },
+    {
+      "capabilityId": "design-software",
+      "packagePath": "contentFiles/any/any/.agent-capabilities/provider-adapters/claude/design-software/SKILL.md",
+      "provider": "claude",
+      "sha256": "sha256:0f42890bcd173f1c7235aa6eea1e2b5f10af52f041d890157f901a88fe87513b",
+      "sourcePath": ".agent-capabilities/provider-adapters/claude/design-software/SKILL.md"
+    },
+    {
+      "capabilityId": "implement-software-plan",
+      "packagePath": "contentFiles/any/any/.agent-capabilities/provider-adapters/claude/implement-software-plan/SKILL.md",
+      "provider": "claude",
+      "sha256": "sha256:26420a4a78cf192a55b2cc2a73f09f3097e8946a20983d041fbc292551d665a0",
+      "sourcePath": ".agent-capabilities/provider-adapters/claude/implement-software-plan/SKILL.md"
+    },
+    {
+      "capabilityId": "maintain-software",
+      "packagePath": "contentFiles/any/any/.agent-capabilities/provider-adapters/claude/maintain-software/SKILL.md",
+      "provider": "claude",
+      "sha256": "sha256:c844a0b66ff1fef902a9eaaf4d37d67bd475f6fefe04d95fceaa0092ed9dd413",
+      "sourcePath": ".agent-capabilities/provider-adapters/claude/maintain-software/SKILL.md"
+    }
+  ],
+  "supportingResources": [
+    {
+      "packagePath": "contentFiles/any/any/.agent-capabilities/supporting-resources/completion-profiles/software-change/completion-profile-set-1.0.0.json",
+      "resourceId": "software-change-completion-profile-set",
+      "sha256": "sha256:9b72ab12552d583ece808017a8de66d1558978742493f1aa8e5d02b1e381f8a0",
+      "sourcePath": ".agent-capabilities/supporting-resources/completion-profiles/software-change/completion-profile-set-1.0.0.json"
+    },
+    {
+      "packagePath": "contentFiles/any/any/.agent-capabilities/supporting-resources/completion-profiles/software-change/completion-profile-set-1.0.0.schema.json",
+      "resourceId": "software-change-completion-profile-set-schema",
+      "sha256": "sha256:a487ec67c130f0969012789578a75244dc9d38ece6e369c927929961543d34fb",
+      "sourcePath": ".agent-capabilities/supporting-resources/completion-profiles/software-change/completion-profile-set-1.0.0.schema.json"
+    },
+    {
+      "packagePath": "contentFiles/any/any/.agent-capabilities/supporting-resources/completion-profiles/software-change/profiles/commit-and-push-coherently.md",
+      "resourceId": "software-change-profile-commit-and-push-coherently",
+      "sha256": "sha256:d60c508bb028414483738e44e2ecb4bd47fd076a8714897922886efa87860e53",
+      "sourcePath": ".agent-capabilities/supporting-resources/completion-profiles/software-change/profiles/commit-and-push-coherently.md"
+    },
+    {
+      "packagePath": "contentFiles/any/any/.agent-capabilities/supporting-resources/completion-profiles/software-change/profiles/publish-with-separate-authority.md",
+      "resourceId": "software-change-profile-publish-with-separate-authority",
+      "sha256": "sha256:690c8ddbe202ff55582829f30a80ab145557f1f3ab0c4f6d0b6a0219028a1228",
+      "sourcePath": ".agent-capabilities/supporting-resources/completion-profiles/software-change/profiles/publish-with-separate-authority.md"
+    },
+    {
+      "packagePath": "contentFiles/any/any/.agent-capabilities/supporting-resources/completion-profiles/software-change/profiles/record-evidence-and-review-diff.md",
+      "resourceId": "software-change-profile-record-evidence-and-review-diff",
+      "sha256": "sha256:f8080ec0d449ab335867a3ff12fabc527e46132e31b9633b25aa0744c87c3f74",
+      "sourcePath": ".agent-capabilities/supporting-resources/completion-profiles/software-change/profiles/record-evidence-and-review-diff.md"
+    },
+    {
+      "packagePath": "contentFiles/any/any/.agent-capabilities/supporting-resources/completion-profiles/software-change/profiles/refresh-affected-output.md",
+      "resourceId": "software-change-profile-refresh-affected-output",
+      "sha256": "sha256:42e3041356f9f7e7c5f506b7012637fa8f3b139ba89948d7f0096b713d50fa02",
+      "sourcePath": ".agent-capabilities/supporting-resources/completion-profiles/software-change/profiles/refresh-affected-output.md"
+    },
+    {
+      "packagePath": "contentFiles/any/any/.agent-capabilities/supporting-resources/completion-profiles/software-change/profiles/review-source.md",
+      "resourceId": "software-change-profile-review-source",
+      "sha256": "sha256:f544dfee838dc8701e4f9fe6f07e7808ee854b3884cf18f4b1fc2169f9320bbb",
+      "sourcePath": ".agent-capabilities/supporting-resources/completion-profiles/software-change/profiles/review-source.md"
+    },
+    {
+      "packagePath": "contentFiles/any/any/.agent-capabilities/supporting-resources/completion-profiles/software-change/profiles/select-build-and-test.md",
+      "resourceId": "software-change-profile-select-build-and-test",
+      "sha256": "sha256:03714a2041630949f52d3a91290972a61a6f30f6f3b8abc96348ad73be5a2306",
+      "sourcePath": ".agent-capabilities/supporting-resources/completion-profiles/software-change/profiles/select-build-and-test.md"
+    },
+    {
+      "packagePath": "contentFiles/any/any/.agent-capabilities/supporting-resources/completion-profiles/software-change/profiles/verify-integrity.md",
+      "resourceId": "software-change-profile-verify-integrity",
+      "sha256": "sha256:a106f589ead35d99964781b5755f2cc11e6c3a3b617e1247b330a77212dcb876",
+      "sourcePath": ".agent-capabilities/supporting-resources/completion-profiles/software-change/profiles/verify-integrity.md"
+    }
+  ]
+}

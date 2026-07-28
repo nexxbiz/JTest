@@ -1,0 +1,98 @@
+{
+  "authority": "none",
+  "consumers": [
+    {
+      "capabilityId": "implement-software-plan",
+      "profileIds": [
+        "pkid:completion-profile:program-kit:review-source",
+        "pkid:completion-profile:program-kit:refresh-affected-output",
+        "pkid:completion-profile:program-kit:verify-integrity",
+        "pkid:completion-profile:program-kit:select-build-and-test",
+        "pkid:completion-profile:program-kit:publish-with-separate-authority",
+        "pkid:completion-profile:program-kit:record-evidence-and-review-diff",
+        "pkid:completion-profile:program-kit:commit-and-push-coherently"
+      ]
+    },
+    {
+      "capabilityId": "maintain-software",
+      "profileIds": [
+        "pkid:completion-profile:program-kit:review-source",
+        "pkid:completion-profile:program-kit:refresh-affected-output",
+        "pkid:completion-profile:program-kit:verify-integrity",
+        "pkid:completion-profile:program-kit:select-build-and-test",
+        "pkid:completion-profile:program-kit:publish-with-separate-authority",
+        "pkid:completion-profile:program-kit:record-evidence-and-review-diff",
+        "pkid:completion-profile:program-kit:commit-and-push-coherently"
+      ]
+    }
+  ],
+  "identity": "pkid:completion-profile-set:program-kit:software-change",
+  "independentlyInvokable": false,
+  "manifestVersion": "1.0.0",
+  "profiles": [
+    {
+      "identity": "pkid:completion-profile:program-kit:review-source",
+      "order": 10,
+      "path": "profiles/review-source.md",
+      "purpose": "Admit one human-started change against current source truth and exact authority.",
+      "requiresSeparateAuthority": false,
+      "sha256": "sha256:f544dfee838dc8701e4f9fe6f07e7808ee854b3884cf18f4b1fc2169f9320bbb",
+      "version": "1.0.0"
+    },
+    {
+      "identity": "pkid:completion-profile:program-kit:refresh-affected-output",
+      "order": 20,
+      "path": "profiles/refresh-affected-output.md",
+      "purpose": "Refresh every affected derived artifact through its backed operation.",
+      "requiresSeparateAuthority": false,
+      "sha256": "sha256:42e3041356f9f7e7c5f506b7012637fa8f3b139ba89948d7f0096b713d50fa02",
+      "version": "1.0.0"
+    },
+    {
+      "identity": "pkid:completion-profile:program-kit:verify-integrity",
+      "order": 30,
+      "path": "profiles/verify-integrity.md",
+      "purpose": "Verify generated and derived output without weakening or reproducing integrity mechanics.",
+      "requiresSeparateAuthority": false,
+      "sha256": "sha256:a106f589ead35d99964781b5755f2cc11e6c3a3b617e1247b330a77212dcb876",
+      "version": "1.0.0"
+    },
+    {
+      "identity": "pkid:completion-profile:program-kit:select-build-and-test",
+      "order": 40,
+      "path": "profiles/select-build-and-test.md",
+      "purpose": "Resolve and execute the finite backed build, analyzer, test, and fixture profiles.",
+      "requiresSeparateAuthority": false,
+      "sha256": "sha256:03714a2041630949f52d3a91290972a61a6f30f6f3b8abc96348ad73be5a2306",
+      "version": "1.0.0"
+    },
+    {
+      "identity": "pkid:completion-profile:program-kit:publish-with-separate-authority",
+      "order": 50,
+      "path": "profiles/publish-with-separate-authority.md",
+      "purpose": "Publish only through a backed operation after separate explicit human authority.",
+      "requiresSeparateAuthority": true,
+      "sha256": "sha256:690c8ddbe202ff55582829f30a80ab145557f1f3ab0c4f6d0b6a0219028a1228",
+      "version": "1.0.0"
+    },
+    {
+      "identity": "pkid:completion-profile:program-kit:record-evidence-and-review-diff",
+      "order": 60,
+      "path": "profiles/record-evidence-and-review-diff.md",
+      "purpose": "Bind exact evidence and review the complete coherent change before history mutation.",
+      "requiresSeparateAuthority": false,
+      "sha256": "sha256:f8080ec0d449ab335867a3ff12fabc527e46132e31b9633b25aa0744c87c3f74",
+      "version": "1.0.0"
+    },
+    {
+      "identity": "pkid:completion-profile:program-kit:commit-and-push-coherently",
+      "order": 70,
+      "path": "profiles/commit-and-push-coherently.md",
+      "purpose": "Record one reversible history event and push only when required or authorized.",
+      "requiresSeparateAuthority": false,
+      "sha256": "sha256:d60c508bb028414483738e44e2ecb4bd47fd076a8714897922886efa87860e53",
+      "version": "1.0.0"
+    }
+  ],
+  "version": "1.0.0"
+}
