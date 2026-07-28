@@ -1,0 +1,11 @@
+{
+  "$schema": "pkid:schema:program-kit:static-conformance-disposition@1.0.0",
+  "identity": "pkid:static-conformance-disposition:jtest:cli-host-rebuild",
+  "version": "1.0.0",
+  "design": "pkid:design:jtest:cli-host-rebuild",
+  "disposition": "create-new",
+  "decidedBy": "Joey Barten (joey.barten@nexxbiz.io)",
+  "decidedOnDate": "2026-07-27",
+  "decisionContext": "Answered 'Yes - design the gate now' to the mandatory design-software gate question; explicit human start of design-csharp-build-gate@1.0.0.",
+  "gateDesign": "pkid:design:jtest:csharp-build-gate@1.0.0"
+}

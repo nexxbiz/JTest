@@ -1,0 +1,70 @@
+{
+  "reviewSet": "jtest-cli-host-rebuild",
+  "reviewSetVersion": "1.0.0",
+  "status": "awaiting-human-approval",
+  "repository": "JTest",
+  "branch": "design/jtest-2-review",
+  "programKitPin": "773d7cf3859fe98c2fd72139872312994effeb8d",
+  "preparedOnDate": "2026-07-27",
+  "amends": {
+    "reviewSet": "jtest-2.0-design",
+    "note": "Amends only the generated console host area of the approved JTest 2.0 design; everything else stays authoritative."
+  },
+  "artifacts": [
+    {
+      "path": "design/jtest-2.0/host-rebuild-amendment.md",
+      "identity": "pkid:design:jtest:cli-host-rebuild",
+      "version": "1.0.0",
+      "digest": "sha256:a93f227a079a03539fcd2d7c75fcc5447eb47dc22e2e15890ab98c980a1a763d"
+    },
+    {
+      "path": "design/jtest-2.0/csharp-build-gate-design.md",
+      "identity": "pkid:design:jtest:csharp-build-gate",
+      "version": "1.0.0",
+      "digest": "sha256:c6a5add35bf8d0374a2d902becde38ee24878e9a656063f12e119e3b218d9c53"
+    },
+    {
+      "path": "design/jtest-2.0/host-rebuild-plan.json",
+      "identity": "pkid:plan:jtest:cli-host-rebuild",
+      "version": "1.0.0",
+      "schema": "https://schemas.orbyss.io/program-kit/planning/implementation-plan/3.0.0/schema.json",
+      "digest": "sha256:f0aa2f434856429a15611e4a4bac6e30d9a1a541ca6b47a0ec7a5652d41fec1c"
+    },
+    {
+      "path": "design/jtest-2.0/gate/static-conformance-disposition.json",
+      "identity": "pkid:static-conformance-disposition:jtest:cli-host-rebuild",
+      "version": "1.0.0",
+      "digest": "sha256:26798e0d5a6e09aecc156557dd7723dbf4c98eb3e93f2dfb49c4717f67145f3a"
+    },
+    {
+      "path": "design/jtest-2.0/gate/activation-matrix.json",
+      "identity": "pkid:activation-matrix:jtest:csharp-gate-build-spine",
+      "version": "1.0.0",
+      "digest": "sha256:6a956f2a3649f2bab5f59d4b28623d6d3b4bcc10adce1df3f610b1cefa556626"
+    },
+    {
+      "path": "design/jtest-2.0/gate/verification-profile.json",
+      "identity": "pkid:profile:jtest:csharp-gate-exhaustive",
+      "version": "1.0.0",
+      "digest": "sha256:b17dd7aced85d111417f035baecff9236394643bce519698597ec2f75e1ca318"
+    }
+  ],
+  "validation": {
+    "planSchemaValidation": "The plan validates against implementation-plan-3.0.0 using the exact Program Kit schema files (local JsonSchema.Net evaluation with the full schemas/ registry).",
+    "backedValidateOperation": "unavailable — 'program-kit validate' fails to resolve the artifacts/1.0.0 definitions reference from its embedded registry (reproduced on Program Kit's own committed plan documents); reported upstream-worthy.",
+    "groundingEvidence": "New generation contracts grounded in Program Kit 773d7cf source (typed console renderers, console contract fixtures modeling JTest, csharp-gate operations, public generated-source analyzer manifest)."
+  },
+  "humanDecisionsAlreadyRecorded": [
+    "StaticConformanceDisposition@1.0.0 = create-new (explicit start of design-csharp-build-gate@1.0.0), 2026-07-27.",
+    "Consumer console contracts live inside JTest.Cli, 2026-07-27."
+  ],
+  "openDecisions": [
+    "JT2H-D001: design a consumer-owned analyzer for the review-enforced governance rules? (non-blocking; recommendation: defer)"
+  ],
+  "approval": {
+    "decision": null,
+    "decidedBy": null,
+    "decidedOnDate": null,
+    "note": "To approve, record a decision against the exact digests above; any byte change supersedes this manifest."
+  }
+}

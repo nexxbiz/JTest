@@ -1,0 +1,18 @@
+{
+  "identity": "pkid:profile:jtest:csharp-gate-exhaustive",
+  "version": "1.0.0",
+  "executions": [
+    {
+      "executable": "dotnet",
+      "arguments": ["build", "JTest.sln", "-c", "Release", "--no-restore"],
+      "workingDirectory": ".",
+      "expectedObservation": "Zero warnings and zero errors with the gate active."
+    },
+    {
+      "executable": "dotnet",
+      "arguments": ["test", "JTest.sln", "-c", "Release", "--no-build", "--no-restore"],
+      "workingDirectory": ".",
+      "expectedObservation": "All tests pass with the gate active."
+    }
+  ]
+}

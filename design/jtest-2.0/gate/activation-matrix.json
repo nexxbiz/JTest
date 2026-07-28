@@ -1,0 +1,21 @@
+{
+  "identity": "pkid:activation-matrix:jtest:csharp-gate-build-spine",
+  "version": "1.0.0",
+  "failClosedOnUnknownParameters": true,
+  "activations": [
+    {
+      "component": "compiler-baseline",
+      "projects": ["JTest.sln"],
+      "commands": ["build", "test"],
+      "configuration": "Release",
+      "targetFramework": "net10.0"
+    },
+    {
+      "component": "pkid:manifest:program-kit:generated-source-contract-analyzer@0.1.0-alpha.1",
+      "projects": ["src/JTest.Cli.Host"],
+      "commands": ["build", "test"],
+      "configuration": "Release",
+      "targetFramework": "net10.0"
+    }
+  ]
+}

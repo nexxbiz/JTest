@@ -1,0 +1,326 @@
+{
+  "design": {
+    "identity": "pkid:design:jtest:cli-host-rebuild",
+    "version": "1.0.0",
+    "digest": "sha256:a93f227a079a03539fcd2d7c75fcc5447eb47dc22e2e15890ab98c980a1a763d"
+  },
+  "ownerId": "pkid:domain:jtest:cli",
+  "state": "ready-for-human-decision",
+  "requirementIds": ["JT2H-R001", "JT2H-R002", "JT2H-R003", "JT2H-R004", "JT2H-R005"],
+  "workUnits": [
+    {
+      "workUnitId": "JT2H-W010",
+      "requiredOutcome": "The JTest C# build gate is established and active: the Orbyss.ProgramKit.GeneratedSourceContract.Analyzers package is packed into the local feed and pinned, the gate definition validates and binds through the backed csharp-gate operations per the approved activation matrix, and csharp-gate verify passes with the selection lock and activation evidence committed.",
+      "sequence": 10,
+      "parallelGroupId": null,
+      "dependsOn": [],
+      "inputs": [
+        {
+          "identity": "pkid:design:jtest:csharp-build-gate",
+          "version": "1.0.0",
+          "digest": "sha256:c6a5add35bf8d0374a2d902becde38ee24878e9a656063f12e119e3b218d9c53"
+        },
+        {
+          "identity": "pkid:static-conformance-disposition:jtest:cli-host-rebuild",
+          "version": "1.0.0",
+          "digest": "sha256:26798e0d5a6e09aecc156557dd7723dbf4c98eb3e93f2dfb49c4717f67145f3a"
+        }
+      ],
+      "outputs": [
+        {
+          "identity": "pkid:selection-lock:jtest:csharp-gate",
+          "version": "1.0.0",
+          "state": "prospective",
+          "integrityDigest": null
+        },
+        {
+          "identity": "pkid:evidence:jtest:csharp-gate-activation",
+          "version": "1.0.0",
+          "state": "prospective",
+          "integrityDigest": null
+        }
+      ],
+      "allowedEdits": [
+        "tools/prepare-program-kit-feed.ps1; packages/local-feed.manifest.json; Directory.Packages.props; src/JTest.Cli.Host project gate wiring; governance/; a new gate/ artifact directory for the definition, selection lock, and evidence; focused tests."
+      ],
+      "sourceDependencies": [],
+      "externalDependencies": [],
+      "migrations": [],
+      "compatibility": [],
+      "stopConditions": [
+        "Stop if the backed csharp-gate operations reject the definition, the analyzer package cannot be packed from Program Kit commit 773d7cf, or activation would require any PKCS-private Program Kit component on consumer source."
+      ],
+      "verification": [
+        {
+          "executable": "dotnet",
+          "arguments": ["build", "JTest.sln", "-c", "Release", "--no-restore"],
+          "workingDirectory": ".",
+          "expectedObservation": "Zero warnings and zero errors with the gate components active per the activation matrix; csharp-gate verify exits 0 and its evidence is committed."
+        }
+      ],
+      "selectedTests": [],
+      "workUnitKind": "gate-establishment",
+      "activationMatrix": {
+        "identity": "pkid:activation-matrix:jtest:csharp-gate-build-spine",
+        "version": "1.0.0",
+        "digest": "sha256:6a956f2a3649f2bab5f59d4b28623d6d3b4bcc10adce1df3f610b1cefa556626"
+      },
+      "verificationProfile": {
+        "identity": "pkid:profile:jtest:csharp-gate-exhaustive",
+        "version": "1.0.0",
+        "digest": "sha256:b17dd7aced85d111417f035baecff9236394643bce519698597ec2f75e1ca318"
+      }
+    },
+    {
+      "workUnitId": "JT2H-W020",
+      "requiredOutcome": "JTest.Cli carries the consumer console contracts in a new Console/ intent area: typed run/validate/describe request classes, handler interfaces and implementations adapting the existing command classes unchanged, IJTestRunValidator holding run's input pre-checks, and the single JTestCliShellFeature registering them; CShells 0.0.28 is pinned; application logic in JTest.Language/Engine/Reporting is untouched.",
+      "sequence": 20,
+      "parallelGroupId": null,
+      "dependsOn": ["JT2H-W010"],
+      "inputs": [
+        {
+          "identity": "pkid:design:jtest:cli-host-rebuild",
+          "version": "1.0.0",
+          "digest": "sha256:a93f227a079a03539fcd2d7c75fcc5447eb47dc22e2e15890ab98c980a1a763d"
+        }
+      ],
+      "outputs": [
+        {
+          "identity": "pkid:plan-output:jtest:jt2h-w020-console-contracts",
+          "version": "1.0.0",
+          "state": "prospective",
+          "integrityDigest": null
+        }
+      ],
+      "allowedEdits": [
+        "src/JTest.Cli/Console/**; src/JTest.Cli/Commands/RunCliCommand.cs (moving input pre-checks only); src/JTest.Cli/JTest.Cli.csproj; Directory.Packages.props (CShells pin); tests/JTest.Cli.Tests/**."
+      ],
+      "sourceDependencies": [],
+      "externalDependencies": [],
+      "migrations": [],
+      "compatibility": [],
+      "stopConditions": [
+        "Stop if the contract shapes required by generation metadata inspection cannot be expressed without changing JTest.Language, JTest.Engine, or JTest.Reporting, or without altering command behavior."
+      ],
+      "verification": [
+        {
+          "executable": "dotnet",
+          "arguments": ["test", "JTest.sln", "-c", "Release", "--no-restore"],
+          "workingDirectory": ".",
+          "expectedObservation": "Unit tests cover the validator move (invalid inputs report through the validator result) and handler adaptation; full solution green with the gate active."
+        }
+      ],
+      "selectedTests": [],
+      "workUnitKind": "product",
+      "activationMatrix": {
+        "identity": "pkid:activation-matrix:jtest:csharp-gate-build-spine",
+        "version": "1.0.0",
+        "digest": "sha256:6a956f2a3649f2bab5f59d4b28623d6d3b4bcc10adce1df3f610b1cefa556626"
+      },
+      "verificationProfile": {
+        "identity": "pkid:profile:jtest:csharp-gate-exhaustive",
+        "version": "1.0.0",
+        "digest": "sha256:b17dd7aced85d111417f035baecff9236394643bce519698597ec2f75e1ca318"
+      }
+    },
+    {
+      "workUnitId": "JT2H-W030",
+      "requiredOutcome": "The generated host is fully replaced: tools/JTest.HostInputs authors the Open Console document (grammar unchanged), the new binding document over the compiled JTest.Cli contracts, and the generation request; tools/generate-cli-host.ps1 uses refresh-host with --build-consumer; the dispatcher-era tree in src/JTest.Cli.Host is deleted and the typed Spectre host generated in its place, packaged as the jtest tool, with the frozen CLI behavior (exit codes 0-3 from evidence, report URL, auto-open) preserved.",
+      "sequence": 30,
+      "parallelGroupId": null,
+      "dependsOn": ["JT2H-W020"],
+      "inputs": [
+        {
+          "identity": "pkid:design:jtest:cli-host-rebuild",
+          "version": "1.0.0",
+          "digest": "sha256:a93f227a079a03539fcd2d7c75fcc5447eb47dc22e2e15890ab98c980a1a763d"
+        }
+      ],
+      "outputs": [
+        {
+          "identity": "pkid:plan-output:jtest:jt2h-w030-generated-host",
+          "version": "1.0.0",
+          "state": "prospective",
+          "integrityDigest": null
+        }
+      ],
+      "allowedEdits": [
+        "hosting/**; tools/JTest.HostInputs/**; tools/generate-cli-host.ps1; src/JTest.Cli.Host/** (full replacement); JTest.sln; tests/JTest.Cli.Tests/**; tests/JTest.AcceptanceTests/** (assertion adaptation to Spectre-rendered messages only)."
+      ],
+      "sourceDependencies": [],
+      "externalDependencies": [],
+      "migrations": [],
+      "compatibility": [],
+      "stopConditions": [
+        "Stop if the binding or generation contracts cannot express part of the frozen jtest grammar or exit map, or if the generated project leaves no consumer-owned seam for dotnet-tool packaging."
+      ],
+      "verification": [
+        {
+          "executable": "dotnet",
+          "arguments": ["test", "JTest.sln", "-c", "Release", "--no-restore"],
+          "workingDirectory": ".",
+          "expectedObservation": "The process-level exit-code matrix passes against the new generated binary: pass 0, failing suite 1, invalid input/unknown option/no files 2, describe byte-equal to the embedded manifest, report URL printed, auto-open suppressed under CI."
+        }
+      ],
+      "selectedTests": [],
+      "workUnitKind": "product",
+      "activationMatrix": {
+        "identity": "pkid:activation-matrix:jtest:csharp-gate-build-spine",
+        "version": "1.0.0",
+        "digest": "sha256:6a956f2a3649f2bab5f59d4b28623d6d3b4bcc10adce1df3f610b1cefa556626"
+      },
+      "verificationProfile": {
+        "identity": "pkid:profile:jtest:csharp-gate-exhaustive",
+        "version": "1.0.0",
+        "digest": "sha256:b17dd7aced85d111417f035baecff9236394643bce519698597ec2f75e1ca318"
+      }
+    },
+    {
+      "workUnitId": "JT2H-W040",
+      "requiredOutcome": "Closure: program-kit dotnet verify-host guards the generated tree from the acceptance suite (tamper evidence), the consumption-boundary tests cover the new packages, documentation (cli.md, program-kit-tool.md compatibility table, release-readiness addendum) reflects the typed host, and the full suite is green twice consecutively.",
+      "sequence": 40,
+      "parallelGroupId": null,
+      "dependsOn": ["JT2H-W030"],
+      "inputs": [
+        {
+          "identity": "pkid:design:jtest:cli-host-rebuild",
+          "version": "1.0.0",
+          "digest": "sha256:a93f227a079a03539fcd2d7c75fcc5447eb47dc22e2e15890ab98c980a1a763d"
+        }
+      ],
+      "outputs": [
+        {
+          "identity": "pkid:plan-output:jtest:jt2h-w040-closure",
+          "version": "1.0.0",
+          "state": "prospective",
+          "integrityDigest": null
+        }
+      ],
+      "allowedEdits": [
+        "tests/JTest.AcceptanceTests/**; docs/**; design/jtest-2.0/release-readiness.md; README.md."
+      ],
+      "sourceDependencies": [],
+      "externalDependencies": [],
+      "migrations": [],
+      "compatibility": [],
+      "stopConditions": [
+        "Stop if verify-host reports drift the regeneration flow cannot explain, or any acceptance regression traces to changed application-layer behavior."
+      ],
+      "verification": [
+        {
+          "executable": "dotnet",
+          "arguments": ["test", "JTest.sln", "-c", "Release", "--no-restore"],
+          "workingDirectory": ".",
+          "expectedObservation": "Full suite green including the new verify-host tamper test; a byte-flip in any generated file makes the suite fail."
+        }
+      ],
+      "selectedTests": [],
+      "workUnitKind": "closure",
+      "activationMatrix": {
+        "identity": "pkid:activation-matrix:jtest:csharp-gate-build-spine",
+        "version": "1.0.0",
+        "digest": "sha256:6a956f2a3649f2bab5f59d4b28623d6d3b4bcc10adce1df3f610b1cefa556626"
+      },
+      "verificationProfile": {
+        "identity": "pkid:profile:jtest:csharp-gate-exhaustive",
+        "version": "1.0.0",
+        "digest": "sha256:b17dd7aced85d111417f035baecff9236394643bce519698597ec2f75e1ca318"
+      }
+    }
+  ],
+  "parallelGroups": [],
+  "trace": [
+    {
+      "requirementId": "JT2H-R001",
+      "ownerId": "pkid:domain:jtest:cli",
+      "contractOrArtifact": {
+        "identity": "pkid:design:jtest:csharp-build-gate",
+        "version": "1.0.0",
+        "digest": "sha256:c6a5add35bf8d0374a2d902becde38ee24878e9a656063f12e119e3b218d9c53"
+      },
+      "workUnitIds": ["JT2H-W010"],
+      "implementationOutcome": "The C# build gate is established before any product work: analyzer package pinned, definition bound through backed csharp-gate operations, selection lock and activation evidence committed.",
+      "dependencyOrExtensionImpact": [],
+      "tests": [],
+      "evidence": [],
+      "observableAcceptanceOutcome": "csharp-gate verify exits 0 and the full solution builds with the gate active before JT2H-W020 starts."
+    },
+    {
+      "requirementId": "JT2H-R002",
+      "ownerId": "pkid:domain:jtest:cli",
+      "contractOrArtifact": {
+        "identity": "pkid:design:jtest:cli-host-rebuild",
+        "version": "1.0.0",
+        "digest": "sha256:a93f227a079a03539fcd2d7c75fcc5447eb47dc22e2e15890ab98c980a1a763d"
+      },
+      "workUnitIds": ["JT2H-W020"],
+      "implementationOutcome": "JTest.Cli exposes the typed console contracts (requests, handlers, run validator, single shell feature) while application logic stays unchanged.",
+      "dependencyOrExtensionImpact": [],
+      "tests": [],
+      "evidence": [],
+      "observableAcceptanceOutcome": "Unit tests prove handler adaptation and validator-owned input checks; JTest.Language/Engine/Reporting diffs are empty."
+    },
+    {
+      "requirementId": "JT2H-R003",
+      "ownerId": "pkid:domain:jtest:cli",
+      "contractOrArtifact": {
+        "identity": "pkid:design:jtest:cli-host-rebuild",
+        "version": "1.0.0",
+        "digest": "sha256:a93f227a079a03539fcd2d7c75fcc5447eb47dc22e2e15890ab98c980a1a763d"
+      },
+      "workUnitIds": ["JT2H-W030"],
+      "implementationOutcome": "The dispatcher-era generated host is fully replaced by the typed Spectre host generated from the Open Console document, binding document, and compiled contracts via refresh-host.",
+      "dependencyOrExtensionImpact": [],
+      "tests": [],
+      "evidence": [],
+      "observableAcceptanceOutcome": "The generated binary passes the process-level exit-code matrix with the frozen grammar and exit map."
+    },
+    {
+      "requirementId": "JT2H-R004",
+      "ownerId": "pkid:domain:jtest:cli",
+      "contractOrArtifact": {
+        "identity": "pkid:design:jtest:cli-host-rebuild",
+        "version": "1.0.0",
+        "digest": "sha256:a93f227a079a03539fcd2d7c75fcc5447eb47dc22e2e15890ab98c980a1a763d"
+      },
+      "workUnitIds": ["JT2H-W040"],
+      "implementationOutcome": "verify-host guards the generated tree from the acceptance suite so tampering fails the build.",
+      "dependencyOrExtensionImpact": [],
+      "tests": [],
+      "evidence": [],
+      "observableAcceptanceOutcome": "A deliberate byte flip in any generated file makes the acceptance suite fail with a per-file verdict."
+    },
+    {
+      "requirementId": "JT2H-R005",
+      "ownerId": "pkid:domain:jtest:cli",
+      "contractOrArtifact": {
+        "identity": "pkid:design:jtest:cli-host-rebuild",
+        "version": "1.0.0",
+        "digest": "sha256:a93f227a079a03539fcd2d7c75fcc5447eb47dc22e2e15890ab98c980a1a763d"
+      },
+      "workUnitIds": ["JT2H-W030", "JT2H-W040"],
+      "implementationOutcome": "The frozen CLI behavior is preserved: commands, options, exit codes 0-3 from evidence, report URL line, auto-open semantics, diagnostics formats.",
+      "dependencyOrExtensionImpact": [],
+      "tests": [],
+      "evidence": [],
+      "observableAcceptanceOutcome": "Existing acceptance tests pass with assertions adapted only to Spectre-rendered message text, never to changed behavior."
+    }
+  ],
+  "unresolvedDecisions": [
+    {
+      "decisionId": "JT2H-D001",
+      "question": "Should a consumer-owned analyzer be designed for the review-enforced governance rules (one type per file, fresh-receiver ban, static helpers, writer purity)? Recommendation: defer to a later design-csharp-build-gate iteration.",
+      "blocksImplementation": false
+    }
+  ],
+  "staticConformanceDisposition": {
+    "identity": "pkid:static-conformance-disposition:jtest:cli-host-rebuild",
+    "version": "1.0.0",
+    "digest": "sha256:26798e0d5a6e09aecc156557dd7723dbf4c98eb3e93f2dfb49c4717f67145f3a"
+  },
+  "staticConformanceState": "create-new",
+  "gateDesign": null,
+  "gateDefinition": null,
+  "selectionLock": null,
+  "activationEvidence": null
+}
