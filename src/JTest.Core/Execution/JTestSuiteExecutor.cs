@@ -9,13 +9,24 @@ namespace JTest.Core.Execution;
 public sealed class JTestSuiteExecutor(IJTestCaseExecutor testCaseExecutor, IVariablesContext variablesContext, ITemplateContext templateContext, IAnsiConsole console)
     : IJTestSuiteExecutor
 {
-    public async Task<IEnumerable<JTestSuiteExecutionResult>> Execute(IEnumerable<JTestSuite> testFiles)
+    public async Task<IEnumerable<JTestSuiteExecutionResult>> Execute(IEnumerable<JTestSuite> testFiles, CancellationToken cancellationToken = default)
     {
         var allResults = new List<JTestSuiteExecutionResult>();
 
         foreach (var testFile in testFiles)
-        {            
-            console.WriteLine($"Running test file: {testFile.FilePath}", new Style(foreground: Color.GreenYellow));            
+        {
+            // Cancellation stops the run; the current and remaining suites are recorded as cancelled
+            // (a distinct outcome that fails the run — FR-006) rather than silently dropped.
+            if (cancellationToken.IsCancellationRequested)
+            {
+                allResults.Add(new(testFile.FilePath, testFile.Info?.Name, testFile.Info?.Description, Array.Empty<JTestCaseResult>())
+                {
+                    Cancelled = true
+                });
+                continue;
+            }
+
+            console.WriteLine($"Running test file: {testFile.FilePath}", new Style(foreground: Color.GreenYellow));
 
             try
             {
@@ -28,6 +39,13 @@ public sealed class JTestSuiteExecutor(IJTestCaseExecutor testCaseExecutor, IVar
                     console.WriteLine($"Test file {testFile.FilePath} failed", new Style(foreground: Color.Red));
 
                 console.WriteLine();
+            }
+            catch (OperationCanceledException)
+            {
+                allResults.Add(new(testFile.FilePath, testFile.Info?.Name, testFile.Info?.Description, Array.Empty<JTestCaseResult>())
+                {
+                    Cancelled = true
+                });
             }
             catch (Exception ex)
             {
@@ -46,9 +64,9 @@ public sealed class JTestSuiteExecutor(IJTestCaseExecutor testCaseExecutor, IVar
         return allResults;
     }
 
-    public IEnumerable<JTestSuiteExecutionResult> ExecuteParallel(IEnumerable<JTestSuite> testFiles, int parallelCount)
+    public IEnumerable<JTestSuiteExecutionResult> ExecuteParallel(IEnumerable<JTestSuite> testFiles, int parallelCount, CancellationToken cancellationToken = default)
     {
-        // Thread-safe collections for parallel execution            
+        // Thread-safe collections for parallel execution
         var allResults = new ConcurrentBag<JTestSuiteExecutionResult>();
 
         var processedFilesThreadSafe = 0;
@@ -62,6 +80,15 @@ public sealed class JTestSuiteExecutor(IJTestCaseExecutor testCaseExecutor, IVar
 
         Parallel.ForEach(testFiles, parallelOptions, testFile =>
         {
+            if (cancellationToken.IsCancellationRequested)
+            {
+                allResults.Add(new(testFile.FilePath, testFile.Info?.Name, testFile.Info?.Description, Array.Empty<JTestCaseResult>())
+                {
+                    Cancelled = true
+                });
+                return;
+            }
+
             lock (Console.Out)
             {
                 Console.WriteLine($"Running test file: {testFile}");
@@ -74,6 +101,13 @@ public sealed class JTestSuiteExecutor(IJTestCaseExecutor testCaseExecutor, IVar
                 allResults.Add(new(testFile.FilePath, testFile.Info?.Name, testFile.Info?.Description, executionResults));
 
                 Interlocked.Increment(ref processedFilesThreadSafe);
+            }
+            catch (OperationCanceledException)
+            {
+                allResults.Add(new(testFile.FilePath, testFile.Info?.Name, testFile.Info?.Description, Array.Empty<JTestCaseResult>())
+                {
+                    Cancelled = true
+                });
             }
             catch (Exception ex)
             {

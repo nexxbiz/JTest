@@ -61,6 +61,17 @@ public static class ExecutionTraceAssembler
             };
         }
 
+        if (r.Cancelled)
+        {
+            return new SuiteResult
+            {
+                Id = path, Path = path, Name = r.TestSuiteName ?? r.FilePath, FilePath = r.FilePath,
+                Outcome = Outcome.Cancelled, Counts = Rollup.From(new[] { Outcome.Cancelled }),
+                Cases = Array.Empty<CaseResult>(),
+                Diagnostics = new[] { new Diagnostic { Severity = DiagnosticSeverity.Warning, Message = "Suite cancelled before completion." } }
+            };
+        }
+
         var cases = r.TestCaseResults.Select((c, i) => Case(c, path, i, redactor)).ToList();
         return new SuiteResult
         {

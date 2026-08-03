@@ -14,6 +14,9 @@ public sealed record JTestSuiteExecutionResult(string FilePath, string? TestSuit
 
     public bool Errored => ExecutionError is not null;
 
-    /// <summary>A suite succeeds only if it did not error and every case passed.</summary>
-    public bool Success => !Errored && CasesFailed == 0;
+    /// <summary>The suite was cancelled before completing (distinct outcome, FR-006).</summary>
+    public bool Cancelled { get; init; }
+
+    /// <summary>A suite succeeds only if it did not error, was not cancelled, and every case passed.</summary>
+    public bool Success => !Errored && !Cancelled && CasesFailed == 0;
 }

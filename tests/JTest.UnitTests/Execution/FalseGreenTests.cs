@@ -1,6 +1,7 @@
 using JTest.Core.Execution;
 using JTest.Core.Models;
 using JTest.Core.Templates;
+using JTest.Core.Tracing;
 using JTest.Core.Variables;
 using NSubstitute;
 using Spectre.Console;
@@ -50,5 +51,28 @@ public class FalseGreenTests
 
         // The central defect: a crash must never exit 0.
         Assert.Equal(2, RunResultEvaluator.ExitCode(results, noFilesMatched: false));
+    }
+
+    [Fact]
+    public async Task CancelledRun_MarksSuitesCancelled_AndExits4()
+    {
+        var executor = new JTestSuiteExecutor(
+            Substitute.For<IJTestCaseExecutor>(),
+            Substitute.For<IVariablesContext>(),
+            Substitute.For<ITemplateContext>(),
+            SilentConsole());
+
+        using var cts = new CancellationTokenSource();
+        cts.Cancel(); // the run is cancelled before any suite executes
+
+        var results = (await executor.Execute(new[] { new JTestSuite { FilePath = "a.json" } }, cts.Token)).ToList();
+
+        var suite = Assert.Single(results);
+        Assert.True(suite.Cancelled);
+        Assert.False(suite.Success);
+
+        var trace = ExecutionTraceAssembler.Assemble(results, "2.0.0", 0, DateTimeOffset.UnixEpoch, DateTimeOffset.UnixEpoch);
+        Assert.Equal(Outcome.Cancelled, trace.Suites[0].Outcome);
+        Assert.Equal(4, ExitCodeService.From(trace.Counts)); // aborted, never a false green
     }
 }

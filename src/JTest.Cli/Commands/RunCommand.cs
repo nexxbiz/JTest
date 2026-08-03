@@ -47,7 +47,7 @@ public class RunCommand : CommandBase<RunCommandSettings>
         InitializeVariablesContext(settings);
 
         var startedAt = DateTimeOffset.UtcNow;
-        var results = await ExecuteRunCommand(settings);
+        var results = await ExecuteRunCommand(settings, cancellationToken);
         var endedAt = DateTimeOffset.UtcNow;
 
         if (results is null)
@@ -90,7 +90,7 @@ public class RunCommand : CommandBase<RunCommandSettings>
         }
     }
 
-    private async Task<IEnumerable<JTestSuiteExecutionResult>?> ExecuteRunCommand(RunCommandSettings settings)
+    private async Task<IEnumerable<JTestSuiteExecutionResult>?> ExecuteRunCommand(RunCommandSettings settings, CancellationToken cancellationToken)
     {
         var testSuites = ReadTestSuites(settings);
         var jTestSuites = testSuites as JTestSuite[] ?? testSuites.ToArray();
@@ -106,10 +106,10 @@ public class RunCommand : CommandBase<RunCommandSettings>
         if (settings.ParallelTestExecutionCount > 1)
         {
             Console.WriteLine($"Running {jTestSuites.Length} test files in parallel (max concurrent: {settings.ParallelTestExecutionCount})");
-            return _testSuiteExecutor.ExecuteParallel(jTestSuites, settings.ParallelTestExecutionCount.Value);
+            return _testSuiteExecutor.ExecuteParallel(jTestSuites, settings.ParallelTestExecutionCount.Value, cancellationToken);
         }
 
-        return await _testSuiteExecutor.Execute(jTestSuites);
+        return await _testSuiteExecutor.Execute(jTestSuites, cancellationToken);
     }
 
     private IEnumerable<JTestSuite> ReadTestSuites(RunCommandSettings settings)
