@@ -267,10 +267,8 @@ public sealed class HttpStep(HttpClient httpClient, HttpStepConfiguration config
 
     private async Task<object> CaptureRequestDetails(HttpRequestMessage request, IExecutionContext context)
     {
-        var headers = request.Headers
-            .Concat(request.Content?.Headers ?? Enumerable.Empty<KeyValuePair<string, IEnumerable<string>>>())
-            .Select(h => new { name = h.Key, value = string.Join(", ", h.Value) })
-            .ToArray();
+        var headers = ToHeaderMap(
+            request.Headers.Concat(request.Content?.Headers ?? Enumerable.Empty<KeyValuePair<string, IEnumerable<string>>>()));
 
         var bodyContent = GetRequestBodyContent(context);
         var body = bodyContent is not null
@@ -290,9 +288,12 @@ public sealed class HttpStep(HttpClient httpClient, HttpStepConfiguration config
     {
         var body = await GetResponseBody(response);
         var headers = GetResponseHeaders(response);
+        var status = (int)response.StatusCode;
         return new Dictionary<string, object?>
         {
-            ["status"] = (int)response.StatusCode,
+            // 'statusCode' is the canonical name; 'status' is a retained alias (FR-041).
+            ["statusCode"] = status,
+            ["status"] = status,
             ["headers"] = headers,
             ["body"] = body,
             ["request"] = requestDetails
@@ -323,13 +324,22 @@ public sealed class HttpStep(HttpClient httpClient, HttpStepConfiguration config
         }
     }
 
-    private static object[] GetResponseHeaders(HttpResponseMessage response)
-    {
-        var result = response.Headers
-            .Concat(response.Content.Headers)
-            .Select(h => new { name = h.Key, value = string.Join(", ", h.Value) });
+    private static Dictionary<string, object?> GetResponseHeaders(HttpResponseMessage response) =>
+        ToHeaderMap(response.Headers.Concat(response.Content.Headers));
 
-        return [.. result];
+    /// <summary>
+    /// Build a case-insensitive keyed header map (FR-040). A single-valued header maps to a string;
+    /// a multi-valued header (e.g. set-cookie) maps to an array of all its values.
+    /// </summary>
+    private static Dictionary<string, object?> ToHeaderMap(IEnumerable<KeyValuePair<string, IEnumerable<string>>> headers)
+    {
+        var map = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+        foreach (var header in headers)
+        {
+            var values = header.Value.ToArray();
+            map[header.Key] = values.Length == 1 ? values[0] : values;
+        }
+        return map;
     }
 
     private bool? OnlyOneBodyTypeDefined()

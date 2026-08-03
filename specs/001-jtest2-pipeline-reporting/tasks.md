@@ -123,7 +123,7 @@ from. **⚠️ No user story can begin until this phase is complete.**
 ### Implementation for User Story 3
 
 - [ ] T044 [US3] Route every dynamic value in the HTML and Markdown projectors through `ReportValuePipeline` (no ad-hoc escaping) in `src/JTest.Core/Reporting/Html/HtmlReportGenerator.cs` and `Markdown/MarkdownReportGenerator.cs`
-- [ ] T045 [US3] Ensure the persisted canonical trace has declared secrets masked before serialization in `src/JTest.Core/Tracing/TraceBuilder.cs`
+- [X] T045 [US3] Ensure the persisted canonical trace has declared secrets masked before serialization in `src/JTest.Core/Tracing/TraceBuilder.cs`
 - [ ] T046 [US3] Implement opt-in, masked env/global/variable dump (`--include-variables`) in report + trace; excluded by default in `src/JTest.Core/Reporting/` and `src/JTest.Cli/Commands/RunCommand.cs`
 
 **Checkpoint**: The report is safe to attach as a public pipeline artifact.
@@ -170,12 +170,12 @@ from. **⚠️ No user story can begin until this phase is complete.**
 
 ### Implementation for User Story 7
 
-- [ ] T060 [US7] Introduce `Http/IHttpClientProvider` + `HttpClientProvider` bound to a per-scope `CookieContainer` (deterministic, pool-lifetime-independent) in `src/JTest.Core/Http/`
-- [ ] T061 [US7] Establish a per-case execution/session scope and pass the provider to `HttpStep` (replace reflection-injected raw `HttpClient`) in `src/JTest.Core/Execution/` and `src/JTest.Core/TypeDescriptors/TypeDescriptorRegistry.cs`
+- [X] T060 [US7] Introduce `Http/IHttpClientProvider` + `HttpClientProvider` bound to a per-scope `CookieContainer` (deterministic, pool-lifetime-independent) in `src/JTest.Core/Http/`
+- [X] T061 [US7] Establish a per-case execution/session scope and pass the provider to `HttpStep` (replace reflection-injected raw `HttpClient`) in `src/JTest.Core/Execution/` and `src/JTest.Core/TypeDescriptors/TypeDescriptorRegistry.cs`
 - [ ] T062 [US7] Reconcile both `AddHttpClient` registrations onto the provider (host + Spectre containers) in `src/JTest.Cli/Core/JTestApplication.cs`
 - [ ] T063 [US7] Emit a case-insensitive keyed header map with multi-valued support in `HttpStep.CreateResponseData`/`GetResponseHeaders` in `src/JTest.Core/Steps/HttpStep.cs`
 - [ ] T064 [US7] Add `statusCode` (canonical) + `status` (alias) to response data and trace `HttpExchange` in `src/JTest.Core/Steps/HttpStep.cs` and `src/JTest.Core/Tracing/`
-- [ ] T065 [US7] Redact `Cookie`/`Set-Cookie`/`Authorization` via the pipeline in HTTP exchange projection (FR-042)
+- [X] T065 [US7] Redact `Cookie`/`Set-Cookie`/`Authorization` via the pipeline in HTTP exchange projection (FR-042)
 
 **Checkpoint**: Cookie-based auth flows (e.g. Elsa) work deterministically and safely.
 
