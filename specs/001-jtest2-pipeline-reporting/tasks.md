@@ -91,16 +91,19 @@ from. **⚠️ No user story can begin until this phase is complete.**
 
 - [ ] T030 [P] [US2] Golden-file test: trace fixture → HTML; assert 100% of trace nodes represented in `tests/JTest.UnitTests/Reporting/HtmlReportGoldenTests.cs`
 - [ ] T031 [P] [US2] Offline test: generated HTML references no external URLs (regex/asset scan) in `tests/JTest.UnitTests/Reporting/SelfContainedTests.cs`
-- [ ] T032 [P] [US2] Accessibility/search test: semantic landmarks present, all detail reachable, search locates a node in `tests/JTest.UnitTests/Reporting/HtmlAccessibilityTests.cs`
+- [ ] T032 [P] [US2] Accessibility/search test: WCAG 2.1 AA checks — semantic landmarks/headings, visible focus, AA text-contrast (≥4.5:1) in light and dark, all detail reachable by keyboard, search locates a node in `tests/JTest.UnitTests/Reporting/HtmlAccessibilityTests.cs`
 
 ### Implementation for User Story 2
 
 - [ ] T033 [US2] Implement `HtmlReportGenerator` projecting a trace into one self-contained file (inlined assets, trace as inert JSON island) in `src/JTest.Core/Reporting/Html/HtmlReportGenerator.cs`
-- [ ] T034 [P] [US2] Author embedded CSS (failure-first, collapsible tree, light/dark, sufficient contrast) in `src/JTest.Core/Reporting/Html/report.css`
+- [ ] T034 [P] [US2] Author embedded CSS (failure-first, collapsible tree, light/dark, WCAG 2.1 AA contrast, visible focus) in `src/JTest.Core/Reporting/Html/report.css`
 - [ ] T035 [P] [US2] Author embedded JS (collapse, search/filter, keyboard nav; build DOM via `textContent` only) in `src/JTest.Core/Reporting/Html/report.js`
 - [ ] T036 [US2] Failure-first ordering, rollups, and drill-down (run→suite→case→dataset→iteration→step→assertion) in the projector (depends on T033)
 - [ ] T037 [US2] Re-implement the Markdown writer as a projection of the trace in `src/JTest.Core/Reporting/Markdown/MarkdownReportGenerator.cs` (retire the source-of-truth writer; restore/remove `tests/JTest.UnitTests/ResultsToMarkdownConverterTests.cs`)
 - [ ] T038 [US2] Register HTML/Markdown/JSON output generators in DI (both `src/JTest.Cli/DI/DependencyRegistration.cs` and `DependencyRegistrationHelper.cs`)
+- [ ] T081 [P] [US2] Test: in a ≥1000-node report, failure-first ordering + search surface the first failing assertion within the SC-011 target (assert failing nodes precede passing detail and are directly locatable) in `tests/JTest.UnitTests/Reporting/FailureFirstNavigationTests.cs` (covers SC-011)
+- [ ] T082 [US2] Implement safe large/binary content handling in the projector and trace: truncate request/response bodies over a configurable threshold (default 256 KB) with a truncation + original-size indicator; summarize binary/non-UTF-8 content as content-type + byte size (never raw) in `src/JTest.Core/Reporting/Html/HtmlReportGenerator.cs` and `src/JTest.Core/Tracing/TraceBuilder.cs` (FR-023)
+- [ ] T083 [P] [US2] Test: oversized body is truncated with indicator + recorded original size; binary/non-UTF-8 body is summarized, not emitted raw in `tests/JTest.UnitTests/Reporting/OversizedContentTests.cs` (FR-023)
 
 **Checkpoint**: `run` produces a complete, offline, failure-first HTML report.
 
@@ -237,7 +240,7 @@ Legacy docs are output, never a source of truth.
 ## Phase 11: Polish & Cross-Cutting Concerns
 
 - [ ] T077 [P] Run `specs/001-jtest2-pipeline-reporting/quickstart.md` end-to-end against sample suites
-- [ ] T078 [P] Performance check: a ~5,000-node run serializes + renders HTML within a few seconds and stays interactive (`tests/JTest.UnitTests/Reporting/LargeRunPerfTests.cs`)
+- [ ] T078 [P] Performance check: a ~5,000-node run serializes + renders HTML within ≤ 3 seconds and stays interactive (`tests/JTest.UnitTests/Reporting/LargeRunPerfTests.cs`)
 - [ ] T079 Security review of report output (no injection/leak paths) across all projections
 - [ ] T080 Final Constitution compliance re-check (all 8 gates) and release notes
 
@@ -304,4 +307,4 @@ demoable increment that does not break earlier ones.
 - Tests are required (Principle VII); write per-story tests before/with implementation and ensure they fail first.
 - `[P]` = different files, no dependency on an incomplete task.
 - Commit after each task or logical group; keep the branch pushed.
-- Total: 80 tasks — Setup 8, Foundational 12, US1 9, US2 9, US3 5, US4 10, US7 9, US5 7, US6 3, Docs 4, Polish 4.
+- Total: 83 tasks — Setup 8, Foundational 12, US1 9, US2 12, US3 5, US4 10, US7 9, US5 7, US6 3, Docs 4, Polish 4.

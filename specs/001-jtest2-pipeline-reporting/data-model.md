@@ -128,9 +128,10 @@ Aggregation rule (parent outcome from children): `errored` > `timedOut` > `cance
   string (single-valued header) or an array of strings (multi-valued, e.g. `set-cookie`). This is
   the same shape steps read at runtime as `$.this.headers[...]` (FR-040). Values pass through the
   redaction pipeline.
-- **Session Scope / CookieJar**: the execution scope (a case by default) owns a cookie container
-  shared by its HTTP steps and isolated from other scopes (FR-038/FR-039). Not serialized into the
-  trace as data; only its effects (Set-Cookie/Cookie headers, redacted) appear.
+- **Execution Scope / CookieJar**: the per-case execution scope (also called the session scope)
+  owns a cookie container shared by its HTTP steps and isolated from other scopes (FR-038/FR-039).
+  Not serialized into the trace as data; only its effects (Set-Cookie/Cookie headers, redacted)
+  appear.
 - **ContextChanges**: `added: RedactedMap, modified: RedactedMap`.
 - **RedactedMap / RedactedValue / RedactedString**: logical wrappers indicating the value passes
   through the `ReportValuePipeline` (redaction by value+key, then format encoding) before it

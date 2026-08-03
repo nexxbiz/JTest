@@ -46,9 +46,12 @@ golden-file / integration fixture set for traces, reports, exit codes, escaping,
 **Target Platform**: cross-platform .NET global tool (`jtest`), run headless in CI/CD.
 **Project Type**: single solution — core library + CLI tool (Option 1, single project group).
 **Performance Goals**: a run of up to ~5,000 trace nodes serializes and renders to a
-self-contained HTML file within a few seconds; the HTML remains interactive (client-side
-search/filter/collapse) at that scale.
-**Constraints**: HTML report MUST be self-contained (zero external requests) and open offline;
+self-contained HTML file within ≤ 3 seconds; the HTML remains interactive (client-side
+search/filter/collapse) at that scale. Request/response bodies over a configurable threshold
+(default 256 KB) are truncated in the report with an indicator; binary/non-UTF-8 content is
+summarized (content type + size), never emitted raw.
+**Constraints**: HTML report MUST be self-contained (zero external requests), open offline, and
+meet WCAG 2.1 AA (keyboard nav, visible focus, AA contrast in light and dark);
 output ordering MUST be deterministic; all dynamic values MUST pass through one encode+redact
 pipeline; must not regress the existing public `jtest` command surface except where the spec
 requires (exit codes, new `report`/trace output). The legacy `docs/` folder is treated as

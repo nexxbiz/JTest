@@ -77,7 +77,7 @@ An engineer opens the HTML report produced by a pipeline run — on a machine wi
 2. **Given** a run with nested templates and loops, **When** the report opens, **Then** the complete nested execution is shown by default (no debug flag required to see child/iteration detail).
 3. **Given** a run with both failures and passes, **When** the report opens, **Then** failures are surfaced before passing detail and the failing paths are expanded or clearly flagged.
 4. **Given** a large run, **When** the user searches or filters, **Then** they can locate a specific case, step, or assertion and drill into its expected/actual values, timing, and diagnostics.
-5. **Given** any report, **When** navigated with keyboard only, **Then** all detail is reachable and meets basic accessibility expectations (semantic structure, sufficient contrast).
+5. **Given** any report, **When** navigated with keyboard only, **Then** all detail is reachable and the report meets WCAG 2.1 AA (semantic structure, visible focus, text contrast ≥ 4.5:1).
 6. **Given** the same run, **When** the canonical result file and the HTML report are compared, **Then** the report neither adds information absent from the canonical result nor omits any node except through an explicit, user-chosen view filter.
 
 ---
@@ -225,9 +225,9 @@ A tester writes a suite that logs in (the server sets an HttpOnly session cookie
 - **FR-018**: The primary report MUST be a single self-contained HTML file with no external network or asset dependencies (all styles/scripts/assets inlined), openable offline.
 - **FR-019**: The HTML report MUST be failure-first: failures and errored/cancelled/timed-out nodes MUST be surfaced ahead of passing detail and the failing paths made immediately visible.
 - **FR-020**: The HTML report MUST be searchable/filterable and allow drill-down from run → suite → case → dataset → iteration → step → assertion, showing expected vs actual, timings, and diagnostics.
-- **FR-021**: The HTML report MUST be accessible: keyboard navigable, semantically structured, and meeting sufficient-contrast expectations.
+- **FR-021**: The HTML report MUST meet WCAG 2.1 AA: keyboard navigable with a visible focus indicator, semantically structured (landmarks/headings), and meeting AA text-contrast ratios (≥ 4.5:1 for normal text, ≥ 3:1 for large text) in both light and dark themes.
 - **FR-022**: The HTML report MUST clearly present rollups (counts and outcomes) at run, suite, case, and dataset scope.
-- **FR-023**: The report MUST remain usable and self-contained for large runs (thousands of nodes) and MUST represent oversized or non-text content safely without breaking rendering.
+- **FR-023**: The report MUST remain usable and self-contained for large runs (thousands of nodes). Request/response bodies larger than a configurable threshold (default 256 KB) MUST be truncated in the report with a clear indicator of truncation and original size; binary or non-UTF-8 content MUST be represented by a summary (content type + byte size), never emitted as raw bytes that break rendering. Truncation affects the projection only; the canonical trace records the original size and a truncation flag.
 
 ### Functional Requirements — Security & redaction (Pillar C)
 
@@ -289,8 +289,8 @@ A tester writes a suite that logs in (the server sets an HttpOnly session cookie
 - **Redaction Rule**: the policy by which secret values (by key and by value) are masked across all projections.
 - **Language Schema**: the authoritative, versioned machine-readable description of the JTest test-definition language.
 - **Report**: a read-only projection of the trace into a format (HTML primary; Markdown/console secondary).
-- **HTTP Exchange**: the request/response captured for an HTTP step — method, URL, keyed request/response headers, bodies, and status (`statusCode`/`status`) — with cookie/authorization values redacted.
-- **Session Scope**: the boundary that owns a cookie container (a test case by default); persists cookies across that scope's steps and is isolated from other scopes.
+- **HTTP Exchange**: the request/response captured for an HTTP step — method, URL, a case-insensitive keyed header map for request/response headers (multi-valued headers like `set-cookie` expose all values), bodies, and status (`statusCode`/`status`) — with cookie/authorization values redacted.
+- **Execution Scope** (also called the session scope): the per-case boundary that owns a cookie container; persists cookies across that scope's steps and is isolated from other scopes.
 
 ## Success Criteria *(mandatory)*
 
