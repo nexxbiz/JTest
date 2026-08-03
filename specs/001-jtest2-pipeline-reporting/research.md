@@ -144,3 +144,79 @@ All Technical Context unknowns are resolved below. Format: Decision / Rationale 
   way; golden files pin the projection so regressions are caught.
 - **Alternatives**: Manual verification (non-repeatable); snapshot-only without exit-code integration
   tests (misses the primary false-green property).
+
+## R12. Deterministic, isolated HTTP cookie handling
+
+- **Context (verified on current source)**: `HttpStep` receives its `HttpClient` by reflection
+  injection — `TypeDescriptorRegistry.GetArguments` calls `serviceProvider.GetService(HttpClient)`
+  (`src/JTest.Core/TypeDescriptors/TypeDescriptorRegistry.cs:112`). `JTest.Cli` calls
+  `services.AddHttpClient()` in **two separate** service collections: the host
+  (`JTestApplication.cs:46`) and Spectre's own `ServiceCollection`
+  (`JTestApplication.cs:79`). Cookie persistence today is accidental — it only works while the
+  `IHttpClientFactory` pooled primary handler (default `UseCookies=true`, per-handler
+  `CookieContainer`) is reused, and it is lost when the handler pool recycles.
+- **Critical assessment of the reported fix**: the suggested `services.AddSingleton<CookieContainer>()`
+  + `ConfigurePrimaryHttpMessageHandler` is the correct *shape* but wrong for JTest 2.0 as written:
+  1. A process-wide **singleton** cookie jar cross-contaminates sessions across cases — it breaks
+     test isolation and our parallel==sequential requirement (FR-005/FR-039). Sessions must be
+     **scoped**, not global.
+  2. With `IHttpClientFactory`, the `ConfigurePrimaryHttpMessageHandler` factory receives the
+     **root** provider and the handler is **pooled/shared across DI scopes**, so a naively "scoped"
+     `CookieContainer` will not flow through the pooled handler. Scope isolation cannot be achieved
+     by DI lifetime alone on top of the factory's default pooling.
+  3. Registering a singleton in each of the two separate service collections yields **two different
+     instances** — not actually shared.
+- **Decision**: Introduce a JTest-owned HTTP client abstraction (a small `IHttpClientProvider` in
+  `JTest.Core/Http`) that hands each step a client bound to the **current execution scope's**
+  `CookieContainer` (scope = test case by default; configurable to per-run). Achieve determinism by
+  either (a) constructing the client's primary handler with an explicit per-scope `CookieContainer`
+  and `PooledConnectionLifetime`/no-cookie-pooling so the jar is scope-owned, or (b) disabling
+  handler cookie management (`UseCookies=false`) and having JTest apply/collect cookies against the
+  per-scope container itself. The execution layer creates one scope per case and passes its cookie
+  container down to every HTTP step in that case. Both `JTest.Cli` registration paths are reconciled
+  to use this provider; no path falls back to an unmanaged default client.
+- **Rationale**: Satisfies FR-038/FR-039/FR-043 and keeps FR-005 (parallel equivalence): cookies
+  persist across steps in a case, are isolated across cases, and do not depend on handler-pool
+  lifetime. Owning the client also gives one place to enforce timeouts (R7) and to feed
+  request/response into the redaction pipeline (R4).
+- **Alternatives**: Process-wide singleton jar (rejected — isolation/parallel break); relying on
+  factory defaults (the current accidental behavior); per-step new `HttpClient` with its own jar
+  (breaks cross-step persistence).
+- **Redaction tie-in**: `Cookie`, `Set-Cookie`, and `Authorization` are treated as secret-like keys
+  by the value pipeline (R4/R5) so session credentials are masked in the report and trace (FR-042).
+  The existing `HttpStepResultDataWriter.cs:169` already lists these as sensitive — that intent is
+  carried into the centralized pipeline.
+
+## R13. HTTP headers as a case-insensitive keyed map
+
+- **Context (verified)**: `HttpStep.GetResponseHeaders` (`src/JTest.Core/Steps/HttpStep.cs:326`)
+  returns `object[]` of `{name, value}`, and request headers are built the same way
+  (`HttpStep.cs:270-273`), but the docs promise keyed access, e.g.
+  `$.this.headers['content-type']` (`docs/05-assertions.md:846`).
+- **Decision**: Emit `headers` in the step's response/request data as a **case-insensitive keyed
+  map** (`Dictionary<string,object?>` with `StringComparer.OrdinalIgnoreCase`). Single-valued
+  headers map to a string; multi-valued headers (notably `set-cookie`) map to an **array of
+  strings** so every value is addressable. This is the shape consumed by JSONPath (`$.this.headers`)
+  and mirrored in the canonical trace's `HttpExchange` header maps.
+- **Rationale**: Makes the documented access pattern actually work (FR-040); ordinal-ignore-case
+  matches HTTP header semantics; arrays preserve `Set-Cookie` fidelity needed for R12.
+- **Alternatives**: Keep the array-of-`{name,value}` shape (docs stay broken); comma-join
+  multi-values (loses individual `Set-Cookie` entries — bad for cookie inspection). The legacy array
+  form is dropped (clean break, FR-033) rather than dual-emitted, to avoid an ambiguous contract.
+
+## R14. `status` vs `statusCode`
+
+- **Context (verified)**: response data emits `["status"] = (int)response.StatusCode`
+  (`HttpStep.cs:295`); unit tests assert `$.this.status` / `responseData.GetProperty("status")`
+  (`tests/JTest.UnitTests/Steps/HttpStepTests.cs`, `ExampleUsageTests.cs`); the docs use
+  `$.this.statusCode` pervasively (dozens of references across `docs/*.md`).
+- **Decision**: Expose **both** keys in the response data and trace: `statusCode` (documented
+  canonical) and `status` (retained alias), both the integer HTTP status. Docs standardize on
+  `statusCode`; existing `status`-based tests remain valid; add tests asserting both.
+- **Rationale**: Honors the spec clarification and the user's "add a `statusCode` alias" option;
+  avoids rewriting dozens of doc references and avoids breaking existing tests. Dual keys are a
+  deliberate, documented ergonomic choice (not accidental drift), so it does not violate the
+  honesty principle.
+- **Alternatives**: `status`-only + rewrite all docs (larger churn, and `statusCode` is the more
+  conventional/descriptive public name); `statusCode`-only + rewrite tests (breaks the currently
+  green contract for no user benefit).

@@ -120,8 +120,17 @@ Aggregation rule (parent outcome from children): `errored` > `timedOut` > `cance
 | exceptionType / stackTrace | string? | For `errored` nodes; stackTrace included in trace, shown in report only on opt-in. |
 
 ### Supporting value objects
-- **HttpExchange**: `method, url, requestHeaders (RedactedMap), requestBody (RedactedValue),
-  status, responseHeaders (RedactedMap), responseBody (RedactedValue), durationMs`.
+- **HttpExchange**: `method, url, requestHeaders (HeaderMap), requestBody (RedactedValue),
+  statusCode (int), status (int, alias of statusCode), responseHeaders (HeaderMap),
+  responseBody (RedactedValue), durationMs`. `Cookie`/`Set-Cookie`/`Authorization` header values
+  are redacted by default (FR-042).
+- **HeaderMap**: a case-insensitive keyed map of header name → value, where a value is either a
+  string (single-valued header) or an array of strings (multi-valued, e.g. `set-cookie`). This is
+  the same shape steps read at runtime as `$.this.headers[...]` (FR-040). Values pass through the
+  redaction pipeline.
+- **Session Scope / CookieJar**: the execution scope (a case by default) owns a cookie container
+  shared by its HTTP steps and isolated from other scopes (FR-038/FR-039). Not serialized into the
+  trace as data; only its effects (Set-Cookie/Cookie headers, redacted) appear.
 - **ContextChanges**: `added: RedactedMap, modified: RedactedMap`.
 - **RedactedMap / RedactedValue / RedactedString**: logical wrappers indicating the value passes
   through the `ReportValuePipeline` (redaction by value+key, then format encoding) before it

@@ -30,6 +30,12 @@ This specification defines observable, testable outcomes only. Implementation ch
 - Q: How strictly must 1.0 test-definition compatibility be preserved? → A: Clean break allowed. No external consumers exist yet, so breaking changes to the language and its schema are permitted where they improve correctness, clarity, or security; changes are documented but no migration path is guaranteed.
 - Q: How are secrets identified for redaction? → A: Redact values explicitly declared/registered as secret AND values under known secret-like keys, matched by value wherever they appear (headers, request/response bodies, query strings).
 
+### Session 2026-08-03 (HTTP hardening finding)
+
+- Q: How should HTTP session state (cookies) persist across steps and isolate across cases? → A: A cookie jar is shared across steps within one execution scope (a test case by default) and isolated between cases/runs; persistence MUST hold regardless of HttpClient handler-pool lifetime and MUST NOT cross-contaminate under parallel execution. A process-wide singleton cookie container is explicitly rejected (it breaks parallel isolation, FR-005).
+- Q: How are HTTP response/request headers exposed to tests? → A: As a case-insensitive keyed map (e.g. `$.this.headers['content-type']`); multi-valued headers such as `set-cookie` expose all values (array).
+- Q: `status` vs `statusCode` in HTTP response data? → A: Expose both — `statusCode` is the documented canonical name (matches existing docs), `status` is a retained alias (matches existing tests); both resolve to the integer HTTP status and are covered by tests.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Pipeline gate never lies (no false-green) (Priority: P1)
@@ -139,6 +145,24 @@ A consumer installs `jtest` and needs the reported version, the package metadata
 
 ---
 
+### User Story 7 - Authenticated multi-step HTTP flows work deterministically (Priority: P2)
+
+A tester writes a suite that logs in (the server sets an HttpOnly session cookie) and then calls authenticated endpoints in later steps, expecting the session to be carried automatically — and expecting cases that run in parallel not to leak sessions into one another.
+
+**Why this priority**: Cookie-based authentication is a common real-world flow (e.g. an Elsa server whose `POST /_elsa/identity/login` sets an HttpOnly cookie). Today it works only by accident (the pooled HTTP handler defaults to cookie handling), so it is non-deterministic and unsafe under parallelism.
+
+**Independent Test**: Run a two-step suite (login → authenticated GET) and assert it passes with no manual `Cookie` header, repeated across HTTP handler-pool lifetimes; and run two cases that authenticate as different identities in parallel and assert neither observes the other's cookies.
+
+**Acceptance Scenarios**:
+
+1. **Given** a login step that receives a `Set-Cookie`, **When** a later step in the same case calls a protected endpoint, **Then** the request carries the cookie automatically and succeeds — with no manually specified `Cookie` header.
+2. **Given** the same suite run repeatedly, **When** the underlying HTTP handler pool recycles, **Then** the outcome is unchanged (deterministic).
+3. **Given** two cases that each log in as a different user run in parallel, **When** they execute, **Then** neither case observes the other's cookies.
+4. **Given** a response carrying `Set-Cookie` (possibly multiple), **When** a step reads `$.this.headers['set-cookie']`, **Then** all cookie values are available.
+5. **Given** any response, **When** a step reads `$.this.statusCode` or `$.this.status`, **Then** both return the integer status; and `$.this.headers['content-type']` resolves case-insensitively.
+
+---
+
 ### Edge Cases
 
 - **Crashing suite**: template fails to load, definition fails to deserialize, or setup throws → recorded as a failed suite, non-zero exit.
@@ -155,6 +179,11 @@ A consumer installs `jtest` and needs the reported version, the package metadata
 - **Large run**: thousands of nodes → the report remains usable (searchable, navigable) and self-contained.
 - **Unicode / non-ASCII content**: preserved and displayed correctly.
 - **Version/license mismatch**: caught before release (treated as a release-blocking inconsistency).
+- **Cookie session across steps**: a login step sets an HttpOnly cookie → a later step in the same case is authenticated automatically; a different case running in parallel is not.
+- **HTTP handler pool recycles mid-run**: cookie/session behavior is unchanged (no dependence on pooled-handler defaults).
+- **Multi-valued `Set-Cookie`**: a response with multiple cookies exposes all values via `headers['set-cookie']`.
+- **Case-insensitive header lookup**: `headers['Content-Type']` and `headers['content-type']` resolve to the same value.
+- **Cookie/authorization in the report**: `Cookie`, `Set-Cookie`, and `Authorization` values are redacted by default in reports and the trace.
 
 ## Requirements *(mandatory)*
 
@@ -214,7 +243,16 @@ A consumer installs `jtest` and needs the reported version, the package metadata
 
 ### Functional Requirements — Verification discipline (cross-cutting, per constitution)
 
-- **FR-037**: Each correctness and reporting behavior above MUST be covered by automated tests, including at minimum: loop iteration retention, nested/template ancestry and numbering, cancellation, timeout, parallel-vs-sequential equivalence, exit codes, output escaping, and secret redaction.
+- **FR-037**: Each correctness and reporting behavior above MUST be covered by automated tests, including at minimum: loop iteration retention, nested/template ancestry and numbering, cancellation, timeout, parallel-vs-sequential equivalence, exit codes, output escaping, secret redaction, and the HTTP session/cookie and response-contract behaviors (FR-038–FR-043).
+
+### Functional Requirements — HTTP step contract & session handling
+
+- **FR-038**: HTTP cookie state MUST persist deterministically across steps within one execution scope (a test case by default) via an explicit, JTest-managed cookie container, independent of the HTTP client's handler-pool lifetime. Relying on `IHttpClientFactory` default cookie behavior is not acceptable.
+- **FR-039**: Cookie state MUST be isolated between test cases (and between runs); under parallel execution no case may observe another case's cookies. (Consistency with FR-005.)
+- **FR-040**: HTTP response data MUST expose headers as a case-insensitive keyed map addressable by name (e.g. `headers['content-type']`); multi-valued headers (e.g. `set-cookie`) MUST expose all values. Request data SHOULD expose headers the same way.
+- **FR-041**: HTTP response data MUST expose the status code under a documented canonical key `statusCode` with a retained alias `status`; both MUST resolve to the integer HTTP status.
+- **FR-042**: `Cookie`, `Set-Cookie`, and `Authorization` values MUST be redacted by default in every report and in the persisted trace (a specialization of FR-025/FR-026).
+- **FR-043**: Every code path that constructs the HTTP client MUST use the shared, scope-isolated cookie container. (Today `JTest.Cli` registers the HTTP client in two separate service collections — host and CLI; both MUST be reconciled, and no path may fall back to an unmanaged default client.)
 
 ### Key Entities
 
@@ -229,6 +267,8 @@ A consumer installs `jtest` and needs the reported version, the package metadata
 - **Redaction Rule**: the policy by which secret values (by key and by value) are masked across all projections.
 - **Language Schema**: the authoritative, versioned machine-readable description of the JTest test-definition language.
 - **Report**: a read-only projection of the trace into a format (HTML primary; Markdown/console secondary).
+- **HTTP Exchange**: the request/response captured for an HTTP step — method, URL, keyed request/response headers, bodies, and status (`statusCode`/`status`) — with cookie/authorization values redacted.
+- **Session Scope**: the boundary that owns a cookie container (a test case by default); persists cookies across that scope's steps and is isolated from other scopes.
 
 ## Success Criteria *(mandatory)*
 
@@ -246,6 +286,9 @@ A consumer installs `jtest` and needs the reported version, the package metadata
 - **SC-010**: Running the same corpus sequentially and in parallel yields equivalent trace node sets and outcomes in 100% of comparisons.
 - **SC-011**: An engineer can locate the first failing assertion in a large run (≥1000 nodes) within 30 seconds using the report's failure-first ordering and search/filter.
 - **SC-012**: For the released package, the version reported by the tool, the package metadata, and the git tag agree (single reconciled value), and a matching `LICENSE` file is present.
+- **SC-013**: A two-step authenticated suite (login → protected endpoint) passes with no manually specified `Cookie` header in 100% of runs, across repeated executions and forced HTTP handler-pool recycling.
+- **SC-014**: Two cases authenticating as different identities run in parallel never observe each other's cookies (0 cross-contamination) — and the run's node set/outcomes match the sequential run (consistent with SC-010).
+- **SC-015**: For every HTTP response, `statusCode`, `status`, and case-insensitive `headers[...]` access (including multi-valued `set-cookie`) resolve correctly in 100% of contract tests, and `Cookie`/`Set-Cookie`/`Authorization` values are redacted by default (0 leaks).
 
 ## Assumptions
 

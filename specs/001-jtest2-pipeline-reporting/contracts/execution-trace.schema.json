@@ -67,6 +67,16 @@
       "description": "Key/value map whose values have already passed redaction; secret values are the mask token.",
       "additionalProperties": { "type": ["string", "number", "boolean", "null"] }
     },
+    "headerMap": {
+      "type": "object",
+      "description": "Case-insensitive header map; a value is a string (single-valued) or an array of strings (multi-valued, e.g. set-cookie). Cookie/Set-Cookie/Authorization values are redacted.",
+      "additionalProperties": {
+        "oneOf": [
+          { "type": "string" },
+          { "type": "array", "items": { "type": "string" } }
+        ]
+      }
+    },
     "suite": {
       "type": "object",
       "required": ["id", "path", "kind", "name", "outcome", "counts", "cases"],
@@ -196,10 +206,11 @@
       "properties": {
         "method": { "type": "string" },
         "url": { "type": "string" },
-        "requestHeaders": { "$ref": "#/$defs/redactedMap" },
+        "requestHeaders": { "$ref": "#/$defs/headerMap" },
         "requestBody": { "type": ["string", "null"] },
-        "status": { "type": "integer" },
-        "responseHeaders": { "$ref": "#/$defs/redactedMap" },
+        "statusCode": { "type": "integer", "description": "Canonical HTTP status code." },
+        "status": { "type": "integer", "description": "Alias of statusCode (retained for compatibility)." },
+        "responseHeaders": { "$ref": "#/$defs/headerMap" },
         "responseBody": { "type": ["string", "null"] },
         "durationMs": { "type": "number", "minimum": 0 }
       }
