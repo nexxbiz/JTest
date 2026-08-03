@@ -239,10 +239,10 @@ Legacy docs are output, never a source of truth.
 
 ## Phase 11: Polish & Cross-Cutting Concerns
 
-- [ ] T080 [P] Run `specs/001-jtest2-pipeline-reporting/quickstart.md` end-to-end against sample suites
-- [ ] T081 [P] Performance check: a ~5,000-node run serializes + renders HTML within ≤ 3 seconds and stays interactive (`tests/JTest.UnitTests/Reporting/LargeRunPerfTests.cs`)
-- [ ] T082 Security review of report output (no injection/leak paths) across all projections
-- [ ] T083 Final Constitution compliance re-check (all 8 gates) and release notes
+- [X] T080 [P] Run `specs/001-jtest2-pipeline-reporting/quickstart.md` end-to-end against sample suites
+- [X] T081 [P] Performance check: a ~5,000-node run serializes + renders HTML within ≤ 3 seconds and stays interactive (`tests/JTest.UnitTests/Reporting/LargeRunPerfTests.cs`)
+- [X] T082 Security review of report output (no injection/leak paths) across all projections
+- [X] T083 Final Constitution compliance re-check (all 8 gates) and release notes
 
 ---
 
