@@ -21,6 +21,15 @@ This specification defines observable, testable outcomes only. Implementation ch
 - Assertion, error, name, and description values are embedded into report HTML without escaping (injection/XSS); environment and global variables are dumped verbatim; request-body secret masking never actually fires.
 - Release metadata disagrees with itself (source version vs git tag) and the README links a `LICENSE` file that does not exist.
 
+## Clarifications
+
+### Session 2026-08-03
+
+- Q: What process exit-code scheme should the pipeline gate use? → A: Distinct, documented codes per failure class — `0` = success, with separate non-zero codes for test/assertion failures, execution/suite errors (crashes), validation failures, and aborted (cancelled or timed-out) runs.
+- Q: Is the canonical JSON execution trace a user-facing artifact or internal-only? → A: Always produced internally; emittable to a file on request via a selectable output option (and configurable to always emit in pipeline usage). HTML remains a projection of it.
+- Q: How strictly must 1.0 test-definition compatibility be preserved? → A: Clean break allowed. No external consumers exist yet, so breaking changes to the language and its schema are permitted where they improve correctness, clarity, or security; changes are documented but no migration path is guaranteed.
+- Q: How are secrets identified for redaction? → A: Redact values explicitly declared/registered as secret AND values under known secret-like keys, matched by value wherever they appear (headers, request/response bodies, query strings).
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Pipeline gate never lies (no false-green) (Priority: P1)
@@ -158,11 +167,11 @@ A consumer installs `jtest` and needs the reported version, the package metadata
 - **FR-005**: Parallel execution MUST report the same complete set of results and outcomes as sequential execution for the same input; no result or exception may be lost in the parallel path.
 - **FR-006**: Cancellation MUST be honored promptly and recorded as a distinct "cancelled" outcome; a cancelled run MUST exit non-zero.
 - **FR-007**: Timeouts (step-level and loop-level) MUST be honored and recorded as a distinct "timed out" outcome, separate from ordinary pass/fail.
-- **FR-008**: The exit-code contract and all outcome states MUST be documented for pipeline authors.
+- **FR-008**: The exit-code contract MUST use distinct, documented codes per failure class: `0` = success; a distinct non-zero code for test/assertion failures; a distinct non-zero code for execution/suite errors (crashes); a distinct non-zero code for validation failures; and a distinct non-zero code for aborted (cancelled or timed-out) runs. When a single run exhibits multiple classes, the precedence used to select the reported code MUST be documented. All codes and outcome states MUST be documented for pipeline authors.
 
 ### Functional Requirements — Canonical execution trace (Pillars A & B)
 
-- **FR-009**: Each run MUST produce a single canonical, serializable, machine-readable result (the "execution trace") that is the source of truth for the run.
+- **FR-009**: Each run MUST produce a single canonical, serializable, machine-readable result (the "execution trace") that is the source of truth for the run. The trace MUST always be produced internally and MUST be emittable to a file on request via a selectable output option (with a stable, versioned schema); pipeline usage MAY be configured to always emit it.
 - **FR-010**: The trace MUST be versioned and MUST record the trace-schema version, the JTest tool version, and start/end timestamps at run, suite, case, and step scope.
 - **FR-011**: The trace MUST preserve full ancestry: run → suite → case → dataset → step → template/loop → iteration → child-step → assertion.
 - **FR-012**: Every trace node MUST carry a stable identity/path, a kind, an ordinal within its parent, an iteration index where applicable, a duration, an outcome (one of: passed, failed, errored, cancelled, timed-out, skipped), its diagnostics, and its children.
@@ -185,7 +194,7 @@ A consumer installs `jtest` and needs the reported version, the package metadata
 
 - **FR-024**: All dynamic values placed into any report MUST be encoded appropriately for that format so that no attacker-influenced content can produce active markup or injection (no XSS). Encoding MUST be applied uniformly across every value path, not ad hoc per field.
 - **FR-025**: Secrets MUST be redacted by default in every report.
-- **FR-026**: Redaction MUST match on secret values (not only on key names) and MUST apply wherever the value appears, including request and response bodies and query strings, not only headers.
+- **FR-026**: Secret identification MUST cover both (a) values explicitly declared or registered as secret and (b) values appearing under known secret-like keys (e.g. token, password, secret, key, credential, authorization, bearer). Identified secrets MUST be matched by value and redacted wherever the value appears — including request and response bodies and query strings — not only by key name and not only in headers.
 - **FR-027**: Environment, global, and variable dumps MUST be excluded from the default report and MUST be available only via explicit opt-in.
 - **FR-028**: When variable/environment/global dumps are opted in, secret values within them MUST remain masked.
 
@@ -195,7 +204,7 @@ A consumer installs `jtest` and needs the reported version, the package metadata
 - **FR-030**: Validation MUST enforce the schema (type, discriminator, constraint, and reference checks), not only shallow structural presence checks.
 - **FR-031**: Validation diagnostics MUST be machine-readable and MUST identify the offending location within the definition.
 - **FR-032**: Validity reporting MUST be honest: no check may be mislabeled (a structural check MUST NOT be presented as full schema validation), and no reported count may be fabricated or left uncomputed.
-- **FR-033**: The compatibility relationship between the JTest 2.0 language and existing (1.0) definitions MUST be explicit and documented.
+- **FR-033**: JTest 2.0 MAY introduce breaking changes to the test-definition language and its schema where they improve correctness, clarity, or security. Backward compatibility with 1.0 definitions is NOT required (no external consumers exist yet). Every such breaking change MUST be recorded in a changelog; a guaranteed migration path is NOT required.
 
 ### Functional Requirements — Release integrity (Pillar D)
 
@@ -240,18 +249,17 @@ A consumer installs `jtest` and needs the reported version, the package metadata
 
 ## Assumptions
 
-- **Backward compatibility**: JTest 2.0 formalizes and hardens the *existing* language; existing valid 1.0 test definitions are expected to remain valid under the 2.0 schema. Any unavoidable breaking change is documented under FR-033 rather than introduced silently.
+- **Backward compatibility is not required**: there are no external consumers of JTest 1.0 yet, so JTest 2.0 is free to correct flaws in the test-definition language and its schema even where that breaks 1.0 definitions. Breaking changes are made deliberately for correctness/clarity/security and recorded in a changelog (FR-033), not to expand feature scope (see Out of Scope).
 - **HTML is the primary shareable report**; existing console summary output is retained, and Markdown output, if kept, is re-expressed as a projection of the canonical trace rather than removed abruptly. Final disposition of Markdown is a planning decision, not a change to the canonical-trace contract.
 - **Report emission is on-demand** via the tool's existing output-selection mechanism (a report path/format is requested), and can be made always-on in pipeline usage; the canonical trace is always produced for a run regardless of which human-facing reports are requested.
 - **Target runtime** remains .NET (net8.0) and the `jtest` dotnet global tool distribution; no change of platform or distribution channel is in scope.
-- **Secret detection** operates on values configured/known to the run (e.g. declared secrets, credentials, tokens) and on standard secret-like keys; it is not expected to detect arbitrary unknown secrets by content heuristics alone, but MUST cover configured secret values wherever they appear (FR-026).
+- **Secret detection** is deterministic: it redacts values declared/registered as secret plus values under standard secret-like keys, matched by value wherever they appear (FR-026). It deliberately does NOT attempt content-heuristic detection of undeclared secrets (e.g. entropy/shape guessing), to avoid false positives; undeclared secrets under non-obvious keys are the author's responsibility to declare.
 - **Self-contained HTML** implies all assets inlined; this is acceptable for pipeline artifact sizes for the expected run scales (up to low thousands of nodes). Extreme-scale runs may summarize oversized payloads (FR-023).
 - **Program Kit is explicitly out of scope** for JTest 2.0; this release is delivered through the standard Spec-Driven flow only.
 
 ## Out of Scope
 
-- Redesigning or extending the JTest test-definition language beyond formalizing and validating what exists.
-- New step types, new assertion operators, or new protocol support.
+- Expanding the language's feature surface: no new step types, new assertion operators, or new protocol support. (Correcting or breaking *existing* definitions/schema for the better is allowed per FR-033; adding new capabilities is not.)
 - A hosted/service or GUI reporting dashboard (the deliverable is a single static HTML file).
 - Historical trend storage or cross-run aggregation across pipeline builds.
 - Any dependence on the abandoned Program Kit workflow.
