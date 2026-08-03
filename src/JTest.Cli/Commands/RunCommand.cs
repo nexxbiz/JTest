@@ -2,6 +2,7 @@
 using JTest.Cli.Settings;
 using JTest.Core.Execution;
 using JTest.Core.Models;
+using JTest.Core.Reporting;
 using JTest.Core.Reporting.Html;
 using JTest.Core.Templates;
 using JTest.Core.Tracing;
@@ -71,7 +72,11 @@ public class RunCommand : CommandBase<RunCommandSettings>
             && resultList.Sum(r => r.CasesPassed + r.CasesFailed) == 0;
         var exitCode = ExitCodeService.From(trace.Counts, emptyDiscovery: emptyDiscovery);
 
-        WriteOutputs(settings, trace with { ExitCode = exitCode });
+        var environment = settings.IncludeVariables
+            ? VariableDump.Build(_variablesContext.EnvironmentVariables, _variablesContext.GlobalVariables)
+            : null;
+
+        WriteOutputs(settings, trace with { ExitCode = exitCode, Environment = environment });
         return exitCode;
     }
 

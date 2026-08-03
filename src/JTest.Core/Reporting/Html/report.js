@@ -203,6 +203,18 @@
     app.appendChild(renderSummary(trace));
     app.appendChild(buildControls(app));
 
+    if (trace.environment) {
+      var envNode = el("details", { class: "node", attrs: { "data-outcome": "passed", "data-text": "variables environment globals" } });
+      var envSummary = el("summary");
+      envSummary.appendChild(el("span", { class: "kind", text: "variables" }));
+      envSummary.appendChild(el("span", { class: "label", text: "Environment & globals (masked)" }));
+      envNode.appendChild(envSummary);
+      var envBody = el("div", { class: "body" });
+      Object.keys(trace.environment).forEach(function (k) { envBody.appendChild(kv(k, trace.environment[k])); });
+      envNode.appendChild(envBody);
+      app.appendChild(envNode);
+    }
+
     var results = el("section", { attrs: { id: "results", "aria-label": "Execution results" } });
     var suites = sortFailureFirst(trace.suites);
     if (suites.length === 0) results.appendChild(el("p", { class: "empty", text: "No suites in this run." }));

@@ -58,6 +58,10 @@ public sealed class RunCommandSettings : CommandSettings
     [Description("Write the canonical execution-trace JSON to the given file path.")]
     public string? TraceFile { get; set; }
 
+    [CommandOption("--include-variables")]
+    [Description("Include a masked dump of environment/global variables in the report and trace (off by default).")]
+    public bool IncludeVariables { get; set; }
+
     public IEnumerable<string> GetCategories()
     {
         return categories ?? [];

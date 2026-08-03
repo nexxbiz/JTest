@@ -124,7 +124,7 @@ from. **⚠️ No user story can begin until this phase is complete.**
 
 - [ ] T044 [US3] Route every dynamic value in the HTML and Markdown projectors through `ReportValuePipeline` (no ad-hoc escaping) in `src/JTest.Core/Reporting/Html/HtmlReportGenerator.cs` and `Markdown/MarkdownReportGenerator.cs`
 - [X] T045 [US3] Ensure the persisted canonical trace has declared secrets masked before serialization in `src/JTest.Core/Tracing/TraceBuilder.cs`
-- [ ] T046 [US3] Implement opt-in, masked env/global/variable dump (`--include-variables`) in report + trace; excluded by default in `src/JTest.Core/Reporting/` and `src/JTest.Cli/Commands/RunCommand.cs`
+- [X] T046 [US3] Implement opt-in, masked env/global/variable dump (`--include-variables`) in report + trace; excluded by default in `src/JTest.Core/Reporting/` and `src/JTest.Cli/Commands/RunCommand.cs`
 
 **Checkpoint**: The report is safe to attach as a public pipeline artifact.
 
