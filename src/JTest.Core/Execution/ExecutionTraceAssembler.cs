@@ -77,7 +77,13 @@ public static class ExecutionTraceAssembler
         var path = TraceBuilder.Path(parent, "case", index);
         var datasetPath = TraceBuilder.Path(path, "dataset", 0);
         var steps = c.StepResults.Select((s, i) => Step(s, datasetPath, i, redactor)).ToList();
-        var outcome = c.Success ? Outcome.Passed : Outcome.Failed;
+
+        // Aggregate the outcome from the steps so distinct outcomes (timed-out, cancelled) propagate
+        // up; fall back to the case flag when there are no steps, and never mask a case-level error.
+        var outcome = steps.Count > 0
+            ? OutcomeExtensions.Aggregate(steps.Select(s => s.Outcome))
+            : (c.Success ? Outcome.Passed : Outcome.Failed);
+        if (outcome == Outcome.Passed && !c.Success) outcome = Outcome.Failed;
 
         var dataset = new DatasetResult
         {
@@ -99,7 +105,9 @@ public static class ExecutionTraceAssembler
     {
         var ordinal = index + 1;
         var path = TraceBuilder.Path(parent, "step", ordinal);
-        var outcome = s.Success ? Outcome.Passed : Outcome.Failed;
+        var outcome = s.TimedOut ? Outcome.TimedOut
+            : s.Cancelled ? Outcome.Cancelled
+            : s.Success ? Outcome.Passed : Outcome.Failed;
 
         var iterations = s.Iterations.Select(it => Iteration(it, path, redactor)).ToList();
         var isLoop = iterations.Count > 0;

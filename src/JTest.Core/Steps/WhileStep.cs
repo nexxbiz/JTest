@@ -89,7 +89,7 @@ public sealed class WhileStep(IStepProcessor stepProcessor, WhileStepConfigurati
             ["durationMs"] = (DateTime.UtcNow - start).TotalMilliseconds
         };
 
-        return new(data, allInner, iterations);
+        return new(data, allInner, iterations, timedOut: timeoutTriggered);
     }
 
     async Task Delay(IExecutionContext context)

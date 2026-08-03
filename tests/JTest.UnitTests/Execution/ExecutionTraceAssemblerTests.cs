@@ -101,6 +101,31 @@ public class ExecutionTraceAssemblerTests
         Assert.Equal(Outcome.Errored, trace.Outcome);
     }
 
+    [Fact]
+    public void Assemble_TimedOutStep_PropagatesTimedOut_AndYieldsExitCode4()
+    {
+        var step = new StepProcessedResult(1)
+        {
+            Step = new WaitStep(new(Ms: 1)),
+            Success = false,
+            TimedOut = true
+        };
+        var caseResult = new JTestCaseResult { TestCaseName = "waits" };
+        caseResult.AddStepResult(step);
+        var suite = new JTestSuiteExecutionResult("f.json", "s", null, new[] { caseResult });
+
+        var trace = ExecutionTraceAssembler.Assemble(
+            new[] { suite }, "2.0.0", 0, DateTimeOffset.UnixEpoch, DateTimeOffset.UnixEpoch);
+
+        // Timeout is a distinct outcome that propagates step → case → suite.
+        Assert.Equal(Outcome.TimedOut, trace.Suites[0].Cases[0].Datasets[0].Steps[0].Outcome);
+        Assert.Equal(Outcome.TimedOut, trace.Suites[0].Cases[0].Outcome);
+        Assert.Equal(Outcome.TimedOut, trace.Suites[0].Outcome);
+
+        // ...and drives the "aborted" exit code (4), never a false green.
+        Assert.Equal(4, ExitCodeService.From(trace.Counts));
+    }
+
     private sealed class FakeHttpStep : IStep
     {
         public string TypeName => "http";

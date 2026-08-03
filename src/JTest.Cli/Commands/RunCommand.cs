@@ -53,7 +53,7 @@ public class RunCommand : CommandBase<RunCommandSettings>
         if (results is null)
         {
             // No test files matched — a run that produced nothing is not success (FR-003).
-            return RunResultEvaluator.ExitCode(Array.Empty<JTestSuiteExecutionResult>(), noFilesMatched: true);
+            return (int)RunExitCode.ExecutionError;
         }
 
         var resultList = results as IReadOnlyList<JTestSuiteExecutionResult> ?? results.ToList();
@@ -61,24 +61,22 @@ public class RunCommand : CommandBase<RunCommandSettings>
         var outputDirectory = GetOutputDirectory(settings);
         _testExecutionResultsProcessor.Process(resultList, outputDirectory, IsDebug, settings.SkipOutput == true, settings.OutputFormat);
 
-        var exitCode = RunResultEvaluator.ExitCode(resultList, noFilesMatched: false);
-        WriteTraceAndReport(settings, resultList, exitCode, startedAt, endedAt);
+        // The canonical trace is the single source of truth for both the exit code and the reports:
+        // its aggregated counts yield the class-specific code (test failure / execution error /
+        // validation / aborted), so a timeout or cancellation is exit 4, never a false green.
+        var toolVersion = typeof(RunCommand).Assembly.GetName().Version?.ToString(3) ?? "2.0.0";
+        var trace = ExecutionTraceAssembler.Assemble(resultList, toolVersion, 0, startedAt, endedAt);
+
+        var emptyDiscovery = !resultList.Any(r => r.Errored)
+            && resultList.Sum(r => r.CasesPassed + r.CasesFailed) == 0;
+        var exitCode = ExitCodeService.From(trace.Counts, emptyDiscovery: emptyDiscovery);
+
+        WriteOutputs(settings, trace with { ExitCode = exitCode });
         return exitCode;
     }
 
-    private static void WriteTraceAndReport(
-        RunCommandSettings settings,
-        IReadOnlyList<JTestSuiteExecutionResult> results,
-        int exitCode,
-        DateTimeOffset startedAt,
-        DateTimeOffset endedAt)
+    private static void WriteOutputs(RunCommandSettings settings, ExecutionTrace trace)
     {
-        if (string.IsNullOrWhiteSpace(settings.ReportFile) && string.IsNullOrWhiteSpace(settings.TraceFile))
-            return;
-
-        var toolVersion = typeof(RunCommand).Assembly.GetName().Version?.ToString(3) ?? "2.0.0";
-        var trace = ExecutionTraceAssembler.Assemble(results, toolVersion, exitCode, startedAt, endedAt);
-
         if (!string.IsNullOrWhiteSpace(settings.TraceFile))
         {
             var dir = Path.GetDirectoryName(Path.GetFullPath(settings.TraceFile));

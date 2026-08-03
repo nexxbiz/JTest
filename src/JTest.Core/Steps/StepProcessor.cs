@@ -219,14 +219,18 @@ public sealed class StepProcessor(IAssertionProcessor assertionProcessor) : ISte
         var stepResult = new StepProcessedResult(context.StepNumber)
         {
             Step = step,
-            Success = !hasFailedAssertions && !hasFailedInnerSteps,
+            // A timeout or cancellation is never a pass.
+            Success = !hasFailedAssertions && !hasFailedInnerSteps
+                      && !stepExecutionResult.TimedOut && !stepExecutionResult.Cancelled,
             ErrorMessage = errorMessage,
             DurationMs = stopwatch.ElapsedMilliseconds,
             AssertionResults = assertionResults ?? [],
             Data = stepExecutionResult.Data,
             ContextChanges = contextChanges,
             InnerResults = stepExecutionResult.InnerProcessedResults ?? [],
-            Iterations = stepExecutionResult.Iterations ?? []
+            Iterations = stepExecutionResult.Iterations ?? [],
+            TimedOut = stepExecutionResult.TimedOut,
+            Cancelled = stepExecutionResult.Cancelled
         };
 
         return stepResult;

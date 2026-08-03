@@ -92,5 +92,11 @@ public sealed class StepProcessedResult(int stepNumber)
     /// </summary>
     public IEnumerable<StepIteration> Iterations { get; init; } = [];
 
+    /// <summary>The step exceeded a configured timeout (distinct outcome, FR-007).</summary>
+    public bool TimedOut { get; init; }
+
+    /// <summary>The step was cancelled (distinct outcome, FR-006).</summary>
+    public bool Cancelled { get; init; }
+
     public int StepNumber { get; } = stepNumber;
 }
