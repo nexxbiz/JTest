@@ -89,19 +89,19 @@ from. **⚠️ No user story can begin until this phase is complete.**
 
 ### Tests for User Story 2
 
-- [ ] T030 [P] [US2] Golden-file test: trace fixture → HTML; assert 100% of trace nodes represented in `tests/JTest.UnitTests/Reporting/HtmlReportGoldenTests.cs`
-- [ ] T031 [P] [US2] Offline test: generated HTML references no external URLs (regex/asset scan) in `tests/JTest.UnitTests/Reporting/SelfContainedTests.cs`
-- [ ] T032 [P] [US2] Accessibility/search test: WCAG 2.1 AA checks — semantic landmarks/headings, visible focus, AA text-contrast (≥4.5:1) in light and dark, all detail reachable by keyboard, search locates a node in `tests/JTest.UnitTests/Reporting/HtmlAccessibilityTests.cs`
-- [ ] T033 [P] [US2] Test: in a ≥1000-node report, failure-first ordering + search surface the first failing assertion within the SC-011 target (assert failing nodes precede passing detail and are directly locatable) in `tests/JTest.UnitTests/Reporting/FailureFirstNavigationTests.cs` (covers SC-011)
-- [ ] T034 [P] [US2] Test: oversized body is truncated with indicator + recorded original size; binary/non-UTF-8 body is summarized, not emitted raw in `tests/JTest.UnitTests/Reporting/OversizedContentTests.cs` (FR-023)
+- [X] T030 [P] [US2] Golden-file test: trace fixture → HTML; assert 100% of trace nodes represented in `tests/JTest.UnitTests/Reporting/HtmlReportGoldenTests.cs`
+- [X] T031 [P] [US2] Offline test: generated HTML references no external URLs (regex/asset scan) in `tests/JTest.UnitTests/Reporting/SelfContainedTests.cs`
+- [X] T032 [P] [US2] Accessibility/search test: WCAG 2.1 AA checks — semantic landmarks/headings, visible focus, AA text-contrast (≥4.5:1) in light and dark, all detail reachable by keyboard, search locates a node in `tests/JTest.UnitTests/Reporting/HtmlAccessibilityTests.cs`
+- [X] T033 [P] [US2] Test: in a ≥1000-node report, failure-first ordering + search surface the first failing assertion within the SC-011 target (assert failing nodes precede passing detail and are directly locatable) in `tests/JTest.UnitTests/Reporting/FailureFirstNavigationTests.cs` (covers SC-011)
+- [X] T034 [P] [US2] Test: oversized body is truncated with indicator + recorded original size; binary/non-UTF-8 body is summarized, not emitted raw in `tests/JTest.UnitTests/Reporting/OversizedContentTests.cs` (FR-023)
 
 ### Implementation for User Story 2
 
-- [ ] T035 [US2] Implement `HtmlReportGenerator` projecting a trace into one self-contained file (inlined assets, trace as inert JSON island) in `src/JTest.Core/Reporting/Html/HtmlReportGenerator.cs`
-- [ ] T036 [P] [US2] Author embedded CSS (failure-first, collapsible tree, light/dark, WCAG 2.1 AA contrast, visible focus) in `src/JTest.Core/Reporting/Html/report.css`
-- [ ] T037 [P] [US2] Author embedded JS (collapse, search/filter, keyboard nav; build DOM via `textContent` only) in `src/JTest.Core/Reporting/Html/report.js`
-- [ ] T038 [US2] Failure-first ordering, rollups, and drill-down (run→suite→case→dataset→iteration→step→assertion) in the projector (depends on T035)
-- [ ] T039 [US2] Implement safe large/binary content handling in the projector and trace: truncate request/response bodies over a configurable threshold (default 256 KB) with a truncation + original-size indicator; summarize binary/non-UTF-8 content as content-type + byte size (never raw) in `src/JTest.Core/Reporting/Html/HtmlReportGenerator.cs` and `src/JTest.Core/Tracing/TraceBuilder.cs` (FR-023)
+- [X] T035 [US2] Implement `HtmlReportGenerator` projecting a trace into one self-contained file (inlined assets, trace as inert JSON island) in `src/JTest.Core/Reporting/Html/HtmlReportGenerator.cs`
+- [X] T036 [P] [US2] Author embedded CSS (failure-first, collapsible tree, light/dark, WCAG 2.1 AA contrast, visible focus) in `src/JTest.Core/Reporting/Html/report.css`
+- [X] T037 [P] [US2] Author embedded JS (collapse, search/filter, keyboard nav; build DOM via `textContent` only) in `src/JTest.Core/Reporting/Html/report.js`
+- [X] T038 [US2] Failure-first ordering, rollups, and drill-down (run→suite→case→dataset→iteration→step→assertion) in the projector (depends on T035)
+- [X] T039 [US2] Implement safe large/binary content handling in the projector and trace: truncate request/response bodies over a configurable threshold (default 256 KB) with a truncation + original-size indicator; summarize binary/non-UTF-8 content as content-type + byte size (never raw) in `src/JTest.Core/Reporting/Html/HtmlReportGenerator.cs` and `src/JTest.Core/Tracing/TraceBuilder.cs` (FR-023)
 - [ ] T040 [US2] Re-implement the Markdown writer as a projection of the trace in `src/JTest.Core/Reporting/Markdown/MarkdownReportGenerator.cs` (retire the source-of-truth writer; restore/remove `tests/JTest.UnitTests/ResultsToMarkdownConverterTests.cs`)
 - [ ] T041 [US2] Register HTML/Markdown/JSON output generators in DI (both `src/JTest.Cli/DI/DependencyRegistration.cs` and `DependencyRegistrationHelper.cs`)
 
