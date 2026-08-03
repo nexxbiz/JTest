@@ -2,7 +2,7 @@ name: JTest 2.0 CI
 
 on:
   push:
-    branches: ["main", "001-jtest2-pipeline-reporting"]
+    branches: ["main"]
     tags: ["v*"]
   pull_request:
     branches: ["main"]
@@ -12,7 +12,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "8.0.x"
@@ -26,11 +25,10 @@ jobs:
       - name: Test
         run: dotnet test JTest.sln -c Release --no-build
 
-      # jtest must gate CI: validate the fixtures against the shipped language schema...
+      # jtest gates CI: validate the fixtures against the shipped schema, then run them (exit 0).
       - name: jtest validate (schema gate)
         run: dotnet run --project src/JTest.Cli -c Release --no-build -- validate "tests/fixtures/*.json"
 
-      # ...and run them, producing a self-contained report + canonical trace (exit 0 required).
       - name: jtest run (report + trace)
         run: dotnet run --project src/JTest.Cli -c Release --no-build -- run "tests/fixtures/*.json" --report artifacts/report.html --trace artifacts/trace.json --skip-output
 
@@ -41,50 +39,78 @@ jobs:
           name: jtest-report
           path: artifacts/
 
-  version-gate:
-    runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Tag must match the single-sourced version
-        run: |
-          VERSION=$(grep -oPm1 '(?<=<Version>)[^<]+' Directory.Build.props)
-          TAG="${GITHUB_REF_NAME#v}"
-          echo "Directory.Build.props version: $VERSION ; tag: $TAG"
-          if [ "$VERSION" != "$TAG" ]; then
-            echo "::error::Git tag ($TAG) does not match source version ($VERSION)."
-            exit 1
-          fi
-
-  publish:
-    # Publish the single-sourced version (Directory.Build.props) to NuGet when changes land on main.
-    # --skip-duplicate makes re-runs idempotent: a version is published once, later merges are no-ops
-    # until the version is bumped again.
+  # A PR publishes a PRERELEASE to nuget.org so reviewers can test it before merge.
+  # Base version comes from Directory.Build.props; the run number makes each preview unique/monotonic.
+  publish-preview:
     needs: build-test-validate
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "8.0.x"
 
-      - name: Read version
+      - name: Read base version
         id: ver
-        run: echo "version=$(grep -oPm1 '(?<=<Version>)[^<]+' Directory.Build.props)" >> "$GITHUB_OUTPUT"
+        run: echo "base=$(grep -oPm1 '(?<=<Version>)[^<]+' Directory.Build.props)" >> "$GITHUB_OUTPUT"
 
-      - name: Pack
+      - name: Build
+        run: dotnet build JTest.sln -c Release
+
+      - name: Pack prerelease
         run: |
-          dotnet pack src/JTest.Core/JTest.Core.csproj -c Release -o artifacts
-          dotnet pack src/JTest.Cli/JTest.Cli.csproj -c Release -o artifacts
+          VERSION="${{ steps.ver.outputs.base }}-preview.${{ github.run_number }}"
+          echo "Packing preview $VERSION"
+          dotnet pack src/JTest.Core/JTest.Core.csproj -c Release --no-build -p:PackageVersion=$VERSION -o artifacts
+          dotnet pack src/JTest.Cli/JTest.Cli.csproj  -c Release --no-build -p:PackageVersion=$VERSION -o artifacts
 
-      - name: Push to NuGet (idempotent)
+      - name: Push prerelease to NuGet
         env:
           NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
         run: |
-          echo "Publishing version ${{ steps.ver.outputs.version }}"
-          dotnet nuget push "artifacts/*.nupkg" \
-            --api-key "$NUGET_API_KEY" \
-            --source https://api.nuget.org/v3/index.json \
-            --skip-duplicate
+          if [ -z "$NUGET_API_KEY" ]; then
+            echo "NUGET_API_KEY not available (e.g. fork PR); skipping publish."
+            exit 0
+          fi
+          dotnet nuget push "artifacts/*.nupkg" --api-key "$NUGET_API_KEY" \
+            --source https://api.nuget.org/v3/index.json --skip-duplicate
+
+  # A human tag (vX.Y.Z) publishes the STABLE version (no suffix). The tag must match the source
+  # version, so a release always maps to exactly what is on main.
+  publish-release:
+    needs: build-test-validate
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Version gate (tag must equal source version)
+        id: ver
+        run: |
+          BASE=$(grep -oPm1 '(?<=<Version>)[^<]+' Directory.Build.props)
+          TAG="${GITHUB_REF_NAME#v}"
+          echo "source version: $BASE ; tag: $TAG"
+          if [ "$BASE" != "$TAG" ]; then
+            echo "::error::Git tag ($TAG) does not match source version ($BASE)."
+            exit 1
+          fi
+          echo "base=$BASE" >> "$GITHUB_OUTPUT"
+
+      - name: Build
+        run: dotnet build JTest.sln -c Release
+
+      - name: Pack stable
+        run: |
+          dotnet pack src/JTest.Core/JTest.Core.csproj -c Release --no-build -p:PackageVersion=${{ steps.ver.outputs.base }} -o artifacts
+          dotnet pack src/JTest.Cli/JTest.Cli.csproj  -c Release --no-build -p:PackageVersion=${{ steps.ver.outputs.base }} -o artifacts
+
+      - name: Push stable to NuGet
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        run: |
+          dotnet nuget push "artifacts/*.nupkg" --api-key "$NUGET_API_KEY" \
+            --source https://api.nuget.org/v3/index.json --skip-duplicate
