@@ -22,7 +22,7 @@ internal static class TraceFixtures
 
         // A failing suite: a passing login, a failing assertion, and a failing loop iteration.
         var login = new StepNode { Id = "s1/c0/d0/step[1]", Path = "s1/c0/d0/step[1]", StepType = "http", Ordinal = 1, Name = "login", Outcome = Outcome.Passed,
-            Http = new HttpExchange { Method = "POST", Url = "https://example.test/_elsa/identity/login", StatusCode = 200, Status = 200 },
+            Http = new HttpExchange { Method = "POST", Url = "https://example.test/auth/login", StatusCode = 200, Status = 200 },
             Assertions = new[] { new AssertionResult { Id = "la", Operation = "equals", Expected = 200, Actual = 200, Outcome = Outcome.Passed } } };
         var check = new StepNode { Id = "s1/c0/d0/step[2]", Path = "s1/c0/d0/step[2]", StepType = "http", Ordinal = 2, Name = "check-incident", Outcome = Outcome.Failed,
             Http = new HttpExchange { Method = "GET", Url = "https://example.test/incident", StatusCode = 500, Status = 500, ResponseBody = "{\"error\":\"boom\"}" },
