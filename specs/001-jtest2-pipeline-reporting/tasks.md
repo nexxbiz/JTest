@@ -228,10 +228,10 @@ from. **⚠️ No user story can begin until this phase is complete.**
 **Purpose**: Regenerate `docs/` from the implemented system. Runs last so it reflects what was built.
 Legacy docs are output, never a source of truth.
 
-- [ ] T076 Delete legacy `docs/` content and re-author it from the implemented 2.0 system — language (from the shipped schema), HTTP step/session contract (`statusCode`/`status`, keyed headers, cookies), exit-code contract, canonical trace, reporting, and redaction — in `docs/`
-- [ ] T077 Add a CI check that validates every test-definition example embedded in `docs/` against the shipped language schema in `.github/workflows/ci.yml`
-- [ ] T078 [P] Rewrite `README.md` to the 2.0 system (commands, exit codes, report, license link)
-- [ ] T079 Verify zero references to removed/legacy 1.0 contract behavior remain across `docs/` and `README.md`
+- [X] T076 Delete legacy `docs/` content and re-author it from the implemented 2.0 system — language (from the shipped schema), HTTP step/session contract (`statusCode`/`status`, keyed headers, cookies), exit-code contract, canonical trace, reporting, and redaction — in `docs/`
+- [X] T077 Add a CI check that validates every test-definition example embedded in `docs/` against the shipped language schema in `.github/workflows/ci.yml`
+- [X] T078 [P] Rewrite `README.md` to the 2.0 system (commands, exit codes, report, license link)
+- [X] T079 Verify zero references to removed/legacy 1.0 contract behavior remain across `docs/` and `README.md`
 
 **Checkpoint**: Docs describe the truth of the shipped system (SC-016).
 
