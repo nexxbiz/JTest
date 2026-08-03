@@ -58,12 +58,12 @@ jobs:
       - name: Build
         run: dotnet build JTest.sln -c Release
 
-      - name: Pack prerelease
+      - name: Pack prerelease (jtest tool)
         run: |
           VERSION="${{ steps.ver.outputs.base }}-preview.${{ github.run_number }}"
           echo "Packing preview $VERSION"
-          dotnet pack src/JTest.Core/JTest.Core.csproj -c Release --no-build -p:PackageVersion=$VERSION -o artifacts
-          dotnet pack src/JTest.Cli/JTest.Cli.csproj  -c Release --no-build -p:PackageVersion=$VERSION -o artifacts
+          # The tool bundles JTest.Core, so only the JTest.Cli tool is published.
+          dotnet pack src/JTest.Cli/JTest.Cli.csproj -c Release --no-build -p:PackageVersion=$VERSION -o artifacts
 
       - name: Push prerelease to NuGet
         env:
@@ -103,10 +103,10 @@ jobs:
       - name: Build
         run: dotnet build JTest.sln -c Release
 
-      - name: Pack stable
+      - name: Pack stable (jtest tool)
         run: |
-          dotnet pack src/JTest.Core/JTest.Core.csproj -c Release --no-build -p:PackageVersion=${{ steps.ver.outputs.base }} -o artifacts
-          dotnet pack src/JTest.Cli/JTest.Cli.csproj  -c Release --no-build -p:PackageVersion=${{ steps.ver.outputs.base }} -o artifacts
+          # The tool bundles JTest.Core, so only the JTest.Cli tool is published.
+          dotnet pack src/JTest.Cli/JTest.Cli.csproj -c Release --no-build -p:PackageVersion=${{ steps.ver.outputs.base }} -o artifacts
 
       - name: Push stable to NuGet
         env:
