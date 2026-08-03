@@ -34,6 +34,12 @@ public sealed class JTestSuiteExecutor(IJTestCaseExecutor testCaseExecutor, IVar
                 console.WriteLine();
                 console.WriteLine($"Test file {testFile.FilePath} failed", new Style(foreground: Color.Red));
                 console.WriteException(ex, ExceptionFormats.NoStackTrace);
+
+                // Never drop a crashing suite — capture it as errored so it fails the run (FR-002).
+                allResults.Add(new(testFile.FilePath, testFile.Info?.Name, testFile.Info?.Description, Array.Empty<JTestCaseResult>())
+                {
+                    ExecutionError = ex.Message
+                });
             }
         }
 
@@ -75,6 +81,12 @@ public sealed class JTestSuiteExecutor(IJTestCaseExecutor testCaseExecutor, IVar
                 {
                     Console.Error.WriteLine($"Error executing test file {testFile}: {ex.Message}");
                 }
+
+                // Never drop a crashing suite in the parallel path either (FR-002/FR-005).
+                allResults.Add(new(testFile.FilePath, testFile.Info?.Name, testFile.Info?.Description, Array.Empty<JTestCaseResult>())
+                {
+                    ExecutionError = ex.Message
+                });
                 Interlocked.Increment(ref failedFilesThreadSafe);
             }
         });

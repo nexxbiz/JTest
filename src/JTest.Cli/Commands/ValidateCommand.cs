@@ -1,6 +1,7 @@
 ﻿using JTest.Cli.Services;
 using JTest.Cli.Settings;
 using JTest.Core;
+using JTest.Core.Execution;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
@@ -14,7 +15,9 @@ public sealed class ValidateCommand(
 {
     public override async Task<int> ExecuteAsync(CommandContext context, ValidateCommandSettings settings, CancellationToken cancellationToken)
     {
-        await validator.ValidateJTestSuites(settings.TestFilePatterns!, settings.GetCategories());
-        return 0;
+        var summary = await validator.ValidateJTestSuites(settings.TestFilePatterns!, settings.GetCategories());
+
+        // Any invalid file fails validation as a CI gate (FR-004).
+        return summary.HasInvalid ? (int)RunExitCode.ValidationError : (int)RunExitCode.Success;
     }
 }

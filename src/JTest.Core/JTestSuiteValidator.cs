@@ -6,7 +6,7 @@ namespace JTest.Core;
 
 public sealed class JTestSuiteValidator(IAnsiConsole console) : IJTestSuiteValidator
 {
-    public async Task ValidateJTestSuites(IEnumerable<string> testFilePatterns, IEnumerable<string> categories)
+    public async Task<JTestValidationSummary> ValidateJTestSuites(IEnumerable<string> testFilePatterns, IEnumerable<string> categories)
     {
         if (!testFilePatterns.Any())
         {
@@ -20,7 +20,6 @@ public sealed class JTestSuiteValidator(IAnsiConsole console) : IJTestSuiteValid
             throw new InvalidOperationException($"Error: No test files found matching patterns: {string.Join(", ", testFilePatterns)}");
         }
 
-        var processedFiles = 0;
         var validFiles = 0;
         var invalidFiles = 0;
 
@@ -52,7 +51,7 @@ public sealed class JTestSuiteValidator(IAnsiConsole console) : IJTestSuiteValid
                 console.WriteLine("Valid JTEST schema");
                 console.WriteLine($"✓ {Path.GetFileName(testFile)} - Valid");
 
-                processedFiles++;
+                validFiles++;
             }
             catch (JsonException ex)
             {
@@ -78,7 +77,7 @@ public sealed class JTestSuiteValidator(IAnsiConsole console) : IJTestSuiteValid
         console.WriteLine($"\n{'=' * 50}");
         console.WriteLine($"VALIDATION SUMMARY");
         console.WriteLine($"{'=' * 50}");
-        console.WriteLine($"Files processed: {processedFiles}");
+        console.WriteLine($"Files processed: {validFiles + invalidFiles}");
         console.WriteLine($"Valid files: {validFiles}");
         console.WriteLine($"Invalid files: {invalidFiles}");
 
@@ -90,6 +89,8 @@ public sealed class JTestSuiteValidator(IAnsiConsole console) : IJTestSuiteValid
         {
             console.WriteLine("All files are valid.", new Style(foreground: Color.Green));
         }
+
+        return new JTestValidationSummary(validFiles, invalidFiles);
     }
 
     private static void ValidateTestSuite(JsonElement root)

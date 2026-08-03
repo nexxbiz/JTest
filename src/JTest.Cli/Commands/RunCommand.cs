@@ -47,17 +47,16 @@ public class RunCommand : CommandBase<RunCommandSettings>
         var results = await ExecuteRunCommand(settings);
         if (results is null)
         {
-            return 1;
+            // No test files matched — a run that produced nothing is not success (FR-003).
+            return RunResultEvaluator.ExitCode(Array.Empty<JTestSuiteExecutionResult>(), noFilesMatched: true);
         }
+
+        var resultList = results as IReadOnlyList<JTestSuiteExecutionResult> ?? results.ToList();
 
         var outputDirectory = GetOutputDirectory(settings);
-        _testExecutionResultsProcessor.Process(results, outputDirectory, IsDebug, settings.SkipOutput == true, settings.OutputFormat);
-        if (results.All(x => x.CasesFailed == 0))
-        {
-            return 0;
-        }
+        _testExecutionResultsProcessor.Process(resultList, outputDirectory, IsDebug, settings.SkipOutput == true, settings.OutputFormat);
 
-        return 1;
+        return RunResultEvaluator.ExitCode(resultList, noFilesMatched: false);
     }
 
     private async Task<IEnumerable<JTestSuiteExecutionResult>?> ExecuteRunCommand(RunCommandSettings settings)

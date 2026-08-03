@@ -64,18 +64,18 @@ from. **⚠️ No user story can begin until this phase is complete.**
 
 ### Tests for User Story 1
 
-- [ ] T021 [P] [US1] Integration test: a suite that throws → captured as `errored` node + process exit 2 in `tests/JTest.UnitTests/Execution/FalseGreenTests.cs`
-- [ ] T022 [P] [US1] Integration test: empty-but-expected discovery → exit 2; all-pass → 0; any case failure → 1 in `tests/JTest.UnitTests/Execution/ExitCodeIntegrationTests.cs`
-- [ ] T023 [P] [US1] Test: `validate` over an invalid corpus → exit 3 with honest counts in `tests/JTest.UnitTests/Execution/ValidateExitTests.cs`
-- [ ] T024 [P] [US1] Test: unresolved JSONPath → distinct "matched nothing" diagnostic (vs matched-null), no silent null in `tests/JTest.UnitTests/Execution/UnresolvedPathTests.cs`
+- [X] T021 [P] [US1] Integration test: a suite that throws → captured as `errored` node + process exit 2 in `tests/JTest.UnitTests/Execution/FalseGreenTests.cs`
+- [X] T022 [P] [US1] Integration test: empty-but-expected discovery → exit 2; all-pass → 0; any case failure → 1 in `tests/JTest.UnitTests/Execution/ExitCodeIntegrationTests.cs`
+- [X] T023 [P] [US1] Test: `validate` over an invalid corpus → exit 3 with honest counts in `tests/JTest.UnitTests/Execution/ValidateExitTests.cs`
+- [X] T024 [P] [US1] Test: unresolved JSONPath → distinct "matched nothing" diagnostic (vs matched-null), no silent null in `tests/JTest.UnitTests/Execution/UnresolvedPathTests.cs`
 
 ### Implementation for User Story 1
 
-- [ ] T025 [US1] Rework `JTestSuiteExecutor` to catch suite/case-level exceptions and record them as `errored` `SuiteResult`/`CaseResult` nodes (never drop; include in results) in `src/JTest.Core/Execution/JTestSuiteExecutor.cs`
-- [ ] T026 [US1] Treat matched-but-zero-result discovery as failure (`--fail-on-empty` default true) in the executor / `src/JTest.Cli/Commands/RunCommand.cs`
-- [ ] T027 [US1] Wire `RunCommand` exit code through `ExitCodeService` (replace `results.All(...)` logic) in `src/JTest.Cli/Commands/RunCommand.cs`
-- [ ] T028 [US1] Fix `ValidateCommand` to return non-zero on any invalid file and report honest counts in `src/JTest.Cli/Commands/ValidateCommand.cs`
-- [ ] T029 [US1] Emit a distinct diagnostic when a JSONPath matches nothing, distinguishable from a matched `null`, in `src/JTest.Core/Utilities/VariableInterpolator.cs` and `src/JTest.Core/Steps/StepProcessor.cs` (FR-049)
+- [X] T025 [US1] Rework `JTestSuiteExecutor` to catch suite/case-level exceptions and record them as `errored` `SuiteResult`/`CaseResult` nodes (never drop; include in results) in `src/JTest.Core/Execution/JTestSuiteExecutor.cs`
+- [X] T026 [US1] Treat matched-but-zero-result discovery as failure (`--fail-on-empty` default true) in the executor / `src/JTest.Cli/Commands/RunCommand.cs`
+- [X] T027 [US1] Wire `RunCommand` exit code through `ExitCodeService` (replace `results.All(...)` logic) in `src/JTest.Cli/Commands/RunCommand.cs`
+- [X] T028 [US1] Fix `ValidateCommand` to return non-zero on any invalid file and report honest counts in `src/JTest.Cli/Commands/ValidateCommand.cs`
+- [X] T029 [US1] Emit a distinct diagnostic when a JSONPath matches nothing, distinguishable from a matched `null`, in `src/JTest.Core/Utilities/VariableInterpolator.cs` and `src/JTest.Core/Steps/StepProcessor.cs` (FR-049)
 
 **Checkpoint**: A crash/empty/invalid run can never exit 0. MVP deliverable.
 

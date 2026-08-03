@@ -268,11 +268,42 @@ public static class VariableInterpolator
         return token.Trim('{', '}', ' ');
     }
 
+    /// <summary>How a JSONPath resolved against the context.</summary>
+    public enum PathResolution
+    {
+        /// <summary>The path matched a non-null value.</summary>
+        Resolved,
+
+        /// <summary>The path matched, and the matched value is null.</summary>
+        MatchedNull,
+
+        /// <summary>The path matched nothing (e.g. a casing mismatch). Not a value — a diagnostic (FR-049).</summary>
+        MatchedNothing
+    }
+
+    /// <summary>
+    /// Resolve a JSONPath and report whether it matched nothing, distinct from matching an actual
+    /// null. Callers use this to emit a "path matched nothing" diagnostic instead of silently
+    /// coercing an unresolved path to null (FR-049).
+    /// </summary>
+    public static (PathResolution Status, object? Value) TryResolveJsonPath(string path, IExecutionContext context)
+    {
+        try
+        {
+            var value = ExecuteJsonPath(path, context, 0);
+            return (value is null ? PathResolution.MatchedNull : PathResolution.Resolved, value);
+        }
+        catch (JsonPathValueNotFoundException)
+        {
+            return (PathResolution.MatchedNothing, null);
+        }
+    }
+
     private static object? ResolveJsonPath(string path, IExecutionContext context, int depth)
     {
         try
-        { 
-            return ExecuteJsonPath(path, context, depth); 
+        {
+            return ExecuteJsonPath(path, context, depth);
         }
         catch (JsonPathValueNotFoundException)
         {
