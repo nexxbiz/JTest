@@ -125,7 +125,7 @@ public class TraceSchemaTests
         if (results.IsValid) return string.Empty;
 
         var sb = new StringBuilder("Trace did not validate against execution-trace.schema.json:\n");
-        foreach (var detail in results.Details)
+        foreach (var detail in results.Details ?? Enumerable.Empty<EvaluationResults>())
         {
             if (detail.IsValid || detail.Errors is null) continue;
             foreach (var error in detail.Errors)

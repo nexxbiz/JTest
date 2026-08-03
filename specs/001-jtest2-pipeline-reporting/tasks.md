@@ -48,9 +48,9 @@ from. **⚠️ No user story can begin until this phase is complete.**
 - [X] T015 [P] Contract test: a built trace serializes and validates against `specs/001-jtest2-pipeline-reporting/contracts/execution-trace.schema.json` in `tests/JTest.UnitTests/Tracing/TraceSchemaTests.cs`
 - [X] T016 Implement `ExitCodeService` (Outcome→code; 0/1/2/3/4 with precedence `2>3>4>1`) in `src/JTest.Core/Execution/ExitCodeService.cs` (depends on T009)
 - [X] T017 [P] Unit test `ExitCodeService` mapping + precedence in `tests/JTest.UnitTests/Execution/ExitCodeServiceTests.cs`
-- [ ] T018 Implement `ReportValuePipeline` (redact-by-value+key, then contextual encode; HTML + Markdown encoders) in `src/JTest.Core/Reporting/ReportValuePipeline.cs`
-- [ ] T019 Rework `SecurityMasker` to register/replace secret **values** (declared + secret-like keys) across headers, bodies, and query strings in `src/JTest.Core/Security/SecurityMasker.cs` (depends on T018)
-- [ ] T020 [P] Unit tests for encode + value-based redaction (incl. Cookie/Set-Cookie/Authorization, JSON body secrets) in `tests/JTest.UnitTests/Security/RedactionTests.cs`
+- [X] T018 Implement `ReportValuePipeline` (redact-by-value+key, then contextual encode; HTML + Markdown encoders) in `src/JTest.Core/Reporting/ReportValuePipeline.cs`
+- [X] T019 Rework `SecurityMasker` to register/replace secret **values** (declared + secret-like keys) across headers, bodies, and query strings in `src/JTest.Core/Security/SecurityMasker.cs` (depends on T018)
+- [X] T020 [P] Unit tests for encode + value-based redaction (incl. Cookie/Set-Cookie/Authorization, JSON body secrets) in `tests/JTest.UnitTests/Security/RedactionTests.cs`
 
 **Checkpoint**: Trace model, exit codes, and redaction pipeline exist and are tested.
 
