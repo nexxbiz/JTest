@@ -63,8 +63,12 @@ h1 { font-size: 1.5rem; margin: 0 0 .25rem; }
 }
 .controls label { display: inline-flex; align-items: center; gap: .35rem; color: var(--muted); font-size: .85rem; }
 
-details.node { border: 1px solid var(--border); border-radius: 6px; margin: .35rem 0; background: var(--bg); }
-details.node[data-outcome="failed"], details.node[data-outcome="errored"] { border-color: var(--fail-bg); }
+details.node { border: 1px solid var(--border); border-left-width: 3px; border-radius: 6px; margin: .35rem 0; background: var(--bg); }
+/* Failing paths get a subtle left accent rail (not a full red box at every nesting level). */
+details.node[data-outcome="failed"] { border-left-color: var(--fail-bg); }
+details.node[data-outcome="errored"] { border-left-color: var(--error-bg); }
+details.node[data-outcome="timedout"], details.node[data-outcome="cancelled"] { border-left-color: var(--abort-bg); }
+details.node[data-outcome="passed"], details.node[data-outcome="skipped"] { border-left-color: var(--border); }
 details.node > summary {
   cursor: pointer; padding: .5rem .65rem; display: flex; gap: .5rem; align-items: center;
   list-style: none; border-radius: 6px;
