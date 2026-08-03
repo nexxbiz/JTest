@@ -28,7 +28,7 @@ array-of-`{name,value}` header shape is replaced, not dual-emitted.
 }
 ```
 
-Access patterns that MUST work (documented today, currently broken):
+Access patterns that MUST work (currently broken in 1.0; the rewritten docs will describe these):
 - `$.this.statusCode` and `$.this.status` → integer status.
 - `$.this.headers['content-type']` → case-insensitive lookup.
 - `$.this.headers['set-cookie']` → array of all cookie directives.

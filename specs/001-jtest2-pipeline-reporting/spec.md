@@ -34,7 +34,8 @@ This specification defines observable, testable outcomes only. Implementation ch
 
 - Q: How should HTTP session state (cookies) persist across steps and isolate across cases? → A: A cookie jar is shared across steps within one execution scope (a test case by default) and isolated between cases/runs; persistence MUST hold regardless of HttpClient handler-pool lifetime and MUST NOT cross-contaminate under parallel execution. A process-wide singleton cookie container is explicitly rejected (it breaks parallel isolation, FR-005).
 - Q: How are HTTP response/request headers exposed to tests? → A: As a case-insensitive keyed map (e.g. `$.this.headers['content-type']`); multi-valued headers such as `set-cookie` expose all values (array).
-- Q: `status` vs `statusCode` in HTTP response data? → A: Expose both — `statusCode` is the documented canonical name (matches existing docs), `status` is a retained alias (matches existing tests); both resolve to the integer HTTP status and are covered by tests.
+- Q: `status` vs `statusCode` in HTTP response data? → A: Expose both — `statusCode` is the canonical name (chosen on convention/clarity), `status` is a retained alias (existing tests use it); both resolve to the integer HTTP status and are covered by tests.
+- Q: Are the `docs/` a source of truth for JTest 2.0? → A: No. `docs/` is legacy 1.0 output; it MUST NOT drive design or be cited as authority. It is fully rewritten from the implemented JTest 2.0 system as the final phase of the plan (FR-044/FR-045).
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -243,7 +244,7 @@ A tester writes a suite that logs in (the server sets an HttpOnly session cookie
 
 ### Functional Requirements — Verification discipline (cross-cutting, per constitution)
 
-- **FR-037**: Each correctness and reporting behavior above MUST be covered by automated tests, including at minimum: loop iteration retention, nested/template ancestry and numbering, cancellation, timeout, parallel-vs-sequential equivalence, exit codes, output escaping, secret redaction, and the HTTP session/cookie and response-contract behaviors (FR-038–FR-043).
+- **FR-037**: Each correctness and reporting behavior above MUST be covered by automated tests, including at minimum: loop iteration retention, nested/template ancestry and numbering, cancellation, timeout, parallel-vs-sequential equivalence, exit codes, output escaping, secret redaction, the HTTP session/cookie and response-contract behaviors (FR-038–FR-043), and validation of all documentation examples against the shipped language schema (FR-045).
 
 ### Functional Requirements — HTTP step contract & session handling
 
@@ -253,6 +254,11 @@ A tester writes a suite that logs in (the server sets an HttpOnly session cookie
 - **FR-041**: HTTP response data MUST expose the status code under a documented canonical key `statusCode` with a retained alias `status`; both MUST resolve to the integer HTTP status.
 - **FR-042**: `Cookie`, `Set-Cookie`, and `Authorization` values MUST be redacted by default in every report and in the persisted trace (a specialization of FR-025/FR-026).
 - **FR-043**: Every code path that constructs the HTTP client MUST use the shared, scope-isolated cookie container. (Today `JTest.Cli` registers the HTTP client in two separate service collections — host and CLI; both MUST be reconciled, and no path may fall back to an unmanaged default client.)
+
+### Functional Requirements — Documentation (rewritten from implemented truth)
+
+- **FR-044**: The `docs/` folder MUST be fully rewritten to describe only the JTest 2.0 system as designed and implemented in this feature (canonical trace, exit-code contract, HTTP step/session contract, language schema, redaction/security). All legacy 1.0 assertions, conditions, response shapes, and examples MUST be removed; no document may describe behavior the shipped system does not have. Legacy `docs/` MUST NOT be treated as a source of truth during design or implementation.
+- **FR-045**: Every test-definition example and snippet embedded in the rewritten docs MUST validate against the shipped, versioned JTest language schema, and this MUST be enforced in CI so docs cannot drift from the schema.
 
 ### Key Entities
 
@@ -289,6 +295,7 @@ A tester writes a suite that logs in (the server sets an HttpOnly session cookie
 - **SC-013**: A two-step authenticated suite (login → protected endpoint) passes with no manually specified `Cookie` header in 100% of runs, across repeated executions and forced HTTP handler-pool recycling.
 - **SC-014**: Two cases authenticating as different identities run in parallel never observe each other's cookies (0 cross-contamination) — and the run's node set/outcomes match the sequential run (consistent with SC-010).
 - **SC-015**: For every HTTP response, `statusCode`, `status`, and case-insensitive `headers[...]` access (including multi-valued `set-cookie`) resolve correctly in 100% of contract tests, and `Cookie`/`Set-Cookie`/`Authorization` values are redacted by default (0 leaks).
+- **SC-016**: After the documentation rewrite, 100% of test-definition examples in `docs/` validate against the shipped language schema (CI-enforced), and zero references to removed/legacy contract behavior remain.
 
 ## Assumptions
 
@@ -299,6 +306,7 @@ A tester writes a suite that logs in (the server sets an HttpOnly session cookie
 - **Secret detection** is deterministic: it redacts values declared/registered as secret plus values under standard secret-like keys, matched by value wherever they appear (FR-026). It deliberately does NOT attempt content-heuristic detection of undeclared secrets (e.g. entropy/shape guessing), to avoid false positives; undeclared secrets under non-obvious keys are the author's responsibility to declare.
 - **Self-contained HTML** implies all assets inlined; this is acceptable for pipeline artifact sizes for the expected run scales (up to low thousands of nodes). Extreme-scale runs may summarize oversized payloads (FR-023).
 - **Program Kit is explicitly out of scope** for JTest 2.0; this release is delivered through the standard Spec-Driven flow only.
+- **The existing `docs/` folder is legacy 1.0 output, not a source of truth.** It describes behavior and contracts (assertions, conditions, response shapes) we are intentionally leaving behind. It is regenerated from the implemented system as the final phase (FR-044/FR-045) and must not be cited to justify any 2.0 design decision.
 
 ## Out of Scope
 

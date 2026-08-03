@@ -25,6 +25,12 @@ adding new folders rather than new assemblies, and reuses the json-everything ec
 present (`JsonPath.Net`) by adding `JsonSchema.Net` for schema validation. No web framework:
 the HTML report is composed server-side from embedded, inlined CSS/JS templates.
 
+> **Legacy `docs/` is NOT a source of truth.** The existing `docs/` folder describes the 1.0
+> system (stale assertions, conditions, response shapes, examples). It MUST NOT be cited to justify
+> any design decision here. It — like the JSON schemas — is authored fresh from the implemented 2.0
+> system as the **final phase** of this plan (see R15 and Phase 10). If anything in this plan
+> appears to lean on `docs/`, that is a defect to correct, not a precedent.
+
 ## Technical Context
 
 **Language/Version**: C# 12 on .NET 8.0 (`net8.0`) — unchanged.
@@ -45,7 +51,8 @@ search/filter/collapse) at that scale.
 **Constraints**: HTML report MUST be self-contained (zero external requests) and open offline;
 output ordering MUST be deterministic; all dynamic values MUST pass through one encode+redact
 pipeline; must not regress the existing public `jtest` command surface except where the spec
-requires (exit codes, new `report`/trace output).
+requires (exit codes, new `report`/trace output). The legacy `docs/` folder is treated as
+non-authoritative output (not design input) and is rewritten in the final phase.
 **Scale/Scope**: typical suites of 10s–100s of cases with nested templates and multi-iteration
 loops; reports up to low-thousands of nodes.
 
@@ -170,5 +177,12 @@ Ordered by the spec's user-story priorities; each phase is independently testabl
 9. **Release integrity (US6 — P3)** — reconcile version across source/package/tag; README license
    link resolves; CI gate for tag==version, tests, and `jtest run/validate` over fixtures.
    (FR-034–FR-036)
+10. **Documentation rewrite (final phase)** — delete/replace the legacy `docs/` entirely and
+    re-author it from the implemented 2.0 system: the language (from the shipped JSON schema),
+    the HTTP step/session contract, the response shape (`statusCode`/`status`, keyed headers),
+    exit codes, the canonical trace, reporting, and redaction. Every embedded example MUST validate
+    against the shipped schema, enforced in CI (docs cannot drift). No legacy 1.0 assertion/condition
+    /response-shape survives. (FR-044, FR-045; SC-016). This phase runs last so it reflects what was
+    actually built.
 
 *Full task breakdown is produced by `/speckit-tasks`.*

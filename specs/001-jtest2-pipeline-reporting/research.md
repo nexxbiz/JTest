@@ -189,10 +189,11 @@ All Technical Context unknowns are resolved below. Format: Decision / Rationale 
 
 ## R13. HTTP headers as a case-insensitive keyed map
 
-- **Context (verified)**: `HttpStep.GetResponseHeaders` (`src/JTest.Core/Steps/HttpStep.cs:326`)
-  returns `object[]` of `{name, value}`, and request headers are built the same way
-  (`HttpStep.cs:270-273`), but the docs promise keyed access, e.g.
-  `$.this.headers['content-type']` (`docs/05-assertions.md:846`).
+- **Context (verified against code)**: `HttpStep.GetResponseHeaders`
+  (`src/JTest.Core/Steps/HttpStep.cs:326`) returns `object[]` of `{name, value}`, and request
+  headers are built the same way (`HttpStep.cs:270-273`). (The legacy docs happen to assume keyed
+  access, but that is corroboration only — the keyed-map shape is chosen on its own design merits,
+  and the docs are regenerated to match; see R15.)
 - **Decision**: Emit `headers` in the step's response/request data as a **case-insensitive keyed
   map** (`Dictionary<string,object?>` with `StringComparer.OrdinalIgnoreCase`). Single-valued
   headers map to a string; multi-valued headers (notably `set-cookie`) map to an **array of
@@ -206,17 +207,32 @@ All Technical Context unknowns are resolved below. Format: Decision / Rationale 
 
 ## R14. `status` vs `statusCode`
 
-- **Context (verified)**: response data emits `["status"] = (int)response.StatusCode`
-  (`HttpStep.cs:295`); unit tests assert `$.this.status` / `responseData.GetProperty("status")`
-  (`tests/JTest.UnitTests/Steps/HttpStepTests.cs`, `ExampleUsageTests.cs`); the docs use
-  `$.this.statusCode` pervasively (dozens of references across `docs/*.md`).
-- **Decision**: Expose **both** keys in the response data and trace: `statusCode` (documented
-  canonical) and `status` (retained alias), both the integer HTTP status. Docs standardize on
-  `statusCode`; existing `status`-based tests remain valid; add tests asserting both.
-- **Rationale**: Honors the spec clarification and the user's "add a `statusCode` alias" option;
-  avoids rewriting dozens of doc references and avoids breaking existing tests. Dual keys are a
-  deliberate, documented ergonomic choice (not accidental drift), so it does not violate the
-  honesty principle.
-- **Alternatives**: `status`-only + rewrite all docs (larger churn, and `statusCode` is the more
-  conventional/descriptive public name); `statusCode`-only + rewrite tests (breaks the currently
-  green contract for no user benefit).
+- **Context (verified against code/tests, NOT docs)**: response data emits
+  `["status"] = (int)response.StatusCode` (`HttpStep.cs:295`); unit tests assert `$.this.status`
+  (`tests/JTest.UnitTests/Steps/HttpStepTests.cs`, `ExampleUsageTests.cs`). The legacy docs also
+  reference `statusCode`, but docs are legacy output and are explicitly NOT a source of truth here
+  (see R15).
+- **Decision**: Expose **both** keys, with `statusCode` as the canonical name and `status` as a
+  retained alias; both are the integer HTTP status and both are covered by tests.
+- **Rationale (design merit, not docs)**: `statusCode` is the more descriptive/conventional public
+  name (mirrors `System.Net.HttpStatusCode`); `status` is retained so the existing green unit tests
+  keep meaning and as a short ergonomic alias. The rewritten docs (final phase) describe
+  `statusCode` as canonical — the docs follow this decision, they do not drive it. Dual keys are
+  deliberate and documented, so honesty (Principle V) holds.
+- **Alternatives**: `statusCode`-only + rewrite the existing tests (breaks a currently-green
+  contract for little gain); `status`-only (less descriptive canonical name).
+
+## R15. Documentation is a downstream projection, not a source of truth
+
+- **Decision**: The `docs/` folder is treated as **legacy 1.0 output**, NOT authoritative input to
+  this plan. No design decision may be justified by the current docs. As the **final phase** of the
+  plan, `docs/` is fully rewritten from the implemented JTest 2.0 system (canonical trace, exit
+  codes, HTTP contract, language schema, redaction) — the same fresh authoring applied to the JSON
+  schemas. Every example/definition in the rewritten docs MUST validate against the shipped
+  versioned JTest language schema and is CI-checked.
+- **Rationale**: The current docs contain stale assertions/conditions/examples describing 1.0
+  behavior we are deliberately leaving behind (clean break, FR-033). Letting them influence the
+  design would re-import the very flaws we are removing. Docs must describe the system as built —
+  this is Principle I generalized: reports and docs *project* truth, they do not *define* it.
+- **Alternatives**: Incrementally patch docs (leaves legacy contamination and drift); keep docs as
+  a design reference (rejected — exactly the contamination this guards against).
