@@ -10,9 +10,9 @@ public sealed class ValidateCommandSettings : CommandSettings
 {
     private string[] categories = [];
 
-    [CommandArgument(0, "<test-file|pattern>")]
+    [CommandArgument(0, "<test-file-patterns>")]
     [Description("Paths or patterns to test files")]
-    public IEnumerable<string>? TestFilePatterns { get; set; }
+    public string[] TestFilePatterns { get; set; } = [];
 
     [CommandOption("-c|--categories")]
     [Description("Comma-separated list of test file categories to run (default: all)")]

@@ -212,12 +212,12 @@ from. **⚠️ No user story can begin until this phase is complete.**
 
 ### Tests for User Story 6
 
-- [ ] T073 [P] [US6] Test/gate asserting version consistency (source == package == tag) and LICENSE presence + resolvable README link in `tests/JTest.UnitTests/Release/ReleaseMetadataTests.cs`
+- [X] T073 [P] [US6] Test/gate asserting version consistency (source == package == tag) and LICENSE presence + resolvable README link in `tests/JTest.UnitTests/Release/ReleaseMetadataTests.cs`
 
 ### Implementation for User Story 6
 
-- [ ] T074 [US6] Author the CI workflow (build, test, `jtest validate` + `jtest run` over fixtures, tag==version gate) in `.github/workflows/ci.yml`
-- [ ] T075 [US6] Confirm reproducible pack from the tagged commit and single-sourced version wiring in `Directory.Build.props` and CI
+- [X] T074 [US6] Author the CI workflow (build, test, `jtest validate` + `jtest run` over fixtures, tag==version gate) in `.github/workflows/ci.yml`
+- [X] T075 [US6] Confirm reproducible pack from the tagged commit and single-sourced version wiring in `Directory.Build.props` and CI
 
 **Checkpoint**: JTest 2.0 can be tagged and published honestly.
 
