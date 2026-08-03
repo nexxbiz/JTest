@@ -91,7 +91,16 @@ public class RunCommand : CommandBase<RunCommandSettings>
 
         if (!string.IsNullOrWhiteSpace(settings.ReportFile))
         {
-            new HtmlReportGenerator().Write(trace, settings.ReportFile);
+            if (string.Equals(settings.ReportFormat, "markdown", StringComparison.OrdinalIgnoreCase))
+            {
+                var dir = Path.GetDirectoryName(Path.GetFullPath(settings.ReportFile));
+                if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
+                File.WriteAllText(settings.ReportFile, new JTest.Core.Reporting.Markdown.MarkdownReportGenerator().Generate(trace));
+            }
+            else
+            {
+                new HtmlReportGenerator().Write(trace, settings.ReportFile);
+            }
         }
     }
 

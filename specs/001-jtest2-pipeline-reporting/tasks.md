@@ -102,7 +102,7 @@ from. **⚠️ No user story can begin until this phase is complete.**
 - [X] T037 [P] [US2] Author embedded JS (collapse, search/filter, keyboard nav; build DOM via `textContent` only) in `src/JTest.Core/Reporting/Html/report.js`
 - [X] T038 [US2] Failure-first ordering, rollups, and drill-down (run→suite→case→dataset→iteration→step→assertion) in the projector (depends on T035)
 - [X] T039 [US2] Implement safe large/binary content handling in the projector and trace: truncate request/response bodies over a configurable threshold (default 256 KB) with a truncation + original-size indicator; summarize binary/non-UTF-8 content as content-type + byte size (never raw) in `src/JTest.Core/Reporting/Html/HtmlReportGenerator.cs` and `src/JTest.Core/Tracing/TraceBuilder.cs` (FR-023)
-- [ ] T040 [US2] Re-implement the Markdown writer as a projection of the trace in `src/JTest.Core/Reporting/Markdown/MarkdownReportGenerator.cs` (retire the source-of-truth writer; restore/remove `tests/JTest.UnitTests/ResultsToMarkdownConverterTests.cs`)
+- [X] T040 [US2] Re-implement the Markdown writer as a projection of the trace in `src/JTest.Core/Reporting/Markdown/MarkdownReportGenerator.cs` (retire the source-of-truth writer; restore/remove `tests/JTest.UnitTests/ResultsToMarkdownConverterTests.cs`)
 - [X] T041 [US2] Register HTML/Markdown/JSON output generators in DI (both `src/JTest.Cli/DI/DependencyRegistration.cs` and `DependencyRegistrationHelper.cs`)
 
 **Checkpoint**: `run` produces a complete, offline, failure-first HTML report.
@@ -122,7 +122,7 @@ from. **⚠️ No user story can begin until this phase is complete.**
 
 ### Implementation for User Story 3
 
-- [ ] T044 [US3] Route every dynamic value in the HTML and Markdown projectors through `ReportValuePipeline` (no ad-hoc escaping) in `src/JTest.Core/Reporting/Html/HtmlReportGenerator.cs` and `Markdown/MarkdownReportGenerator.cs`
+- [X] T044 [US3] Route every dynamic value in the HTML and Markdown projectors through `ReportValuePipeline` (no ad-hoc escaping) in `src/JTest.Core/Reporting/Html/HtmlReportGenerator.cs` and `Markdown/MarkdownReportGenerator.cs`
 - [X] T045 [US3] Ensure the persisted canonical trace has declared secrets masked before serialization in `src/JTest.Core/Tracing/TraceBuilder.cs`
 - [X] T046 [US3] Implement opt-in, masked env/global/variable dump (`--include-variables`) in report + trace; excluded by default in `src/JTest.Core/Reporting/` and `src/JTest.Cli/Commands/RunCommand.cs`
 

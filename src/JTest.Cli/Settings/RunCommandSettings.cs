@@ -51,8 +51,12 @@ public sealed class RunCommandSettings : CommandSettings
     public string? OutputFormat { get; set; }
 
     [CommandOption("--report")]
-    [Description("Write a self-contained HTML report to the given file path.")]
+    [Description("Write a report to the given file path (see --report-format).")]
     public string? ReportFile { get; set; }
+
+    [CommandOption("--report-format")]
+    [Description("Format for --report: 'html' (default, self-contained) or 'markdown'.")]
+    public string? ReportFormat { get; set; }
 
     [CommandOption("--trace")]
     [Description("Write the canonical execution-trace JSON to the given file path.")]
