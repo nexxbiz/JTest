@@ -58,4 +58,36 @@ public class HttpCookieSessionTests
 
         Assert.Null(handler.CookieHeaders[1]); // caseB never saw caseA's cookie
     }
+
+    private sealed class StubHandler : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            var response = new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent("{}", Encoding.UTF8, "application/json")
+            };
+            response.Headers.TryAddWithoutValidation("Set-Cookie", "a=1");
+            response.Headers.TryAddWithoutValidation("Set-Cookie", "b=2");
+            return Task.FromResult(response);
+        }
+    }
+
+    [Fact]
+    public async Task ResponseContract_HasKeyedHeaders_And_StatusCodeAlias()
+    {
+        var client = new HttpClient(new StubHandler());
+        var context = new TestExecutionContext();
+
+        var result = await new HttpStep(client, new HttpStepConfiguration("GET", "https://api.test/x")).ExecuteAsync(context);
+        var data = (Dictionary<string, object?>)result.Data!;
+
+        Assert.Equal(200, data["statusCode"]);
+        Assert.Equal(200, data["status"]);
+
+        var headers = (Dictionary<string, object?>)data["headers"]!;
+        Assert.Contains("application/json", headers["content-type"]!.ToString()); // "Content-Type" read case-insensitively
+        var setCookie = Assert.IsType<string[]>(headers["set-cookie"]);           // multi-valued → array
+        Assert.Equal(2, setCookie.Length);
+    }
 }

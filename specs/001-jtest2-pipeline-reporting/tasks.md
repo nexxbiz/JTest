@@ -117,8 +117,8 @@ from. **⚠️ No user story can begin until this phase is complete.**
 
 ### Tests for User Story 3
 
-- [ ] T042 [P] [US3] XSS corpus test: HTML/script in assertion actual/expected, error, name, description, body → inert in HTML in `tests/JTest.UnitTests/Reporting/XssEscapingTests.cs`
-- [ ] T043 [P] [US3] Secret corpus test: secrets in headers, JSON body, and query string → redacted by default in report and trace in `tests/JTest.UnitTests/Security/SecretLeakTests.cs`
+- [X] T042 [P] [US3] XSS corpus test: HTML/script in assertion actual/expected, error, name, description, body → inert in HTML in `tests/JTest.UnitTests/Reporting/XssEscapingTests.cs`
+- [X] T043 [P] [US3] Secret corpus test: secrets in headers, JSON body, and query string → redacted by default in report and trace in `tests/JTest.UnitTests/Security/SecretLeakTests.cs`
 
 ### Implementation for User Story 3
 
@@ -139,18 +139,18 @@ from. **⚠️ No user story can begin until this phase is complete.**
 ### Tests for User Story 4
 
 - [X] T047 [P] [US4] Test: N-iteration loop retains N iterations; early-exit keeps exact executed count; no stale/null slots in `tests/JTest.UnitTests/Steps/LoopRetentionTests.cs`
-- [ ] T048 [P] [US4] Test: deep template+loop nesting yields unique ids and correct parent/ordinal (zero collisions) in `tests/JTest.UnitTests/Steps/AncestryTests.cs`
-- [ ] T049 [P] [US4] Test: step/loop timeout → `timedOut`; cancellation mid-run → `cancelled`; both exit 4 in `tests/JTest.UnitTests/Execution/CancellationTimeoutTests.cs`
-- [ ] T050 [P] [US4] Test: same corpus sequential vs parallel → equivalent node set/outcomes in `tests/JTest.UnitTests/Execution/ParallelEquivalenceTests.cs`
+- [X] T048 [P] [US4] Test: deep template+loop nesting yields unique ids and correct parent/ordinal (zero collisions) in `tests/JTest.UnitTests/Steps/AncestryTests.cs`
+- [X] T049 [P] [US4] Test: step/loop timeout → `timedOut`; cancellation mid-run → `cancelled`; both exit 4 in `tests/JTest.UnitTests/Execution/CancellationTimeoutTests.cs`
+- [X] T050 [P] [US4] Test: same corpus sequential vs parallel → equivalent node set/outcomes in `tests/JTest.UnitTests/Execution/ParallelEquivalenceTests.cs`
 
 ### Implementation for User Story 4
 
 - [X] T051 [US4] Rework `ForLoopStep` to emit an `Iteration` node per pass with its own inner steps (size by iterations, not step count) in `src/JTest.Core/Steps/ForLoopStep.cs`
 - [X] T052 [US4] Rework `WhileStep` likewise and add the missing `[TypeIdentifier("while")]` in `src/JTest.Core/Steps/WhileStep.cs`
-- [ ] T053 [US4] Assign stable step id/ordinal/path at execution time (replace the flat `StepNumber`) in `src/JTest.Core/Steps/StepProcessor.cs` and `src/JTest.Core/Execution/TestExecutionContext.cs`
-- [ ] T054 [US4] Capture template (`UseStep`) child ancestry with correct parent/ordinal in `src/JTest.Core/Steps/UseStep.cs`
-- [ ] T055 [US4] Honor the `CancellationToken` and step/loop/run timeouts, recording `cancelled`/`timedOut` outcomes across executors and steps in `src/JTest.Core/Execution/` and `src/JTest.Core/Steps/`
-- [ ] T056 [US4] Rework parallel execution to merge complete subtrees without loss (no dropped throwing suites) in `src/JTest.Core/Execution/JTestSuiteExecutor.cs`
+- [X] T053 [US4] Assign stable step id/ordinal/path at execution time (replace the flat `StepNumber`) in `src/JTest.Core/Steps/StepProcessor.cs` and `src/JTest.Core/Execution/TestExecutionContext.cs`
+- [X] T054 [US4] Capture template (`UseStep`) child ancestry with correct parent/ordinal in `src/JTest.Core/Steps/UseStep.cs`
+- [X] T055 [US4] Honor the `CancellationToken` and step/loop/run timeouts, recording `cancelled`/`timedOut` outcomes across executors and steps in `src/JTest.Core/Execution/` and `src/JTest.Core/Steps/`
+- [X] T056 [US4] Rework parallel execution to merge complete subtrees without loss (no dropped throwing suites) in `src/JTest.Core/Execution/JTestSuiteExecutor.cs`
 
 **Checkpoint**: The trace is a faithful, complete history under all control-flow shapes.
 
@@ -166,7 +166,7 @@ from. **⚠️ No user story can begin until this phase is complete.**
 
 - [X] T057 [P] [US7] Test: login→authenticated call succeeds w/o manual `Cookie`, including after forced handler-pool recycle in `tests/JTest.UnitTests/Http/CookieSessionTests.cs`
 - [X] T058 [P] [US7] Test: two parallel cases as different users never share cookies in `tests/JTest.UnitTests/Http/CookieIsolationTests.cs`
-- [ ] T059 [P] [US7] Test: `$.this.headers['content-type']` case-insensitive, multi-valued `set-cookie` array, `statusCode`+`status` both resolve in `tests/JTest.UnitTests/Steps/HttpResponseContractTests.cs`
+- [X] T059 [P] [US7] Test: `$.this.headers['content-type']` case-insensitive, multi-valued `set-cookie` array, `statusCode`+`status` both resolve in `tests/JTest.UnitTests/Steps/HttpResponseContractTests.cs`
 
 ### Implementation for User Story 7
 

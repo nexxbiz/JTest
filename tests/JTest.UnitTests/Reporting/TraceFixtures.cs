@@ -54,6 +54,17 @@ internal static class TraceFixtures
         return new ExecutionTrace { ToolVersion = "2.0.0", StartedAt = DateTimeOffset.UnixEpoch, EndedAt = DateTimeOffset.UnixEpoch, Outcome = Outcome.Passed, ExitCode = 0, Counts = R(Outcome.Passed), Suites = new[] { s } };
     }
 
+    /// <summary>A trace whose suite/case/step name, assertion actual, and message all carry the payload.</summary>
+    public static ExecutionTrace WithText(string payload)
+    {
+        var assertion = new AssertionResult { Id = "s0/c0/d0/step[1]/assert[1]", Operation = "equals", Actual = payload, Expected = 1, Outcome = Outcome.Failed, Message = payload };
+        var step = new StepNode { Id = "s0/c0/d0/step[1]", Path = "s0/c0/d0/step[1]", StepType = "assert", Ordinal = 1, Name = payload, Outcome = Outcome.Failed, Assertions = new[] { assertion } };
+        var ds = new DatasetResult { Id = "s0/c0/d0", Path = "s0/c0/d0", Outcome = Outcome.Failed, Counts = R(Outcome.Failed), Steps = new[] { step } };
+        var c = new CaseResult { Id = "s0/c0", Path = "s0/c0", Name = payload, Outcome = Outcome.Failed, Counts = R(Outcome.Failed), Datasets = new[] { ds } };
+        var s = new SuiteResult { Id = "s0", Path = "s0", Name = payload, Outcome = Outcome.Failed, Counts = R(Outcome.Failed), Cases = new[] { c } };
+        return new ExecutionTrace { ToolVersion = "2.0.0", StartedAt = DateTimeOffset.UnixEpoch, EndedAt = DateTimeOffset.UnixEpoch, Outcome = Outcome.Failed, ExitCode = 1, Counts = R(Outcome.Failed), Suites = new[] { s } };
+    }
+
     public static string ExtractEmbeddedTrace(string html)
     {
         const string marker = "id=\"jtest-trace\">";

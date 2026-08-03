@@ -103,4 +103,17 @@ public class HtmlReportTests
         Assert.DoesNotContain("</script>", embedded);
         Assert.Contains("\\u003C", embedded); // '<' escaped
     }
+
+    // T042 — XSS corpus: injected markup in names/assertions/messages is inert (never live HTML).
+    [Fact]
+    public void Report_MakesInjectedMarkupInert_InAllTextFields()
+    {
+        var html = Generate(TraceFixtures.WithText("<script>alert('x')</script><img src=x onerror=alert(1)>"));
+
+        // Angle brackets from data are escaped, so no live tag can form (the payload survives only as
+        // inert text inside the escaped JSON island, rendered via textContent).
+        Assert.DoesNotContain("<script>alert", html);
+        Assert.DoesNotContain("<img", html);
+        Assert.Contains("\\u003C", TraceFixtures.ExtractEmbeddedTrace(html));
+    }
 }
