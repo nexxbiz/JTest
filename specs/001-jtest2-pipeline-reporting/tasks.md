@@ -1,0 +1,307 @@
+# Tasks: JTest 2.0 — Reliable Pipeline Execution & Trustworthy HTML Report
+
+**Input**: Design documents from `specs/001-jtest2-pipeline-reporting/`
+**Prerequisites**: plan.md, spec.md, research.md, data-model.md, contracts/, quickstart.md
+
+**Tests**: REQUIRED. Constitution Principle VII (Test-Backed Correctness) is NON-NEGOTIABLE and
+FR-037 mandates coverage for loops, nesting, cancellation, timeout, parallel, exit codes, escaping,
+redaction, HTTP session/contract, JSONPath resolution, and doc-example validation. Test tasks are
+therefore included in every story and are release-blocking.
+
+**Organization**: Tasks are grouped by user story (spec.md priorities) for independent
+implementation and testing. Target framework: C#/.NET 8.0; test framework: xUnit.
+
+## Format: `[ID] [P?] [Story] Description`
+
+- **[P]**: Can run in parallel (different files, no dependency on an incomplete task)
+- **[Story]**: US1–US7 map to spec.md user stories; Setup/Foundational/Docs/Polish carry no story label
+- All paths are repository-relative
+
+---
+
+## Phase 1: Setup (Shared Infrastructure)
+
+**Purpose**: Clean the tree and establish build/version/test scaffolding.
+
+- [ ] T001 Remove stale build cruft from the abandoned attempt: `src/.program-kit-build/`, and the `bin/obj`-only dirs `src/JTest.Engine/`, `src/JTest.Evidence/`, `src/JTest.Language/`, `src/JTest.Reporting/`, and `src/JTest.Cli/obj/Generated/` (verify none are git-tracked before deleting)
+- [ ] T002 Add root `Directory.Build.props` with a single-sourced `<Version>2.0.0</Version>` applied to all projects
+- [ ] T003 [P] Remove per-project `<PackageVersion>` from `src/JTest.Core/JTest.Core.csproj` and confirm `src/JTest.Cli/JTest.Cli.csproj` inherits the shared version
+- [ ] T004 [P] Add `LICENSE` (MIT, NexxBiz) at repo root and confirm the `README.md` license link resolves to it
+- [ ] T005 [P] Add `JsonSchema.Net` PackageReference to `src/JTest.Core/JTest.Core.csproj`
+- [ ] T006 [P] Configure embedded-resource plumbing in `src/JTest.Core/JTest.Core.csproj` for the language schema and HTML/CSS/JS report assets
+- [ ] T007 [P] Create test folders in `tests/JTest.UnitTests/`: `Tracing/`, `Execution/`, `Reporting/`, `Security/`, `Http/`, `Language/`, `Fixtures/`, `golden/`
+- [ ] T008 [P] Implement a golden-file test helper (normalize + compare JSON/HTML) in `tests/JTest.UnitTests/Fixtures/GoldenFile.cs`
+
+---
+
+## Phase 2: Foundational (Blocking Prerequisites)
+
+**Purpose**: The canonical trace, exit-code service, and value pipeline that every story projects
+from. **⚠️ No user story can begin until this phase is complete.**
+
+- [ ] T009 [P] Define `Outcome` enum + aggregation rules (`errored>timedOut>cancelled>failed>passed`, skipped rule) in `src/JTest.Core/Tracing/Outcome.cs`
+- [ ] T010 [P] Define `Rollup` value object in `src/JTest.Core/Tracing/Rollup.cs`
+- [ ] T011 [P] Define `Diagnostic` record (severity, message, location, exceptionType, stackTrace) in `src/JTest.Core/Tracing/Diagnostic.cs`
+- [ ] T012 Define trace node records (`ExecutionTrace`, `SuiteResult`, `CaseResult`, `DatasetResult`, `StepNode`, `Iteration`, `AssertionResult`, `HttpExchange`, `HeaderMap`) with id/path/kind/ordinal/iteration/timings/children in `src/JTest.Core/Tracing/` (depends on T009–T011, matches data-model.md)
+- [ ] T013 Implement `TraceBuilder` (stable ids/paths, ordinals, timings, counts aggregation) in `src/JTest.Core/Tracing/TraceBuilder.cs` (depends on T012)
+- [ ] T014 Implement canonical JSON serialization (System.Text.Json, `traceSchemaVersion`+`toolVersion`, stable property names, deterministic ordering) in `src/JTest.Core/Tracing/TraceJson.cs` (depends on T012)
+- [ ] T015 [P] Contract test: a built trace serializes and validates against `specs/001-jtest2-pipeline-reporting/contracts/execution-trace.schema.json` in `tests/JTest.UnitTests/Tracing/TraceSchemaTests.cs`
+- [ ] T016 Implement `ExitCodeService` (Outcome→code; 0/1/2/3/4 with precedence `2>3>4>1`) in `src/JTest.Core/Execution/ExitCodeService.cs` (depends on T009)
+- [ ] T017 [P] Unit test `ExitCodeService` mapping + precedence in `tests/JTest.UnitTests/Execution/ExitCodeServiceTests.cs`
+- [ ] T018 Implement `ReportValuePipeline` (redact-by-value+key, then contextual encode; HTML + Markdown encoders) in `src/JTest.Core/Reporting/ReportValuePipeline.cs`
+- [ ] T019 Rework `SecurityMasker` to register/replace secret **values** (declared + secret-like keys) across headers, bodies, and query strings in `src/JTest.Core/Security/SecurityMasker.cs` (depends on T018)
+- [ ] T020 [P] Unit tests for encode + value-based redaction (incl. Cookie/Set-Cookie/Authorization, JSON body secrets) in `tests/JTest.UnitTests/Security/RedactionTests.cs`
+
+**Checkpoint**: Trace model, exit codes, and redaction pipeline exist and are tested.
+
+---
+
+## Phase 3: User Story 1 — No false-green pipeline gate (Priority: P1) 🎯 MVP
+
+**Goal**: The process outcome is honest — non-zero whenever anything is wrong; empty results are not success.
+
+**Independent Test**: Run a corpus {crash, fail, pass, empty-expected} and assert exit codes {2,1,0,2}; run `validate` over an invalid corpus and assert exit 3.
+
+### Tests for User Story 1
+
+- [ ] T021 [P] [US1] Integration test: a suite that throws → captured as `errored` node + process exit 2 in `tests/JTest.UnitTests/Execution/FalseGreenTests.cs`
+- [ ] T022 [P] [US1] Integration test: empty-but-expected discovery → exit 2; all-pass → 0; any case failure → 1 in `tests/JTest.UnitTests/Execution/ExitCodeIntegrationTests.cs`
+- [ ] T023 [P] [US1] Test: `validate` over an invalid corpus → exit 3 with honest counts in `tests/JTest.UnitTests/Execution/ValidateExitTests.cs`
+- [ ] T024 [P] [US1] Test: unresolved JSONPath → distinct "matched nothing" diagnostic (vs matched-null), no silent null in `tests/JTest.UnitTests/Execution/UnresolvedPathTests.cs`
+
+### Implementation for User Story 1
+
+- [ ] T025 [US1] Rework `JTestSuiteExecutor` to catch suite/case-level exceptions and record them as `errored` `SuiteResult`/`CaseResult` nodes (never drop; include in results) in `src/JTest.Core/Execution/JTestSuiteExecutor.cs`
+- [ ] T026 [US1] Treat matched-but-zero-result discovery as failure (`--fail-on-empty` default true) in the executor / `src/JTest.Cli/Commands/RunCommand.cs`
+- [ ] T027 [US1] Wire `RunCommand` exit code through `ExitCodeService` (replace `results.All(...)` logic) in `src/JTest.Cli/Commands/RunCommand.cs`
+- [ ] T028 [US1] Fix `ValidateCommand` to return non-zero on any invalid file and report honest counts in `src/JTest.Cli/Commands/ValidateCommand.cs`
+- [ ] T029 [US1] Emit a distinct diagnostic when a JSONPath matches nothing, distinguishable from a matched `null`, in `src/JTest.Core/Utilities/VariableInterpolator.cs` and `src/JTest.Core/Steps/StepProcessor.cs` (FR-049)
+
+**Checkpoint**: A crash/empty/invalid run can never exit 0. MVP deliverable.
+
+---
+
+## Phase 4: User Story 2 — One trustworthy self-contained HTML report (Priority: P1)
+
+**Goal**: A single offline HTML file that faithfully shows the whole run, failure-first.
+
+**Independent Test**: From a trace fixture with nested templates/loops and mixed outcomes, generate HTML with networking disabled; assert every trace node is present and a specific assertion is findable.
+
+### Tests for User Story 2
+
+- [ ] T030 [P] [US2] Golden-file test: trace fixture → HTML; assert 100% of trace nodes represented in `tests/JTest.UnitTests/Reporting/HtmlReportGoldenTests.cs`
+- [ ] T031 [P] [US2] Offline test: generated HTML references no external URLs (regex/asset scan) in `tests/JTest.UnitTests/Reporting/SelfContainedTests.cs`
+- [ ] T032 [P] [US2] Accessibility/search test: semantic landmarks present, all detail reachable, search locates a node in `tests/JTest.UnitTests/Reporting/HtmlAccessibilityTests.cs`
+
+### Implementation for User Story 2
+
+- [ ] T033 [US2] Implement `HtmlReportGenerator` projecting a trace into one self-contained file (inlined assets, trace as inert JSON island) in `src/JTest.Core/Reporting/Html/HtmlReportGenerator.cs`
+- [ ] T034 [P] [US2] Author embedded CSS (failure-first, collapsible tree, light/dark, sufficient contrast) in `src/JTest.Core/Reporting/Html/report.css`
+- [ ] T035 [P] [US2] Author embedded JS (collapse, search/filter, keyboard nav; build DOM via `textContent` only) in `src/JTest.Core/Reporting/Html/report.js`
+- [ ] T036 [US2] Failure-first ordering, rollups, and drill-down (run→suite→case→dataset→iteration→step→assertion) in the projector (depends on T033)
+- [ ] T037 [US2] Re-implement the Markdown writer as a projection of the trace in `src/JTest.Core/Reporting/Markdown/MarkdownReportGenerator.cs` (retire the source-of-truth writer; restore/remove `tests/JTest.UnitTests/ResultsToMarkdownConverterTests.cs`)
+- [ ] T038 [US2] Register HTML/Markdown/JSON output generators in DI (both `src/JTest.Cli/DI/DependencyRegistration.cs` and `DependencyRegistrationHelper.cs`)
+
+**Checkpoint**: `run` produces a complete, offline, failure-first HTML report.
+
+---
+
+## Phase 5: User Story 3 — Report safe to publish (redaction + escaping) (Priority: P2)
+
+**Goal**: No secrets and no active markup in the default report/trace.
+
+**Independent Test**: Run a corpus with HTML/script payloads and secret values in assertions/errors/names/headers/bodies/query; assert inert rendering and zero visible secrets.
+
+### Tests for User Story 3
+
+- [ ] T039 [P] [US3] XSS corpus test: HTML/script in assertion actual/expected, error, name, description, body → inert in HTML in `tests/JTest.UnitTests/Reporting/XssEscapingTests.cs`
+- [ ] T040 [P] [US3] Secret corpus test: secrets in headers, JSON body, and query string → redacted by default in report and trace in `tests/JTest.UnitTests/Security/SecretLeakTests.cs`
+
+### Implementation for User Story 3
+
+- [ ] T041 [US3] Route every dynamic value in the HTML and Markdown projectors through `ReportValuePipeline` (no ad-hoc escaping) in `src/JTest.Core/Reporting/Html/HtmlReportGenerator.cs` and `Markdown/MarkdownReportGenerator.cs`
+- [ ] T042 [US3] Ensure the persisted canonical trace has declared secrets masked before serialization in `src/JTest.Core/Tracing/TraceBuilder.cs`
+- [ ] T043 [US3] Implement opt-in, masked env/global/variable dump (`--include-variables`) in report + trace; excluded by default in `src/JTest.Core/Reporting/` and `src/JTest.Cli/Commands/RunCommand.cs`
+
+**Checkpoint**: The report is safe to attach as a public pipeline artifact.
+
+---
+
+## Phase 6: User Story 4 — Faithful loops, nesting, cancellation, parallelism (Priority: P2)
+
+**Goal**: Every iteration, correct ancestry/numbering, and distinct cancelled/timed-out outcomes.
+
+**Independent Test**: Execute for/while loops (multi-iteration + early-exit), nested templates, a timeout, and a cancellation; assert full iteration retention, unique ids/ordinals, distinct outcomes, and parallel==sequential.
+
+### Tests for User Story 4
+
+- [ ] T044 [P] [US4] Test: N-iteration loop retains N iterations; early-exit keeps exact executed count; no stale/null slots in `tests/JTest.UnitTests/Steps/LoopRetentionTests.cs`
+- [ ] T045 [P] [US4] Test: deep template+loop nesting yields unique ids and correct parent/ordinal (zero collisions) in `tests/JTest.UnitTests/Steps/AncestryTests.cs`
+- [ ] T046 [P] [US4] Test: step/loop timeout → `timedOut`; cancellation mid-run → `cancelled`; both exit 4 in `tests/JTest.UnitTests/Execution/CancellationTimeoutTests.cs`
+- [ ] T047 [P] [US4] Test: same corpus sequential vs parallel → equivalent node set/outcomes in `tests/JTest.UnitTests/Execution/ParallelEquivalenceTests.cs`
+
+### Implementation for User Story 4
+
+- [ ] T048 [US4] Rework `ForLoopStep` to emit an `Iteration` node per pass with its own inner steps (size by iterations, not step count) in `src/JTest.Core/Steps/ForLoopStep.cs`
+- [ ] T049 [US4] Rework `WhileStep` likewise and add the missing `[TypeIdentifier("while")]` in `src/JTest.Core/Steps/WhileStep.cs`
+- [ ] T050 [US4] Assign stable step id/ordinal/path at execution time (replace the flat `StepNumber`) in `src/JTest.Core/Steps/StepProcessor.cs` and `src/JTest.Core/Execution/TestExecutionContext.cs`
+- [ ] T051 [US4] Capture template (`UseStep`) child ancestry with correct parent/ordinal in `src/JTest.Core/Steps/UseStep.cs`
+- [ ] T052 [US4] Honor the `CancellationToken` and step/loop/run timeouts, recording `cancelled`/`timedOut` outcomes across executors and steps in `src/JTest.Core/Execution/` and `src/JTest.Core/Steps/`
+- [ ] T053 [US4] Rework parallel execution to merge complete subtrees without loss (no dropped throwing suites) in `src/JTest.Core/Execution/JTestSuiteExecutor.cs`
+
+**Checkpoint**: The trace is a faithful, complete history under all control-flow shapes.
+
+---
+
+## Phase 7: User Story 7 — Deterministic authenticated HTTP flows (Priority: P2)
+
+**Goal**: Cookie sessions persist across steps within a case, isolated across cases, independent of handler-pool lifetime; corrected response contract.
+
+**Independent Test**: login→authenticated GET passes with no manual Cookie header across pool recycles; two parallel cases don't share cookies; `statusCode`/`status`/keyed headers resolve.
+
+### Tests for User Story 7
+
+- [ ] T054 [P] [US7] Test: login→authenticated call succeeds w/o manual `Cookie`, including after forced handler-pool recycle in `tests/JTest.UnitTests/Http/CookieSessionTests.cs`
+- [ ] T055 [P] [US7] Test: two parallel cases as different users never share cookies in `tests/JTest.UnitTests/Http/CookieIsolationTests.cs`
+- [ ] T056 [P] [US7] Test: `$.this.headers['content-type']` case-insensitive, multi-valued `set-cookie` array, `statusCode`+`status` both resolve in `tests/JTest.UnitTests/Steps/HttpResponseContractTests.cs`
+
+### Implementation for User Story 7
+
+- [ ] T057 [US7] Introduce `Http/IHttpClientProvider` + `HttpClientProvider` bound to a per-scope `CookieContainer` (deterministic, pool-lifetime-independent) in `src/JTest.Core/Http/`
+- [ ] T058 [US7] Establish a per-case execution/session scope and pass the provider to `HttpStep` (replace reflection-injected raw `HttpClient`) in `src/JTest.Core/Execution/` and `src/JTest.Core/TypeDescriptors/TypeDescriptorRegistry.cs`
+- [ ] T059 [US7] Reconcile both `AddHttpClient` registrations onto the provider (host + Spectre containers) in `src/JTest.Cli/Core/JTestApplication.cs`
+- [ ] T060 [US7] Emit a case-insensitive keyed header map with multi-valued support in `HttpStep.CreateResponseData`/`GetResponseHeaders` in `src/JTest.Core/Steps/HttpStep.cs`
+- [ ] T061 [US7] Add `statusCode` (canonical) + `status` (alias) to response data and trace `HttpExchange` in `src/JTest.Core/Steps/HttpStep.cs` and `src/JTest.Core/Tracing/`
+- [ ] T062 [US7] Redact `Cookie`/`Set-Cookie`/`Authorization` via the pipeline in HTTP exchange projection (FR-042)
+
+**Checkpoint**: Cookie-based auth flows (e.g. Elsa) work deterministically and safely.
+
+---
+
+## Phase 8: User Story 5 — Formal language schema & honest validation (Priority: P3)
+
+**Goal**: A versioned JSON Schema with real, located diagnostics; guaranteed JSONPath filter support.
+
+**Independent Test**: Validate valid/invalid corpora → correct pass/fail with located diagnostics and honest counts; run a JSONPath filter corpus in save/assert/interpolation.
+
+### Tests for User Story 5
+
+- [ ] T063 [P] [US5] Test: valid corpus passes, invalid corpus (unknown type, wrong type, missing required, bad reference) fails with located diagnostics + honest counts in `tests/JTest.UnitTests/Language/SchemaValidationTests.cs`
+- [ ] T064 [P] [US5] Test: JSONPath filter + multi-match corpus resolves in save/assert/interpolation using the pinned dialect in `tests/JTest.UnitTests/Utilities/JsonPathFilterTests.cs`
+
+### Implementation for User Story 5
+
+- [ ] T065 [US5] Author the versioned JTest language JSON Schema (draft 2020-12; step discriminators, types, constraints, references) as an embedded resource in `src/JTest.Core/Language/Schema/jtest-language-1.0.0.schema.json` (per `contracts/jtest-language-schema.contract.md`)
+- [ ] T066 [US5] Implement the schema validator using `JsonSchema.Net`, emitting machine-readable located diagnostics (JSON Pointer + ruleId) in `src/JTest.Core/Language/Validation/SchemaValidator.cs`
+- [ ] T067 [US5] Replace the shallow `JTestSuiteValidator` checks with real schema validation; honest labels and counts (fix the never-incremented valid count) in `src/JTest.Core/JTestSuiteValidator.cs`
+- [ ] T068 [US5] Pin and document the JSONPath dialect (`JsonPath.Net`, RFC 9535) and guarantee filter + multi-match resolution across save/assert/interpolation in `src/JTest.Core/Utilities/VariableInterpolator.cs`
+- [ ] T069 [US5] Apply intentional breaking corrections and record them in `CHANGELOG.md` (while-step type id, canonical assertion operator names, `additionalProperties:false`, typed durations)
+
+**Checkpoint**: `validate` is a real CI gate; the language has an authoritative contract.
+
+---
+
+## Phase 9: User Story 6 — Honest, reproducible release (Priority: P3)
+
+**Goal**: Version single-sourced across source/package/tag; license present; CI-gated.
+
+**Independent Test**: Inspect package version, tool version, and git tag for agreement; confirm LICENSE exists and README link resolves.
+
+### Tests for User Story 6
+
+- [ ] T070 [P] [US6] Test/gate asserting version consistency (source == package == tag) and LICENSE presence + resolvable README link in `tests/JTest.UnitTests/Release/ReleaseMetadataTests.cs`
+
+### Implementation for User Story 6
+
+- [ ] T071 [US6] Author the CI workflow (build, test, `jtest validate` + `jtest run` over fixtures, tag==version gate) in `.github/workflows/ci.yml`
+- [ ] T072 [US6] Confirm reproducible pack from the tagged commit and single-sourced version wiring in `Directory.Build.props` and CI
+
+**Checkpoint**: JTest 2.0 can be tagged and published honestly.
+
+---
+
+## Phase 10: Documentation Rewrite (Final — FR-044/FR-045)
+
+**Purpose**: Regenerate `docs/` from the implemented system. Runs last so it reflects what was built.
+Legacy docs are output, never a source of truth.
+
+- [ ] T073 Delete legacy `docs/` content and re-author it from the implemented 2.0 system — language (from the shipped schema), HTTP step/session contract (`statusCode`/`status`, keyed headers, cookies), exit-code contract, canonical trace, reporting, and redaction — in `docs/`
+- [ ] T074 Add a CI check that validates every test-definition example embedded in `docs/` against the shipped language schema in `.github/workflows/ci.yml`
+- [ ] T075 [P] Rewrite `README.md` to the 2.0 system (commands, exit codes, report, license link)
+- [ ] T076 Verify zero references to removed/legacy 1.0 contract behavior remain across `docs/` and `README.md`
+
+**Checkpoint**: Docs describe the truth of the shipped system (SC-016).
+
+---
+
+## Phase 11: Polish & Cross-Cutting Concerns
+
+- [ ] T077 [P] Run `specs/001-jtest2-pipeline-reporting/quickstart.md` end-to-end against sample suites
+- [ ] T078 [P] Performance check: a ~5,000-node run serializes + renders HTML within a few seconds and stays interactive (`tests/JTest.UnitTests/Reporting/LargeRunPerfTests.cs`)
+- [ ] T079 Security review of report output (no injection/leak paths) across all projections
+- [ ] T080 Final Constitution compliance re-check (all 8 gates) and release notes
+
+---
+
+## Dependencies & Execution Order
+
+### Phase dependencies
+
+- **Setup (Ph1)**: no dependencies.
+- **Foundational (Ph2)**: depends on Setup; **blocks all user stories**.
+- **User stories (Ph3–Ph9)**: all depend on Foundational. Recommended order by priority:
+  US1 → US2 → (US3, US4, US7) → (US5, US6). US3 depends on the pipeline (Ph2) and projectors (US2).
+  US2's full fidelity benefits from US4, but is independently testable via trace fixtures.
+- **Docs (Ph10)**: depends on the language schema (US5) and the implemented behaviors it documents — runs last.
+- **Polish (Ph11)**: depends on all desired stories.
+
+### Story independence notes
+
+- US1 is the MVP and is testable on the in-memory trace + exit codes alone.
+- US2 is testable from hand-authored trace fixtures (no live HTTP needed).
+- US7 requires the per-case session scope introduced in US4/Foundational execution rework (T058 depends on T050/T052 scope work); sequence US4 before US7 if staffed serially.
+- US5 and US6 are independent of the reporting stories.
+
+### Parallel opportunities
+
+- Ph1: T003–T008 in parallel.
+- Ph2: T009–T011 parallel; T015/T017/T020 parallel with their siblings.
+- Once Ph2 is done, US1/US2/US5/US6 can proceed in parallel by different developers; US3 after US2's projectors exist; US7 after the US4 scope work.
+- All `[P]` test tasks within a story run in parallel.
+
+---
+
+## Parallel Example: User Story 1
+
+```bash
+# Tests first (parallel):
+Task: "Integration test crashing suite → exit 2 (FalseGreenTests.cs)"
+Task: "Integration test empty/pass/fail exit codes (ExitCodeIntegrationTests.cs)"
+Task: "validate invalid corpus → exit 3 (ValidateExitTests.cs)"
+Task: "unresolved-path diagnostic vs matched-null (UnresolvedPathTests.cs)"
+# Then implementation T025–T029.
+```
+
+---
+
+## Implementation Strategy
+
+### MVP first (US1)
+
+1. Ph1 Setup → 2. Ph2 Foundational → 3. Ph3 US1 → **STOP & validate**: the gate can never
+   false-green. This alone unblocks safe pipeline use.
+
+### Incremental delivery
+
+US1 (honest gate) → US2 (HTML report) → US3 (safe to publish) → US4 (faithful history) →
+US7 (auth flows) → US5 (schema/validate) → US6 (release) → Docs → Polish. Each story is a
+demoable increment that does not break earlier ones.
+
+---
+
+## Notes
+
+- Tests are required (Principle VII); write per-story tests before/with implementation and ensure they fail first.
+- `[P]` = different files, no dependency on an incomplete task.
+- Commit after each task or logical group; keep the branch pushed.
+- Total: 80 tasks — Setup 8, Foundational 12, US1 9, US2 9, US3 5, US4 10, US7 9, US5 7, US6 3, Docs 4, Polish 4.
