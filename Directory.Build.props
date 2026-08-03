@@ -1,0 +1,12 @@
+<Project>
+
+  <!-- Single-sourced version for all JTest projects (JTest 2.0). Overrides any
+       per-project version so source, package, and (via CI) git tag stay reconciled. -->
+  <PropertyGroup>
+    <Version>2.0.0</Version>
+    <Authors>NexxBiz</Authors>
+    <Company>NexxBiz</Company>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+  </PropertyGroup>
+
+</Project>

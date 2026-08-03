@@ -23,14 +23,14 @@ implementation and testing. Target framework: C#/.NET 8.0; test framework: xUnit
 
 **Purpose**: Clean the tree and establish build/version/test scaffolding.
 
-- [ ] T001 Remove stale build cruft from the abandoned attempt: `src/.program-kit-build/`, and the `bin/obj`-only dirs `src/JTest.Engine/`, `src/JTest.Evidence/`, `src/JTest.Language/`, `src/JTest.Reporting/`, and `src/JTest.Cli/obj/Generated/` (verify none are git-tracked before deleting)
-- [ ] T002 Add root `Directory.Build.props` with a single-sourced `<Version>2.0.0</Version>` applied to all projects
-- [ ] T003 [P] Remove per-project `<PackageVersion>` from `src/JTest.Core/JTest.Core.csproj` and confirm `src/JTest.Cli/JTest.Cli.csproj` inherits the shared version
-- [ ] T004 [P] Add `LICENSE` (MIT, NexxBiz) at repo root and confirm the `README.md` license link resolves to it
-- [ ] T005 [P] Add `JsonSchema.Net` PackageReference to `src/JTest.Core/JTest.Core.csproj`
-- [ ] T006 [P] Configure embedded-resource plumbing in `src/JTest.Core/JTest.Core.csproj` for the language schema and HTML/CSS/JS report assets
-- [ ] T007 [P] Create test folders in `tests/JTest.UnitTests/`: `Tracing/`, `Execution/`, `Reporting/`, `Security/`, `Http/`, `Language/`, `Fixtures/`, `golden/`
-- [ ] T008 [P] Implement a golden-file test helper (normalize + compare JSON/HTML) in `tests/JTest.UnitTests/Fixtures/GoldenFile.cs`
+- [X] T001 Remove stale build cruft from the abandoned attempt: `src/.program-kit-build/`, and the `bin/obj`-only dirs `src/JTest.Engine/`, `src/JTest.Evidence/`, `src/JTest.Language/`, `src/JTest.Reporting/`, and `src/JTest.Cli/obj/Generated/` (verify none are git-tracked before deleting)
+- [X] T002 Add root `Directory.Build.props` with a single-sourced `<Version>2.0.0</Version>` applied to all projects
+- [X] T003 [P] Remove per-project `<PackageVersion>` from `src/JTest.Core/JTest.Core.csproj` and confirm `src/JTest.Cli/JTest.Cli.csproj` inherits the shared version
+- [X] T004 [P] Add `LICENSE` (MIT, NexxBiz) at repo root and confirm the `README.md` license link resolves to it
+- [X] T005 [P] Add `JsonSchema.Net` PackageReference to `src/JTest.Core/JTest.Core.csproj`
+- [X] T006 [P] Configure embedded-resource plumbing in `src/JTest.Core/JTest.Core.csproj` for the language schema and HTML/CSS/JS report assets
+- [X] T007 [P] Create test folders in `tests/JTest.UnitTests/`: `Tracing/`, `Execution/`, `Reporting/`, `Security/`, `Http/`, `Language/`, `Fixtures/`, `golden/`
+- [X] T008 [P] Implement a golden-file test helper (normalize + compare JSON/HTML) in `tests/JTest.UnitTests/Fixtures/GoldenFile.cs`
 
 ---
 
