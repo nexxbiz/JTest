@@ -39,15 +39,15 @@ implementation and testing. Target framework: C#/.NET 8.0; test framework: xUnit
 **Purpose**: The canonical trace, exit-code service, and value pipeline that every story projects
 from. **⚠️ No user story can begin until this phase is complete.**
 
-- [ ] T009 [P] Define `Outcome` enum + aggregation rules (`errored>timedOut>cancelled>failed>passed`, skipped rule) in `src/JTest.Core/Tracing/Outcome.cs`
-- [ ] T010 [P] Define `Rollup` value object in `src/JTest.Core/Tracing/Rollup.cs`
-- [ ] T011 [P] Define `Diagnostic` record (severity, message, location, exceptionType, stackTrace) in `src/JTest.Core/Tracing/Diagnostic.cs`
-- [ ] T012 Define trace node records (`ExecutionTrace`, `SuiteResult`, `CaseResult`, `DatasetResult`, `StepNode`, `Iteration`, `AssertionResult`, `HttpExchange`, `HeaderMap`) with id/path/kind/ordinal/iteration/timings/children in `src/JTest.Core/Tracing/` (depends on T009–T011, matches data-model.md)
-- [ ] T013 Implement `TraceBuilder` (stable ids/paths, ordinals, timings, counts aggregation) in `src/JTest.Core/Tracing/TraceBuilder.cs` (depends on T012)
-- [ ] T014 Implement canonical JSON serialization (System.Text.Json, `traceSchemaVersion`+`toolVersion`, stable property names, deterministic ordering) in `src/JTest.Core/Tracing/TraceJson.cs` (depends on T012)
-- [ ] T015 [P] Contract test: a built trace serializes and validates against `specs/001-jtest2-pipeline-reporting/contracts/execution-trace.schema.json` in `tests/JTest.UnitTests/Tracing/TraceSchemaTests.cs`
-- [ ] T016 Implement `ExitCodeService` (Outcome→code; 0/1/2/3/4 with precedence `2>3>4>1`) in `src/JTest.Core/Execution/ExitCodeService.cs` (depends on T009)
-- [ ] T017 [P] Unit test `ExitCodeService` mapping + precedence in `tests/JTest.UnitTests/Execution/ExitCodeServiceTests.cs`
+- [X] T009 [P] Define `Outcome` enum + aggregation rules (`errored>timedOut>cancelled>failed>passed`, skipped rule) in `src/JTest.Core/Tracing/Outcome.cs`
+- [X] T010 [P] Define `Rollup` value object in `src/JTest.Core/Tracing/Rollup.cs`
+- [X] T011 [P] Define `Diagnostic` record (severity, message, location, exceptionType, stackTrace) in `src/JTest.Core/Tracing/Diagnostic.cs`
+- [X] T012 Define trace node records (`ExecutionTrace`, `SuiteResult`, `CaseResult`, `DatasetResult`, `StepNode`, `Iteration`, `AssertionResult`, `HttpExchange`, `HeaderMap`) with id/path/kind/ordinal/iteration/timings/children in `src/JTest.Core/Tracing/` (depends on T009–T011, matches data-model.md)
+- [X] T013 Implement `TraceBuilder` (stable ids/paths, ordinals, timings, counts aggregation) in `src/JTest.Core/Tracing/TraceBuilder.cs` (depends on T012)
+- [X] T014 Implement canonical JSON serialization (System.Text.Json, `traceSchemaVersion`+`toolVersion`, stable property names, deterministic ordering) in `src/JTest.Core/Tracing/TraceJson.cs` (depends on T012)
+- [X] T015 [P] Contract test: a built trace serializes and validates against `specs/001-jtest2-pipeline-reporting/contracts/execution-trace.schema.json` in `tests/JTest.UnitTests/Tracing/TraceSchemaTests.cs`
+- [X] T016 Implement `ExitCodeService` (Outcome→code; 0/1/2/3/4 with precedence `2>3>4>1`) in `src/JTest.Core/Execution/ExitCodeService.cs` (depends on T009)
+- [X] T017 [P] Unit test `ExitCodeService` mapping + precedence in `tests/JTest.UnitTests/Execution/ExitCodeServiceTests.cs`
 - [ ] T018 Implement `ReportValuePipeline` (redact-by-value+key, then contextual encode; HTML + Markdown encoders) in `src/JTest.Core/Reporting/ReportValuePipeline.cs`
 - [ ] T019 Rework `SecurityMasker` to register/replace secret **values** (declared + secret-like keys) across headers, bodies, and query strings in `src/JTest.Core/Security/SecurityMasker.cs` (depends on T018)
 - [ ] T020 [P] Unit tests for encode + value-based redaction (incl. Cookie/Set-Cookie/Authorization, JSON body secrets) in `tests/JTest.UnitTests/Security/RedactionTests.cs`
