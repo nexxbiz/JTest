@@ -37,6 +37,11 @@ This specification defines observable, testable outcomes only. Implementation ch
 - Q: `status` vs `statusCode` in HTTP response data? → A: Expose both — `statusCode` is the canonical name (chosen on convention/clarity), `status` is a retained alias (existing tests use it); both resolve to the integer HTTP status and are covered by tests.
 - Q: Are the `docs/` a source of truth for JTest 2.0? → A: No. `docs/` is legacy 1.0 output; it MUST NOT drive design or be cited as authority. It is fully rewritten from the implemented JTest 2.0 system as the final phase of the plan (FR-044/FR-045).
 
+### Session 2026-08-03 (JSONPath save/resolution finding)
+
+- Q: Does JTest support JSONPath filter expressions (e.g. array filters) in `save`? → A: Yes — save values resolve through the same JSONPath evaluator as assertions/interpolation, and multi-match paths yield an array. 2.0 guarantees filter + multi-match support in `save`, assertions, and interpolation, and pins/documents the exact supported JSONPath dialect. (The precise accepted filter syntax must be verified against the pinned library and documented — do NOT assume Goessner `?()` works verbatim; the pinned library follows RFC 9535, e.g. `$[?@.active==true]`.)
+- Q: Should JSONPath property matching be case-insensitive to tolerate camelCase differences? → A: No — matching stays case-sensitive (standard; avoids ambiguous/duplicate matches). Instead, a path that matches nothing MUST surface a distinct, visible diagnostic (not a silent `null`), so casing mismatches are obvious. Verifying an API's actual casing remains the test author's responsibility.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Pipeline gate never lies (no false-green) (Priority: P1)
@@ -185,6 +190,10 @@ A tester writes a suite that logs in (the server sets an HttpOnly session cookie
 - **Multi-valued `Set-Cookie`**: a response with multiple cookies exposes all values via `headers['set-cookie']`.
 - **Case-insensitive header lookup**: `headers['Content-Type']` and `headers['content-type']` resolve to the same value.
 - **Cookie/authorization in the report**: `Cookie`, `Set-Cookie`, and `Authorization` values are redacted by default in reports and the trace.
+- **JSONPath filter in save**: `save: { ids: "{{$.items[?<filter>].id}}" }` saves the array of all matching values; a filter matching exactly one saves the single value.
+- **JSONPath filter matches nothing**: saving/asserting a filter (or path) with zero matches yields a distinct "matched nothing" diagnostic — not a silent `null`.
+- **Property casing mismatch**: a path like `version.id` against a response serializing `version.Id` matches nothing and is reported as such (JTest does not case-fold); the author fixes the path or the API casing.
+- **Path matches an actual null**: distinguished in the diagnostic from a path that matched nothing.
 
 ## Requirements *(mandatory)*
 
@@ -244,7 +253,7 @@ A tester writes a suite that logs in (the server sets an HttpOnly session cookie
 
 ### Functional Requirements — Verification discipline (cross-cutting, per constitution)
 
-- **FR-037**: Each correctness and reporting behavior above MUST be covered by automated tests, including at minimum: loop iteration retention, nested/template ancestry and numbering, cancellation, timeout, parallel-vs-sequential equivalence, exit codes, output escaping, secret redaction, the HTTP session/cookie and response-contract behaviors (FR-038–FR-043), and validation of all documentation examples against the shipped language schema (FR-045).
+- **FR-037**: Each correctness and reporting behavior above MUST be covered by automated tests, including at minimum: loop iteration retention, nested/template ancestry and numbering, cancellation, timeout, parallel-vs-sequential equivalence, exit codes, output escaping, secret redaction, the HTTP session/cookie and response-contract behaviors (FR-038–FR-043), JSONPath filter/multi-match resolution and unresolved-path diagnostics (FR-046–FR-049), and validation of all documentation examples against the shipped language schema (FR-045).
 
 ### Functional Requirements — HTTP step contract & session handling
 
@@ -259,6 +268,13 @@ A tester writes a suite that logs in (the server sets an HttpOnly session cookie
 
 - **FR-044**: The `docs/` folder MUST be fully rewritten to describe only the JTest 2.0 system as designed and implemented in this feature (canonical trace, exit-code contract, HTTP step/session contract, language schema, redaction/security). All legacy 1.0 assertions, conditions, response shapes, and examples MUST be removed; no document may describe behavior the shipped system does not have. Legacy `docs/` MUST NOT be treated as a source of truth during design or implementation.
 - **FR-045**: Every test-definition example and snippet embedded in the rewritten docs MUST validate against the shipped, versioned JTest language schema, and this MUST be enforced in CI so docs cannot drift from the schema.
+
+### Functional Requirements — Value resolution (JSONPath) contract
+
+- **FR-046**: `save`, assertion values, and variable interpolation MUST support JSONPath filter expressions and MUST return/save all matches (an array) when a path matches multiple nodes, using a single, consistent JSONPath evaluator across all three.
+- **FR-047**: The supported JSONPath dialect/version MUST be pinned and documented (including the exact filter syntax that is valid), and its filter and multi-match behavior MUST be covered by tests. Documentation MUST NOT promise a syntax the pinned evaluator does not accept.
+- **FR-048**: JSONPath property matching MUST remain case-sensitive; JTest MUST NOT silently perform case-insensitive matching (explicit non-goal, to avoid ambiguous or duplicate matches).
+- **FR-049**: A JSONPath that matches nothing MUST be recorded as a distinct, visible diagnostic in the trace and report at its point of use (a `save` source or an assertion `actual`/`expected`), distinguishable from a path that matches an actual `null`. An unresolved path MUST NOT be silently coerced to `null` in a way that can mask a failure or produce a misleading pass.
 
 ### Key Entities
 
@@ -296,6 +312,8 @@ A tester writes a suite that logs in (the server sets an HttpOnly session cookie
 - **SC-014**: Two cases authenticating as different identities run in parallel never observe each other's cookies (0 cross-contamination) — and the run's node set/outcomes match the sequential run (consistent with SC-010).
 - **SC-015**: For every HTTP response, `statusCode`, `status`, and case-insensitive `headers[...]` access (including multi-valued `set-cookie`) resolve correctly in 100% of contract tests, and `Cookie`/`Set-Cookie`/`Authorization` values are redacted by default (0 leaks).
 - **SC-016**: After the documentation rewrite, 100% of test-definition examples in `docs/` validate against the shipped language schema (CI-enforced), and zero references to removed/legacy contract behavior remain.
+- **SC-017**: A documented JSONPath filter corpus (single-match, multi-match, and filter selectors) resolves correctly in `save`, assertions, and interpolation in 100% of cases; multi-match filters save the full array.
+- **SC-018**: An assertion or `save` referencing a path that matches nothing (e.g. a camelCase mismatch) produces a distinct "path matched nothing" diagnostic in the report in 100% of such cases, with zero occurrences of a silent `null` masking the failure.
 
 ## Assumptions
 

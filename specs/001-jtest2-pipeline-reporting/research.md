@@ -236,3 +236,42 @@ All Technical Context unknowns are resolved below. Format: Decision / Rationale 
   this is Principle I generalized: reports and docs *project* truth, they do not *define* it.
 - **Alternatives**: Incrementally patch docs (leaves legacy contamination and drift); keep docs as
   a design reference (rejected — exactly the contamination this guards against).
+
+## R16. JSONPath filters & multi-match in `save` (dialect pinned)
+
+- **Context (verified against code)**: `save` values resolve through
+  `VariableInterpolator.ResolveVariableTokens` → `ResolveJsonPath` → `ExecuteJsonPath`, which calls
+  `JsonPath.Parse(path).Evaluate(node)` (`VariableInterpolator.cs:287-308`) — the **same** evaluator
+  used by assertions and interpolation. Multi-match already returns an array
+  (`VariableInterpolator.cs:301-307`); `GetSaveValue` routes string save values through the
+  interpolator (`StepProcessor.cs:264`). So filter/array support is largely a matter of *guaranteeing
+  and testing* existing behavior, not building it.
+- **Decision**: Treat JSONPath filter expressions and multi-match arrays as a **guaranteed,
+  tested capability** in `save`, assertions, and interpolation. **Pin** the JSONPath evaluator
+  (`JsonPath.Net`) version and **document the exact dialect** — it implements **RFC 9535**, whose
+  filter selector is `$[?@.active==true]`, *not* the Goessner `$[?(@.active==true)]` the finding
+  assumed. The language schema/docs describe the real accepted syntax; a filter corpus is added to
+  the test suite.
+- **Rationale**: Delivers the "array-filter in save" capability the user wants with high confidence
+  and no dialect ambiguity; aligns with the formal-contract pillar (FR-046/FR-047).
+- **Alternatives**: Promise Goessner `?()` verbatim (would be false — the pinned library may reject
+  it); implement a custom filter layer (unnecessary; reuse the evaluator).
+
+## R17. Unresolved-path diagnostics; case-sensitivity is a non-goal
+
+- **Context (verified)**: `ResolveJsonPath` catches `JsonPathValueNotFoundException` and returns
+  **`null`** (`VariableInterpolator.cs:277-280`); zero matches throw that exception
+  (`VariableInterpolator.cs:292-293`). So a path that matches nothing (e.g. a camelCase mismatch)
+  is silently coerced to `null` in both `save` and assertion values — confusing at best, and a
+  false-green risk at worst (Principle II).
+- **Decision**: Do **not** add case-insensitive matching (JSONPath is case-sensitive by spec;
+  case-folding invites ambiguous/duplicate matches). Instead, when a path matches nothing, emit a
+  **distinct diagnostic** ("path matched nothing" with the path + location) attached to the owning
+  trace node, and distinguish it from a path that matched an actual `null`. Provide a strict option
+  (fail on unresolved) and, at minimum, always make the no-match visible in the report so casing
+  mismatches are obvious.
+- **Rationale**: Fixes the true pain behind the camelCase note without a non-standard footgun;
+  supports Principle II (no false-green) and the faithful-diagnostics goal (FR-048/FR-049). The
+  user's "live check" of the API's real casing is a test-authoring step, not a JTest feature.
+- **Alternatives**: Case-insensitive path matching (ambiguous, non-standard — rejected); keep
+  silent-null (the current confusing behavior — rejected).

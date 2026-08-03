@@ -154,8 +154,10 @@ Ordered by the spec's user-story priorities; each phase is independently testabl
 3. **Execution correctness (US1, US4 — P1/P2)** — rework executors/steps to emit the trace,
    capture crashing/cancelled/timed-out suites, retain every loop iteration, assign step
    ids/ordinals; establish a per-case **execution/session scope**; `ExitCodeService` with
-   class-specific codes; parallel==sequential. Tests for false-green, loops, nesting, cancellation,
-   timeout, exit codes. (FR-001–FR-008, FR-013–FR-014)
+   class-specific codes; parallel==sequential; distinct diagnostics when a JSONPath (in a `save`
+   source or an assertion value) matches nothing, vs a real matched `null` (no silent-null). Tests
+   for false-green, loops, nesting, cancellation, timeout, exit codes, unresolved-path diagnostics.
+   (FR-001–FR-008, FR-013–FR-014, FR-048–FR-049)
 4. **HTTP session & step contract (US7 — P2)** — introduce `Http/IHttpClientProvider` bound to the
    per-case cookie container (deterministic across steps, isolated across cases, independent of
    handler-pool lifetime); reconcile the two `JTest.Cli` `AddHttpClient` paths onto it; emit the
@@ -173,7 +175,9 @@ Ordered by the spec's user-story priorities; each phase is independently testabl
    render a report from a saved trace; wire exit codes; keep `debug` as an opt-in verbose view.
 8. **Formal language schema & honest validation (US5 — P3)** — author versioned JSON Schema;
    `validate` enforces it with located diagnostics, honest counts/labels, non-zero on invalid.
-   Apply intentional breaking corrections per FR-033 with a changelog. (FR-029–FR-033)
+   Apply intentional breaking corrections per FR-033 with a changelog. Pin and document the JSONPath
+   dialect (`JsonPath.Net`, RFC 9535) and guarantee filter + multi-match resolution in
+   `save`/assert/interpolation with a filter corpus. (FR-029–FR-033, FR-046–FR-047)
 9. **Release integrity (US6 — P3)** — reconcile version across source/package/tag; README license
    link resolves; CI gate for tag==version, tests, and `jtest run/validate` over fixtures.
    (FR-034–FR-036)
