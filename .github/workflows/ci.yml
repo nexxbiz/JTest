@@ -56,3 +56,35 @@ jobs:
             echo "::error::Git tag ($TAG) does not match source version ($VERSION)."
             exit 1
           fi
+
+  publish:
+    # Publish the single-sourced version (Directory.Build.props) to NuGet when changes land on main.
+    # --skip-duplicate makes re-runs idempotent: a version is published once, later merges are no-ops
+    # until the version is bumped again.
+    needs: build-test-validate
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Read version
+        id: ver
+        run: echo "version=$(grep -oPm1 '(?<=<Version>)[^<]+' Directory.Build.props)" >> "$GITHUB_OUTPUT"
+
+      - name: Pack
+        run: |
+          dotnet pack src/JTest.Core/JTest.Core.csproj -c Release -o artifacts
+          dotnet pack src/JTest.Cli/JTest.Cli.csproj -c Release -o artifacts
+
+      - name: Push to NuGet (idempotent)
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        run: |
+          echo "Publishing version ${{ steps.ver.outputs.version }}"
+          dotnet nuget push "artifacts/*.nupkg" \
+            --api-key "$NUGET_API_KEY" \
+            --source https://api.nuget.org/v3/index.json \
+            --skip-duplicate
