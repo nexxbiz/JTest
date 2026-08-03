@@ -1,6 +1,7 @@
 using JTest.Core.Execution;
 using JTest.Core.Steps.Configuration;
 using JTest.Core.Utilities;
+using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
@@ -74,9 +75,38 @@ public sealed class HttpStep(HttpClient httpClient, HttpStepConfiguration config
     private async Task<Dictionary<string, object?>> PerformHttpRequest(IExecutionContext context)
     {
         var request = BuildHttpRequest(context);
+        ApplyScopeCookies(request, context);                  // send the scope's cookies (FR-038)
         var requestDetails = await CaptureRequestDetails(request, context);
         var response = await httpClient.SendAsync(request);
+        CollectScopeCookies(request.RequestUri, response, context); // persist Set-Cookie into the scope jar
         return await CreateResponseData(response, requestDetails);
+    }
+
+    /// <summary>Attach the execution scope's cookies to the outgoing request (JTest owns cookies,
+    /// so this is deterministic and independent of the HTTP handler's lifetime).</summary>
+    private static void ApplyScopeCookies(HttpRequestMessage request, IExecutionContext context)
+    {
+        if (context.Cookies is null || request.RequestUri is null || request.Headers.Contains("Cookie"))
+            return;
+
+        var cookieHeader = context.Cookies.GetCookieHeader(request.RequestUri);
+        if (!string.IsNullOrEmpty(cookieHeader))
+            request.Headers.TryAddWithoutValidation("Cookie", cookieHeader);
+    }
+
+    /// <summary>Store any Set-Cookie values from the response into the scope's cookie jar.</summary>
+    private static void CollectScopeCookies(Uri? uri, HttpResponseMessage response, IExecutionContext context)
+    {
+        if (context.Cookies is null || uri is null) return;
+
+        if (response.Headers.TryGetValues("Set-Cookie", out var setCookies))
+        {
+            foreach (var setCookie in setCookies)
+            {
+                try { context.Cookies.SetCookies(uri, setCookie); }
+                catch (CookieException) { /* ignore malformed Set-Cookie */ }
+            }
+        }
     }
 
     private HttpRequestMessage BuildHttpRequest(IExecutionContext context)

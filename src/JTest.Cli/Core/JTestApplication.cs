@@ -42,8 +42,11 @@ internal static class JTestApplication
         return Host.CreateDefaultBuilder()
             .ConfigureServices((context, services) =>
             {
-                // Add HttpClient
+                // Add HttpClient; JTest owns cookies per execution scope, so the handler must not
+                // manage them (deterministic, pool-lifetime independent — FR-038/043).
                 services.AddHttpClient();
+                services.ConfigureHttpClientDefaults(b =>
+                    b.ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { UseCookies = false }));
                 
                 // Configure all application services
                 ConfigureApplicationServices(services);
@@ -77,7 +80,9 @@ internal static class JTestApplication
         // Create services collection for Spectre.Console's TypeRegistrar
         var services = new ServiceCollection();
         services.AddHttpClient();
-        
+        services.ConfigureHttpClientDefaults(b =>
+            b.ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { UseCookies = false }));
+
         var typeRegistrar = new TypeRegistrar(services);
         
         // Copy registrations from main DI container to Spectre's container

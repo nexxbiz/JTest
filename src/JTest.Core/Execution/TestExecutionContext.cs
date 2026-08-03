@@ -33,6 +33,11 @@ public class TestExecutionContext : IExecutionContext
     public string TestCaseName { get; set; } = string.Empty;
 
     /// <summary>
+    /// The per-scope cookie jar (fresh per context instance → isolated per test case).
+    /// </summary>
+    public System.Net.CookieContainer Cookies { get; } = new();
+
+    /// <summary>
     /// Sets the case context variables for the current dataset iteration
     /// Automatically resolves any tokens in the case data that reference other variables
     /// </summary>

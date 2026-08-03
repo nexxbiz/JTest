@@ -164,17 +164,17 @@ from. **⚠️ No user story can begin until this phase is complete.**
 
 ### Tests for User Story 7
 
-- [ ] T057 [P] [US7] Test: login→authenticated call succeeds w/o manual `Cookie`, including after forced handler-pool recycle in `tests/JTest.UnitTests/Http/CookieSessionTests.cs`
-- [ ] T058 [P] [US7] Test: two parallel cases as different users never share cookies in `tests/JTest.UnitTests/Http/CookieIsolationTests.cs`
+- [X] T057 [P] [US7] Test: login→authenticated call succeeds w/o manual `Cookie`, including after forced handler-pool recycle in `tests/JTest.UnitTests/Http/CookieSessionTests.cs`
+- [X] T058 [P] [US7] Test: two parallel cases as different users never share cookies in `tests/JTest.UnitTests/Http/CookieIsolationTests.cs`
 - [ ] T059 [P] [US7] Test: `$.this.headers['content-type']` case-insensitive, multi-valued `set-cookie` array, `statusCode`+`status` both resolve in `tests/JTest.UnitTests/Steps/HttpResponseContractTests.cs`
 
 ### Implementation for User Story 7
 
 - [X] T060 [US7] Introduce `Http/IHttpClientProvider` + `HttpClientProvider` bound to a per-scope `CookieContainer` (deterministic, pool-lifetime-independent) in `src/JTest.Core/Http/`
 - [X] T061 [US7] Establish a per-case execution/session scope and pass the provider to `HttpStep` (replace reflection-injected raw `HttpClient`) in `src/JTest.Core/Execution/` and `src/JTest.Core/TypeDescriptors/TypeDescriptorRegistry.cs`
-- [ ] T062 [US7] Reconcile both `AddHttpClient` registrations onto the provider (host + Spectre containers) in `src/JTest.Cli/Core/JTestApplication.cs`
-- [ ] T063 [US7] Emit a case-insensitive keyed header map with multi-valued support in `HttpStep.CreateResponseData`/`GetResponseHeaders` in `src/JTest.Core/Steps/HttpStep.cs`
-- [ ] T064 [US7] Add `statusCode` (canonical) + `status` (alias) to response data and trace `HttpExchange` in `src/JTest.Core/Steps/HttpStep.cs` and `src/JTest.Core/Tracing/`
+- [X] T062 [US7] Reconcile both `AddHttpClient` registrations onto the provider (host + Spectre containers) in `src/JTest.Cli/Core/JTestApplication.cs`
+- [X] T063 [US7] Emit a case-insensitive keyed header map with multi-valued support in `HttpStep.CreateResponseData`/`GetResponseHeaders` in `src/JTest.Core/Steps/HttpStep.cs`
+- [X] T064 [US7] Add `statusCode` (canonical) + `status` (alias) to response data and trace `HttpExchange` in `src/JTest.Core/Steps/HttpStep.cs` and `src/JTest.Core/Tracing/`
 - [X] T065 [US7] Redact `Cookie`/`Set-Cookie`/`Authorization` via the pipeline in HTTP exchange projection (FR-042)
 
 **Checkpoint**: Cookie-based auth flows (e.g. Elsa) work deterministically and safely.
