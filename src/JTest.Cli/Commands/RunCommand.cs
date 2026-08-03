@@ -2,7 +2,9 @@
 using JTest.Cli.Settings;
 using JTest.Core.Execution;
 using JTest.Core.Models;
+using JTest.Core.Reporting.Html;
 using JTest.Core.Templates;
+using JTest.Core.Tracing;
 using JTest.Core.Utilities;
 using JTest.Core.Variables;
 using Spectre.Console;
@@ -44,7 +46,10 @@ public class RunCommand : CommandBase<RunCommandSettings>
 
         InitializeVariablesContext(settings);
 
+        var startedAt = DateTimeOffset.UtcNow;
         var results = await ExecuteRunCommand(settings);
+        var endedAt = DateTimeOffset.UtcNow;
+
         if (results is null)
         {
             // No test files matched — a run that produced nothing is not success (FR-003).
@@ -56,7 +61,35 @@ public class RunCommand : CommandBase<RunCommandSettings>
         var outputDirectory = GetOutputDirectory(settings);
         _testExecutionResultsProcessor.Process(resultList, outputDirectory, IsDebug, settings.SkipOutput == true, settings.OutputFormat);
 
-        return RunResultEvaluator.ExitCode(resultList, noFilesMatched: false);
+        var exitCode = RunResultEvaluator.ExitCode(resultList, noFilesMatched: false);
+        WriteTraceAndReport(settings, resultList, exitCode, startedAt, endedAt);
+        return exitCode;
+    }
+
+    private static void WriteTraceAndReport(
+        RunCommandSettings settings,
+        IReadOnlyList<JTestSuiteExecutionResult> results,
+        int exitCode,
+        DateTimeOffset startedAt,
+        DateTimeOffset endedAt)
+    {
+        if (string.IsNullOrWhiteSpace(settings.ReportFile) && string.IsNullOrWhiteSpace(settings.TraceFile))
+            return;
+
+        var toolVersion = typeof(RunCommand).Assembly.GetName().Version?.ToString(3) ?? "2.0.0";
+        var trace = ExecutionTraceAssembler.Assemble(results, toolVersion, exitCode, startedAt, endedAt);
+
+        if (!string.IsNullOrWhiteSpace(settings.TraceFile))
+        {
+            var dir = Path.GetDirectoryName(Path.GetFullPath(settings.TraceFile));
+            if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
+            File.WriteAllText(settings.TraceFile, TraceJson.Serialize(trace));
+        }
+
+        if (!string.IsNullOrWhiteSpace(settings.ReportFile))
+        {
+            new HtmlReportGenerator().Write(trace, settings.ReportFile);
+        }
     }
 
     private async Task<IEnumerable<JTestSuiteExecutionResult>?> ExecuteRunCommand(RunCommandSettings settings)

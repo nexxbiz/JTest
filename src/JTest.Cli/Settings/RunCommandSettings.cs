@@ -50,6 +50,14 @@ public sealed class RunCommandSettings : CommandSettings
     [Description("One of the following output formats: 'markdown' (default: markdown)")]
     public string? OutputFormat { get; set; }
 
+    [CommandOption("--report")]
+    [Description("Write a self-contained HTML report to the given file path.")]
+    public string? ReportFile { get; set; }
+
+    [CommandOption("--trace")]
+    [Description("Write the canonical execution-trace JSON to the given file path.")]
+    public string? TraceFile { get; set; }
+
     public IEnumerable<string> GetCategories()
     {
         return categories ?? [];
