@@ -189,16 +189,16 @@ from. **⚠️ No user story can begin until this phase is complete.**
 
 ### Tests for User Story 5
 
-- [ ] T066 [P] [US5] Test: valid corpus passes, invalid corpus (unknown type, wrong type, missing required, bad reference) fails with located diagnostics + honest counts in `tests/JTest.UnitTests/Language/SchemaValidationTests.cs`
-- [ ] T067 [P] [US5] Test: JSONPath filter + multi-match corpus resolves in save/assert/interpolation using the pinned dialect in `tests/JTest.UnitTests/Utilities/JsonPathFilterTests.cs`
+- [X] T066 [P] [US5] Test: valid corpus passes, invalid corpus (unknown type, wrong type, missing required, bad reference) fails with located diagnostics + honest counts in `tests/JTest.UnitTests/Language/SchemaValidationTests.cs`
+- [X] T067 [P] [US5] Test: JSONPath filter + multi-match corpus resolves in save/assert/interpolation using the pinned dialect in `tests/JTest.UnitTests/Utilities/JsonPathFilterTests.cs`
 
 ### Implementation for User Story 5
 
-- [ ] T068 [US5] Author the versioned JTest language JSON Schema (draft 2020-12; step discriminators, types, constraints, references) as an embedded resource in `src/JTest.Core/Language/Schema/jtest-language-1.0.0.schema.json` (per `contracts/jtest-language-schema.contract.md`)
-- [ ] T069 [US5] Implement the schema validator using `JsonSchema.Net`, emitting machine-readable located diagnostics (JSON Pointer + ruleId) in `src/JTest.Core/Language/Validation/SchemaValidator.cs`
-- [ ] T070 [US5] Replace the shallow `JTestSuiteValidator` checks with real schema validation; honest labels and counts (fix the never-incremented valid count) in `src/JTest.Core/JTestSuiteValidator.cs`
-- [ ] T071 [US5] Pin and document the JSONPath dialect (`JsonPath.Net`, RFC 9535) and guarantee filter + multi-match resolution across save/assert/interpolation in `src/JTest.Core/Utilities/VariableInterpolator.cs`
-- [ ] T072 [US5] Apply intentional breaking corrections and record them in `CHANGELOG.md` (while-step type id, canonical assertion operator names, `additionalProperties:false`, typed durations)
+- [X] T068 [US5] Author the versioned JTest language JSON Schema (draft 2020-12; step discriminators, types, constraints, references) as an embedded resource in `src/JTest.Core/Language/Schema/jtest-language-1.0.0.schema.json` (per `contracts/jtest-language-schema.contract.md`)
+- [X] T069 [US5] Implement the schema validator using `JsonSchema.Net`, emitting machine-readable located diagnostics (JSON Pointer + ruleId) in `src/JTest.Core/Language/Validation/SchemaValidator.cs`
+- [X] T070 [US5] Replace the shallow `JTestSuiteValidator` checks with real schema validation; honest labels and counts (fix the never-incremented valid count) in `src/JTest.Core/JTestSuiteValidator.cs`
+- [X] T071 [US5] Pin and document the JSONPath dialect (`JsonPath.Net`, RFC 9535) and guarantee filter + multi-match resolution across save/assert/interpolation in `src/JTest.Core/Utilities/VariableInterpolator.cs`
+- [X] T072 [US5] Apply intentional breaking corrections and record them in `CHANGELOG.md` (while-step type id, canonical assertion operator names, `additionalProperties:false`, typed durations)
 
 **Checkpoint**: `validate` is a real CI gate; the language has an authoritative contract.
 
