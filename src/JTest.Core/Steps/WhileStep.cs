@@ -1,9 +1,11 @@
 ﻿using JTest.Core.Execution;
 using JTest.Core.Steps.Configuration;
+using JTest.Core.TypeDescriptors;
 using JTest.Core.Utilities;
 
 namespace JTest.Core.Steps;
 
+[TypeIdentifier("while")]
 public sealed class WhileStep(IStepProcessor stepProcessor, WhileStepConfiguration configuration) : BaseStep<WhileStepConfiguration>(configuration)
 {
     protected override void Validate(IExecutionContext context, IList<string> validationErrors)
@@ -31,7 +33,8 @@ public sealed class WhileStep(IStepProcessor stepProcessor, WhileStepConfigurati
         var timeoutMs = (int)Configuration.TimeoutMs.ConvertToDouble(context);
 
         var stepsToIterate = Configuration.Steps.ToArray();
-        var innerStepResults = new StepProcessedResult[stepsToIterate.Length];
+        var iterations = new List<StepIteration>();
+        var allInner = new List<StepProcessedResult>();
 
         var totalIterationCount = 0;
         var timeoutTriggered = false;
@@ -40,6 +43,7 @@ public sealed class WhileStep(IStepProcessor stepProcessor, WhileStepConfigurati
         bool conditionMet;
         do
         {
+            var iterationIndex = totalIterationCount; // 0-based
             totalIterationCount++;
             if(MustTimeOut(start, timeoutMs))
             {
@@ -47,20 +51,28 @@ public sealed class WhileStep(IStepProcessor stepProcessor, WhileStepConfigurati
                 break;
             }
 
+            var iterationSteps = new List<StepProcessedResult>();
+            var iterationSuccess = true;
+
             for (var i = 0; i < stepsToIterate.Length;i++)
             {
                 var step = stepsToIterate[i];
                 var stepProcessedResult = await ExecuteStep(step, context, cancellationToken);
-                innerStepResults[i] = stepProcessedResult;
+                iterationSteps.Add(stepProcessedResult);
+                allInner.Add(stepProcessedResult);
 
                 timeoutTriggered = MustTimeOut(start, timeoutMs);
                 stepError = !stepProcessedResult.Success;
-                
+
                 if (stepError || timeoutTriggered)
-                {                    
+                {
+                    iterationSuccess = !stepError;
                     break;
                 }
             }
+
+            // Every iteration is retained with its own steps — no overwrite (FR-013).
+            iterations.Add(new StepIteration(iterationIndex, iterationSuccess, iterationSteps));
 
             conditionMet = Configuration.Condition.Execute(context).Success;
 
@@ -77,7 +89,7 @@ public sealed class WhileStep(IStepProcessor stepProcessor, WhileStepConfigurati
             ["durationMs"] = (DateTime.UtcNow - start).TotalMilliseconds
         };
 
-        return new(data, innerStepResults);
+        return new(data, allInner, iterations);
     }
 
     async Task Delay(IExecutionContext context)

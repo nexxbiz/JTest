@@ -225,7 +225,8 @@ public sealed class StepProcessor(IAssertionProcessor assertionProcessor) : ISte
             AssertionResults = assertionResults ?? [],
             Data = stepExecutionResult.Data,
             ContextChanges = contextChanges,
-            InnerResults = stepExecutionResult.InnerProcessedResults ?? []
+            InnerResults = stepExecutionResult.InnerProcessedResults ?? [],
+            Iterations = stepExecutionResult.Iterations ?? []
         };
 
         return stepResult;

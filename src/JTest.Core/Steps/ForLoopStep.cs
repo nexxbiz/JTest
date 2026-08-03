@@ -44,7 +44,8 @@ public sealed class ForLoopStep(IStepProcessor stepProcessor, ForLoopStepConfigu
             .ToArray();
 
         var stepsToIterate = Configuration.Steps.ToArray();
-        var innerStepResults = new StepProcessedResult[stepsToIterate.Length];
+        var iterations = new List<StepIteration>();
+        var allInner = new List<StepProcessedResult>();
         var allStepsSuccess = true;
         var completedIterationCount = 0;
 
@@ -54,18 +55,26 @@ public sealed class ForLoopStep(IStepProcessor stepProcessor, ForLoopStepConfigu
             context.Variables[Configuration.CurrentIndexKey] = index;
             context.Variables[Configuration.CurrentItemKey] = item;
 
+            var iterationSteps = new List<StepProcessedResult>();
+            var iterationSuccess = true;
+
             for (var i = 0; i < stepsToIterate.Length; i++)
             {
                 var step = stepsToIterate[i];
                 var stepProcessedResult = await ExecuteStep(step, context, cancellationToken);
-                innerStepResults[i] = stepProcessedResult;
+                iterationSteps.Add(stepProcessedResult);
+                allInner.Add(stepProcessedResult);
 
                 if(!stepProcessedResult.Success)
                 {
+                    iterationSuccess = false;
                     allStepsSuccess = false;
                     break;
                 }
             }
+
+            // Every iteration is retained with its own steps — no overwrite (FR-013).
+            iterations.Add(new StepIteration(index, iterationSuccess, iterationSteps));
 
             if (!allStepsSuccess)
             {
@@ -83,7 +92,7 @@ public sealed class ForLoopStep(IStepProcessor stepProcessor, ForLoopStepConfigu
             ["completedIterationCount"] = completedIterationCount
         };
 
-        return new(data, innerStepResults);
+        return new(data, allInner, iterations);
     }
 
     async Task<StepProcessedResult> ExecuteStep(IStep step, IExecutionContext context, CancellationToken cancellationToken)

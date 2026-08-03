@@ -86,5 +86,11 @@ public sealed class StepProcessedResult(int stepNumber)
     /// </summary>
     public IEnumerable<StepProcessedResult> InnerResults { get; init; } = [];
 
+    /// <summary>
+    /// Per-iteration results when this step is a loop; every iteration is retained (FR-013).
+    /// Empty for non-loop steps.
+    /// </summary>
+    public IEnumerable<StepIteration> Iterations { get; init; } = [];
+
     public int StepNumber { get; } = stepNumber;
 }

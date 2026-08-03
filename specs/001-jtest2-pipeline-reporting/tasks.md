@@ -138,15 +138,15 @@ from. **⚠️ No user story can begin until this phase is complete.**
 
 ### Tests for User Story 4
 
-- [ ] T047 [P] [US4] Test: N-iteration loop retains N iterations; early-exit keeps exact executed count; no stale/null slots in `tests/JTest.UnitTests/Steps/LoopRetentionTests.cs`
+- [X] T047 [P] [US4] Test: N-iteration loop retains N iterations; early-exit keeps exact executed count; no stale/null slots in `tests/JTest.UnitTests/Steps/LoopRetentionTests.cs`
 - [ ] T048 [P] [US4] Test: deep template+loop nesting yields unique ids and correct parent/ordinal (zero collisions) in `tests/JTest.UnitTests/Steps/AncestryTests.cs`
 - [ ] T049 [P] [US4] Test: step/loop timeout → `timedOut`; cancellation mid-run → `cancelled`; both exit 4 in `tests/JTest.UnitTests/Execution/CancellationTimeoutTests.cs`
 - [ ] T050 [P] [US4] Test: same corpus sequential vs parallel → equivalent node set/outcomes in `tests/JTest.UnitTests/Execution/ParallelEquivalenceTests.cs`
 
 ### Implementation for User Story 4
 
-- [ ] T051 [US4] Rework `ForLoopStep` to emit an `Iteration` node per pass with its own inner steps (size by iterations, not step count) in `src/JTest.Core/Steps/ForLoopStep.cs`
-- [ ] T052 [US4] Rework `WhileStep` likewise and add the missing `[TypeIdentifier("while")]` in `src/JTest.Core/Steps/WhileStep.cs`
+- [X] T051 [US4] Rework `ForLoopStep` to emit an `Iteration` node per pass with its own inner steps (size by iterations, not step count) in `src/JTest.Core/Steps/ForLoopStep.cs`
+- [X] T052 [US4] Rework `WhileStep` likewise and add the missing `[TypeIdentifier("while")]` in `src/JTest.Core/Steps/WhileStep.cs`
 - [ ] T053 [US4] Assign stable step id/ordinal/path at execution time (replace the flat `StepNumber`) in `src/JTest.Core/Steps/StepProcessor.cs` and `src/JTest.Core/Execution/TestExecutionContext.cs`
 - [ ] T054 [US4] Capture template (`UseStep`) child ancestry with correct parent/ordinal in `src/JTest.Core/Steps/UseStep.cs`
 - [ ] T055 [US4] Honor the `CancellationToken` and step/loop/run timeouts, recording `cancelled`/`timedOut` outcomes across executors and steps in `src/JTest.Core/Execution/` and `src/JTest.Core/Steps/`
