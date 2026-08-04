@@ -186,6 +186,19 @@ All Technical Context unknowns are resolved below. Format: Decision / Rationale 
   by the value pipeline (R4/R5) so session credentials are masked in the report and trace (FR-042).
   The existing `HttpStepResultDataWriter.cs:169` already lists these as sensitive — that intent is
   carried into the centralized pipeline.
+- **Scope inheritance across template invocations (regression, found dogfooding tool
+  2.0.0-preview.9)**: the per-case cookie jar MUST also be inherited by the isolated child scope a
+  `use` template runs in. Confirmed defect: `UseStep.CreateIsolatedTemplateContext` constructed a
+  fresh `TestExecutionContext` (which owns a new, empty `CookieContainer`) and copied *variables*
+  only, so a login performed inside a template landed its `Set-Cookie` in the template's throwaway
+  jar; the enclosing case's jar stayed empty and every later step was unauthenticated. Trace
+  evidence: `POST /_elsa/identity/login` → `200` with `Set-Cookie`, then
+  `GET /design/activities/definitions` → `401` with `"requestHeaders": {}` (no `Cookie` sent).
+  **Decision**: the isolated child scope shares the caller's `CookieContainer` (the jar is passed in
+  via an initializer; variables stay isolated). This makes the template-invocation path honor the
+  same per-case session scope as the direct-step path (FR-038/FR-039) without weakening cross-case
+  isolation (each case still starts with its own fresh jar). Covered by a US7 regression test that
+  also asserts variable isolation across the boundary is unaffected.
 
 ## R13. HTTP headers as a case-insensitive keyed map
 

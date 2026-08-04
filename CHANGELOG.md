@@ -36,6 +36,11 @@ exit-code gate and a self-contained, safe HTML report, and formalizes the test-d
 - Response data exposes **`statusCode`** (canonical) and **`status`** (alias).
 - **Deterministic per-case cookie sessions:** a login step's cookies are carried to later steps in
   the same test case automatically, isolated between cases, independent of HTTP handler lifetime.
+- **Cookie sessions survive `use` template boundaries:** a login performed inside a `use` template
+  now establishes the enclosing case's session, so later steps in the case are authenticated.
+  Previously the template's isolated scope created a throwaway cookie jar, so the login's
+  `Set-Cookie` was dropped and every subsequent step in the case was unauthenticated (401).
+  Template variables remain isolated across the boundary; only the case cookie jar is shared.
 
 ### Language & validation (BREAKING — no external consumers yet)
 

@@ -116,7 +116,10 @@ public sealed class UseStep(IAnsiConsole ansiConsole, ITemplateContext templateC
 
     private TestExecutionContext CreateIsolatedTemplateContext(IExecutionContext parentContext, Template template)
     {
-        var templateContext = new TestExecutionContext();
+        // Variables are isolated, but the cookie jar is shared with the caller so that a login
+        // performed inside a template establishes the case's cookie session (fixes: cookies set in
+        // a `use` template were dropped, leaving later steps unauthenticated / 401).
+        var templateContext = new TestExecutionContext { Cookies = parentContext.Cookies };
 
         // Copy case data variables from parent context if they exist
         // This ensures templates can access case variables for data-driven testing

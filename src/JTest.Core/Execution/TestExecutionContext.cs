@@ -33,9 +33,11 @@ public class TestExecutionContext : IExecutionContext
     public string TestCaseName { get; set; } = string.Empty;
 
     /// <summary>
-    /// The per-scope cookie jar (fresh per context instance → isolated per test case).
+    /// The per-scope cookie jar. Fresh per test case by default (→ isolated between cases), but an
+    /// isolated child scope (e.g. a template invocation) can share the caller's jar via the
+    /// initializer so cookies set inside it persist to the rest of the case's HTTP steps.
     /// </summary>
-    public System.Net.CookieContainer Cookies { get; } = new();
+    public System.Net.CookieContainer Cookies { get; init; } = new();
 
     /// <summary>
     /// Sets the case context variables for the current dataset iteration

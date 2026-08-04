@@ -166,6 +166,7 @@ A tester writes a suite that logs in (the server sets an HttpOnly session cookie
 3. **Given** two cases that each log in as a different user run in parallel, **When** they execute, **Then** neither case observes the other's cookies.
 4. **Given** a response carrying `Set-Cookie` (possibly multiple), **When** a step reads `$.this.headers['set-cookie']`, **Then** all cookie values are available.
 5. **Given** any response, **When** a step reads `$.this.statusCode` or `$.this.status`, **Then** both return the integer status; and `$.this.headers['content-type']` resolves case-insensitively.
+6. **Given** a login step performed *inside a `use` template*, **When** a later step in the same case (inside or outside the template) calls a protected endpoint, **Then** the request carries the session cookie automatically — the template's isolated scope shares the case cookie jar even though its variables remain isolated.
 
 ---
 
@@ -186,6 +187,7 @@ A tester writes a suite that logs in (the server sets an HttpOnly session cookie
 - **Unicode / non-ASCII content**: preserved and displayed correctly.
 - **Version/license mismatch**: caught before release (treated as a release-blocking inconsistency).
 - **Cookie session across steps**: a login step sets an HttpOnly cookie → a later step in the same case is authenticated automatically; a different case running in parallel is not.
+- **Cookie session across a `use` template boundary**: a login performed inside a `use` template establishes the enclosing case's session, so subsequent case steps are authenticated; the template's variable scope stays isolated even though the cookie jar is shared. (Regression: the template scope previously created a throwaway jar, dropping the session and 401-ing every later step.)
 - **HTTP handler pool recycles mid-run**: cookie/session behavior is unchanged (no dependence on pooled-handler defaults).
 - **Multi-valued `Set-Cookie`**: a response with multiple cookies exposes all values via `headers['set-cookie']`.
 - **Case-insensitive header lookup**: `headers['Content-Type']` and `headers['content-type']` resolve to the same value.
@@ -257,7 +259,7 @@ A tester writes a suite that logs in (the server sets an HttpOnly session cookie
 
 ### Functional Requirements — HTTP step contract & session handling
 
-- **FR-038**: HTTP cookie state MUST persist deterministically across steps within one execution scope (a test case by default) via an explicit, JTest-managed cookie container, independent of the HTTP client's handler-pool lifetime. Relying on `IHttpClientFactory` default cookie behavior is not acceptable.
+- **FR-038**: HTTP cookie state MUST persist deterministically across steps within one execution scope (a test case by default) via an explicit, JTest-managed cookie container, independent of the HTTP client's handler-pool lifetime. Relying on `IHttpClientFactory` default cookie behavior is not acceptable. An isolated child scope created to run a `use` template MUST inherit the enclosing case's cookie container (variables remain isolated; the jar is shared), so a login performed inside a template establishes the case session and the template-invocation path honors the same per-case scope as the direct-step path.
 - **FR-039**: Cookie state MUST be isolated between test cases (and between runs); under parallel execution no case may observe another case's cookies. (Consistency with FR-005.)
 - **FR-040**: HTTP response data MUST expose headers as a case-insensitive keyed map addressable by name (e.g. `headers['content-type']`); multi-valued headers (e.g. `set-cookie`) MUST expose all values. Request data SHOULD expose headers the same way.
 - **FR-041**: HTTP response data MUST expose the status code under a documented canonical key `statusCode` with a retained alias `status`; both MUST resolve to the integer HTTP status.
@@ -290,7 +292,7 @@ A tester writes a suite that logs in (the server sets an HttpOnly session cookie
 - **Language Schema**: the authoritative, versioned machine-readable description of the JTest test-definition language.
 - **Report**: a read-only projection of the trace into a format (HTML primary; Markdown/console secondary).
 - **HTTP Exchange**: the request/response captured for an HTTP step — method, URL, a case-insensitive keyed header map for request/response headers (multi-valued headers like `set-cookie` expose all values), bodies, and status (`statusCode`/`status`) — with cookie/authorization values redacted.
-- **Execution Scope** (also called the session scope): the per-case boundary that owns a cookie container; persists cookies across that scope's steps and is isolated from other scopes.
+- **Execution Scope** (also called the session scope): the per-case boundary that owns a cookie container; persists cookies across that scope's steps and is isolated from other scopes. An isolated child scope (e.g. a `use` template invocation) shares the caller's cookie container while keeping its variables isolated, so the session established anywhere in the case is visible to the whole case.
 
 ## Success Criteria *(mandatory)*
 
@@ -308,7 +310,7 @@ A tester writes a suite that logs in (the server sets an HttpOnly session cookie
 - **SC-010**: Running the same corpus sequentially and in parallel yields equivalent trace node sets and outcomes in 100% of comparisons.
 - **SC-011**: An engineer can locate the first failing assertion in a large run (≥1000 nodes) within 30 seconds using the report's failure-first ordering and search/filter.
 - **SC-012**: For the released package, the version reported by the tool, the package metadata, and the git tag agree (single reconciled value), and a matching `LICENSE` file is present.
-- **SC-013**: A two-step authenticated suite (login → protected endpoint) passes with no manually specified `Cookie` header in 100% of runs, across repeated executions and forced HTTP handler-pool recycling.
+- **SC-013**: A two-step authenticated suite (login → protected endpoint) passes with no manually specified `Cookie` header in 100% of runs, across repeated executions and forced HTTP handler-pool recycling — including when the login step is performed inside a `use` template (the case session is established across the template boundary).
 - **SC-014**: Two cases authenticating as different identities run in parallel never observe each other's cookies (0 cross-contamination) — and the run's node set/outcomes match the sequential run (consistent with SC-010).
 - **SC-015**: For every HTTP response, `statusCode`, `status`, and case-insensitive `headers[...]` access (including multi-valued `set-cookie`) resolve correctly in 100% of contract tests, and `Cookie`/`Set-Cookie`/`Authorization` values are redacted by default (0 leaks).
 - **SC-016**: After the documentation rewrite, 100% of test-definition examples in `docs/` validate against the shipped language schema (CI-enforced), and zero references to removed/legacy contract behavior remain.

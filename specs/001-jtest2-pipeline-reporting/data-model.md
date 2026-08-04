@@ -130,6 +130,10 @@ Aggregation rule (parent outcome from children): `errored` > `timedOut` > `cance
   redaction pipeline.
 - **Execution Scope / CookieJar**: the per-case execution scope (also called the session scope)
   owns a cookie container shared by its HTTP steps and isolated from other scopes (FR-038/FR-039).
+  An isolated child scope created for a `use` template invocation shares the caller's cookie
+  container — so a login inside a template establishes the case session — while keeping its
+  variables isolated (FR-038). By default the container is `TestExecutionContext.Cookies`, fresh
+  per case (→ cross-case isolation) but shareable into a child scope via an initializer.
   Not serialized into the trace as data; only its effects (Set-Cookie/Cookie headers, redacted)
   appear.
 - **ContextChanges**: `added: RedactedMap, modified: RedactedMap`.

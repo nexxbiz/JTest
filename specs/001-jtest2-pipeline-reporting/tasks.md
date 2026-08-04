@@ -176,8 +176,9 @@ from. **⚠️ No user story can begin until this phase is complete.**
 - [X] T063 [US7] Emit a case-insensitive keyed header map with multi-valued support in `HttpStep.CreateResponseData`/`GetResponseHeaders` in `src/JTest.Core/Steps/HttpStep.cs`
 - [X] T064 [US7] Add `statusCode` (canonical) + `status` (alias) to response data and trace `HttpExchange` in `src/JTest.Core/Steps/HttpStep.cs` and `src/JTest.Core/Tracing/`
 - [X] T065 [US7] Redact `Cookie`/`Set-Cookie`/`Authorization` via the pipeline in HTTP exchange projection (FR-042)
+- [X] T084 [US7] Template-invoked steps share the case cookie jar: the isolated child scope created by `UseStep.CreateIsolatedTemplateContext` MUST inherit the caller's `CookieContainer` (variables stay isolated) so a login inside a `use` template establishes the case session (FR-038/FR-039). Fixes the dropped-session/401 regression found dogfooding `2.0.0-preview.9`. Files: `src/JTest.Core/Execution/TestExecutionContext.cs` (`Cookies { get; init; }`), `src/JTest.Core/Steps/UseStep.cs` (`new TestExecutionContext { Cookies = parentContext.Cookies }`); regression + variable-isolation test in `tests/JTest.UnitTests/Http/HttpCookieSessionTests.cs` (SC-013)
 
-**Checkpoint**: Cookie-based auth flows (e.g. Elsa) work deterministically and safely.
+**Checkpoint**: Cookie-based auth flows (e.g. Elsa) work deterministically and safely — including logins performed inside a `use` template.
 
 ---
 
@@ -307,4 +308,5 @@ demoable increment that does not break earlier ones.
 - Tests are required (Principle VII); write per-story tests before/with implementation and ensure they fail first.
 - `[P]` = different files, no dependency on an incomplete task.
 - Commit after each task or logical group; keep the branch pushed.
-- Total: 83 tasks — Setup 8, Foundational 12, US1 9, US2 12, US3 5, US4 10, US7 9, US5 7, US6 3, Docs 4, Polish 4.
+- Total: 84 tasks — Setup 8, Foundational 12, US1 9, US2 12, US3 5, US4 10, US7 10, US5 7, US6 3, Docs 4, Polish 4.
+- T084 was added post-implementation to capture a defect found while dogfooding `2.0.0-preview.9` (per-case cookie session dropped across a `use` template boundary); the fix and its regression test are folded into US7.
