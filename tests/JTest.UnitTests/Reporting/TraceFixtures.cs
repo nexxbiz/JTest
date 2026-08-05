@@ -26,7 +26,7 @@ internal static class TraceFixtures
             Assertions = new[] { new AssertionResult { Id = "la", Operation = "equals", Expected = 200, Actual = 200, Outcome = Outcome.Passed } } };
         var check = new StepNode { Id = "s1/c0/d0/step[2]", Path = "s1/c0/d0/step[2]", StepType = "http", Ordinal = 2, Name = "check-incident", Outcome = Outcome.Failed,
             Http = new HttpExchange { Method = "GET", Url = "https://example.test/incident", StatusCode = 500, Status = 500, ResponseBody = "{\"error\":\"boom\"}" },
-            Assertions = new[] { new AssertionResult { Id = "ca", Operation = "equals", Expected = 200, Actual = 500, Outcome = Outcome.Failed, Message = "expected 200 but was 500" } } };
+            Assertions = new[] { new AssertionResult { Id = "ca", Operation = "equals", Subject = "{{$.this.statusCode}}", Description = "status is 200", Expected = 200, Actual = 500, Outcome = Outcome.Failed, Message = "expected 200 but was 500" } } };
         var poll = new StepNode { Id = "s1/c0/d0/step[3]/iteration[0]/step[1]", Path = "s1/c0/d0/step[3]/iteration[0]/step[1]", StepType = "http", Ordinal = 1, Name = "poll", Outcome = Outcome.Failed };
         var iter0 = new Iteration { Id = "s1/c0/d0/step[3]/iteration[0]", Path = "s1/c0/d0/step[3]/iteration[0]", Index = 0, Outcome = Outcome.Failed, Steps = new[] { poll } };
         var loop = new StepNode { Id = "s1/c0/d0/step[3]", Path = "s1/c0/d0/step[3]", Kind = NodeKind.Loop, StepType = "for", Ordinal = 3, Name = "retry", Outcome = Outcome.Failed, Iterations = new[] { iter0 } };

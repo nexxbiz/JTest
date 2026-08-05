@@ -14,6 +14,13 @@ public sealed record AssertionResult(bool Success, string ErrorMessage = "")
 
     public object? ExpectedValue { get; init; }
 
+    /// <summary>
+    /// The original (pre-resolution) actual expression being asserted — e.g. the JSONPath token like
+    /// "{{$.this.body.id}}". Surfaced in the report so a reader can see WHAT was asserted, not only the
+    /// resolved actual value.
+    /// </summary>
+    public object? Subject { get; init; }
+
     public bool MaskValue => mask == true;
 
     public void SetMask(bool? value)

@@ -88,6 +88,20 @@ summary .dur { color: var(--muted); font-size: .8rem; margin-left: auto; font-va
 .assertion .op { font-weight: 600; }
 pre { background: var(--panel); border: 1px solid var(--border); border-radius: 6px;
   padding: .5rem .6rem; overflow-x: auto; margin: .3rem 0; font-size: .82rem; }
+.assertion .kv { margin: .15rem 0; }
+
+/* Body viewer: collapsible, JSON-aware, with a copy control. */
+.bodybox { margin: .35rem 0; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+.bodybox-head { display: flex; align-items: center; gap: .5rem; padding: .3rem .5rem;
+  background: var(--panel); border-bottom: 1px solid var(--border); }
+.bodybox-head .k { color: var(--muted); font-size: .8rem; margin-right: auto; }
+.bodybox-pre { margin: 0; border: 0; border-radius: 0; background: var(--bg);
+  max-height: 24rem; overflow: auto; }
+.bodybox-pre.json { white-space: pre; }
+.btn { font: inherit; font-size: .78rem; padding: .12rem .55rem; cursor: pointer; white-space: nowrap;
+  color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: 999px; }
+.btn:hover { border-color: var(--focus); }
+
 .diag { color: var(--fail-bg); }
 .hidden { display: none !important; }
 .empty { color: var(--muted); font-style: italic; }

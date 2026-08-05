@@ -133,6 +133,13 @@ public sealed record AssertionResult
     public object? Expected { get; init; }
     public object? Actual { get; init; }
 
+    /// <summary>The asserted subject — the original actual expression (e.g. the JSONPath) — so the
+    /// report shows WHAT was checked, not only the resolved value.</summary>
+    public object? Subject { get; init; }
+
+    /// <summary>Optional human description of the check, from the assertion's <c>description</c>.</summary>
+    public string? Description { get; init; }
+
     /// <summary>Only Passed or Failed for an assertion.</summary>
     public required Outcome Outcome { get; init; }
     public string? Message { get; init; }

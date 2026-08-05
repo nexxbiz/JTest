@@ -104,8 +104,10 @@ from. **⚠️ No user story can begin until this phase is complete.**
 - [X] T039 [US2] Implement safe large/binary content handling in the projector and trace: truncate request/response bodies over a configurable threshold (default 256 KB) with a truncation + original-size indicator; summarize binary/non-UTF-8 content as content-type + byte size (never raw) in `src/JTest.Core/Reporting/Html/HtmlReportGenerator.cs` and `src/JTest.Core/Tracing/TraceBuilder.cs` (FR-023)
 - [X] T040 [US2] Re-implement the Markdown writer as a projection of the trace in `src/JTest.Core/Reporting/Markdown/MarkdownReportGenerator.cs` (retire the source-of-truth writer; restore/remove `tests/JTest.UnitTests/ResultsToMarkdownConverterTests.cs`)
 - [X] T041 [US2] Register HTML/Markdown/JSON output generators in DI (both `src/JTest.Cli/DI/DependencyRegistration.cs` and `DependencyRegistrationHelper.cs`)
+- [X] T085 [US2] Assertion clarity: carry the asserted `subject` (original actual expression) and optional `description` through the trace and show them in the report so a passing assertion is self-explanatory (FR-015/FR-050). Files: `src/JTest.Core/Assertions/AssertionResult.cs`, `AssertionOperationBase.cs`, `src/JTest.Core/Tracing/TraceNodes.cs`, `src/JTest.Core/Execution/ExecutionTraceAssembler.cs`, `src/JTest.Core/Reporting/Html/report.js`, trace contract `contracts/execution-trace.schema.json`; tests in `tests/JTest.UnitTests/Tracing/TraceSchemaTests.cs` and `Reporting/HtmlReportTests.cs`
+- [X] T086 [US2] JSON body viewer: render request/response bodies in a collapsible, pretty-printed JSON box with a copy control, self-contained and inert (FR-051). Files: `src/JTest.Core/Reporting/Html/report.js`, `report.css`; test in `tests/JTest.UnitTests/Reporting/HtmlReportTests.cs`
 
-**Checkpoint**: `run` produces a complete, offline, failure-first HTML report.
+**Checkpoint**: `run` produces a complete, offline, failure-first HTML report — with self-explanatory assertions and a JSON body viewer.
 
 ---
 
@@ -308,5 +310,6 @@ demoable increment that does not break earlier ones.
 - Tests are required (Principle VII); write per-story tests before/with implementation and ensure they fail first.
 - `[P]` = different files, no dependency on an incomplete task.
 - Commit after each task or logical group; keep the branch pushed.
-- Total: 84 tasks — Setup 8, Foundational 12, US1 9, US2 12, US3 5, US4 10, US7 10, US5 7, US6 3, Docs 4, Polish 4.
+- Total: 86 tasks — Setup 8, Foundational 12, US1 9, US2 14, US3 5, US4 10, US7 10, US5 7, US6 3, Docs 4, Polish 4.
 - T084 was added post-implementation to capture a defect found while dogfooding `2.0.0-preview.9` (per-case cookie session dropped across a `use` template boundary); the fix and its regression test are folded into US7.
+- T085–T086 were added post-implementation from dogfooding feedback on report legibility (assertions didn't show what was asserted; response bodies were raw): assertion subject/description are now surfaced and bodies render in a collapsible JSON viewer. Folded into US2.

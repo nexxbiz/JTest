@@ -38,6 +38,7 @@ public abstract class AssertionOperationBase(object? actualValue, object? expect
             {
                 ActualValue = resolvedActualValue,
                 ExpectedValue = resolvedExpectedValue,
+                Subject = ActualValue,
                 Operation = OperationName
             };
         }
@@ -51,6 +52,7 @@ public abstract class AssertionOperationBase(object? actualValue, object? expect
         {
             ActualValue = resolvedActualValue,
             ExpectedValue = resolvedExpectedValue,
+            Subject = ActualValue,
             Operation = OperationName
         };
     }

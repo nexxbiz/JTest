@@ -165,6 +165,8 @@ public static class ExecutionTraceAssembler
         Operation = string.IsNullOrEmpty(a.Operation) ? "assert" : a.Operation,
         Expected = RedactScalar(a.ExpectedValue, redactor),
         Actual = RedactScalar(a.ActualValue, redactor),
+        Subject = RedactScalar(a.Subject, redactor),
+        Description = string.IsNullOrEmpty(a.Description) ? null : redactor.Redact(a.Description),
         Outcome = a.Success ? Outcome.Passed : Outcome.Failed,
         Message = a.ErrorMessage is { Length: > 0 } m ? redactor.Redact(m) : null
     };

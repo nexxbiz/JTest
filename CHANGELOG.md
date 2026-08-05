@@ -26,6 +26,11 @@ exit-code gate and a self-contained, safe HTML report, and formalizes the test-d
   searchable, keyboard-navigable (WCAG 2.1 AA), rendering the complete nested execution.
 - New **canonical execution-trace JSON** (`jtest run --trace <file>`): the versioned source of
   truth every report projects from.
+- **Clearer assertions:** each assertion now records and shows its *subject* (the original asserted
+  expression, e.g. the JSONPath) and an optional `description`, alongside operation/expected/actual —
+  so a passing check reads as what it verified, not just a bare resolved value.
+- **JSON body viewer:** request/response bodies render in a collapsible, pretty-printed JSON box with
+  a copy button (self-contained, values inert; oversized/binary bodies still follow the truncation rules).
 - **Redacted by default:** `Cookie`/`Set-Cookie`/`Authorization` and declared secret values are
   masked in reports and the trace; all dynamic values are rendered inert (no XSS).
 
@@ -36,11 +41,6 @@ exit-code gate and a self-contained, safe HTML report, and formalizes the test-d
 - Response data exposes **`statusCode`** (canonical) and **`status`** (alias).
 - **Deterministic per-case cookie sessions:** a login step's cookies are carried to later steps in
   the same test case automatically, isolated between cases, independent of HTTP handler lifetime.
-- **Cookie sessions survive `use` template boundaries:** a login performed inside a `use` template
-  now establishes the enclosing case's session, so later steps in the case are authenticated.
-  Previously the template's isolated scope created a throwaway cookie jar, so the login's
-  `Set-Cookie` was dropped and every subsequent step in the case was unauthenticated (401).
-  Template variables remain isolated across the boundary; only the case cookie jar is shared.
 
 ### Language & validation (BREAKING — no external consumers yet)
 

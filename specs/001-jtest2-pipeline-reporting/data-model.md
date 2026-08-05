@@ -107,7 +107,9 @@ Aggregation rule (parent outcome from children): `errored` > `timedOut` > `cance
 | id | string | |
 | kind | NodeKind = assertion | |
 | operation | string | e.g. `equals`, `contains`, `greaterThan`. |
+| subject | RedactedValue? | The original actual expression being asserted (e.g. the JSONPath), so the report shows WHAT was checked, not only the resolved value. Redacted + encoded on projection. |
 | expected / actual | RedactedValue | Redacted + encoded on projection (fixes 1.0 XSS). |
+| description | string? | Optional human label of the check, from the assertion's `description` (encoded). |
 | outcome | Outcome | `passed` or `failed`. |
 | message | string? | Failure/diagnostic text (encoded). |
 
@@ -130,10 +132,6 @@ Aggregation rule (parent outcome from children): `errored` > `timedOut` > `cance
   redaction pipeline.
 - **Execution Scope / CookieJar**: the per-case execution scope (also called the session scope)
   owns a cookie container shared by its HTTP steps and isolated from other scopes (FR-038/FR-039).
-  An isolated child scope created for a `use` template invocation shares the caller's cookie
-  container — so a login inside a template establishes the case session — while keeping its
-  variables isolated (FR-038). By default the container is `TestExecutionContext.Cookies`, fresh
-  per case (→ cross-case isolation) but shareable into a child scope via an initializer.
   Not serialized into the trace as data; only its effects (Set-Cookie/Cookie headers, redacted)
   appear.
 - **ContextChanges**: `added: RedactedMap, modified: RedactedMap`.

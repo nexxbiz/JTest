@@ -79,6 +79,7 @@ An engineer opens the HTML report produced by a pipeline run — on a machine wi
 4. **Given** a large run, **When** the user searches or filters, **Then** they can locate a specific case, step, or assertion and drill into its expected/actual values, timing, and diagnostics.
 5. **Given** any report, **When** navigated with keyboard only, **Then** all detail is reachable and the report meets WCAG 2.1 AA (semantic structure, visible focus, text contrast ≥ 4.5:1).
 6. **Given** the same run, **When** the canonical result file and the HTML report are compared, **Then** the report neither adds information absent from the canonical result nor omits any node except through an explicit, user-chosen view filter.
+7. **Given** an assertion (passing or failing) and an HTTP step with a JSON body, **When** the report is opened, **Then** the assertion shows what was asserted (its subject expression, operation, expected/actual, and any description) and the body is shown in a collapsible, pretty-printed JSON viewer with a copy button.
 
 ---
 
@@ -166,7 +167,6 @@ A tester writes a suite that logs in (the server sets an HttpOnly session cookie
 3. **Given** two cases that each log in as a different user run in parallel, **When** they execute, **Then** neither case observes the other's cookies.
 4. **Given** a response carrying `Set-Cookie` (possibly multiple), **When** a step reads `$.this.headers['set-cookie']`, **Then** all cookie values are available.
 5. **Given** any response, **When** a step reads `$.this.statusCode` or `$.this.status`, **Then** both return the integer status; and `$.this.headers['content-type']` resolves case-insensitively.
-6. **Given** a login step performed *inside a `use` template*, **When** a later step in the same case (inside or outside the template) calls a protected endpoint, **Then** the request carries the session cookie automatically — the template's isolated scope shares the case cookie jar even though its variables remain isolated.
 
 ---
 
@@ -181,13 +181,14 @@ A tester writes a suite that logs in (the server sets an HttpOnly session cookie
 - **Timeout**: step timeout and while-loop timeout → distinct "timed out" outcome.
 - **Secret in body / header / query**: redacted by default wherever it appears in the report.
 - **Active markup in data**: assertion values, error text, names, descriptions, and bodies containing HTML/script → rendered inert.
+- **Opaque assertion**: an assertion that only carries a resolved actual value (e.g. `exists`) still shows its subject expression, so the reader can tell what was checked without opening the source suite.
+- **JSON body in the report**: a request/response body is pretty-printed and individually collapsible with a copy action; oversized/binary bodies remain governed by the FR-023 truncation/summary rules.
 - **Non-text / oversized content**: very large or binary/non-UTF-8 response bodies → represented safely without breaking or bloating the report unusably.
 - **Schema-invalid definition**: unknown step type, wrong type, missing required field, dangling reference → rejected with a located diagnostic and non-zero exit.
 - **Large run**: thousands of nodes → the report remains usable (searchable, navigable) and self-contained.
 - **Unicode / non-ASCII content**: preserved and displayed correctly.
 - **Version/license mismatch**: caught before release (treated as a release-blocking inconsistency).
 - **Cookie session across steps**: a login step sets an HttpOnly cookie → a later step in the same case is authenticated automatically; a different case running in parallel is not.
-- **Cookie session across a `use` template boundary**: a login performed inside a `use` template establishes the enclosing case's session, so subsequent case steps are authenticated; the template's variable scope stays isolated even though the cookie jar is shared. (Regression: the template scope previously created a throwaway jar, dropping the session and 401-ing every later step.)
 - **HTTP handler pool recycles mid-run**: cookie/session behavior is unchanged (no dependence on pooled-handler defaults).
 - **Multi-valued `Set-Cookie`**: a response with multiple cookies exposes all values via `headers['set-cookie']`.
 - **Case-insensitive header lookup**: `headers['Content-Type']` and `headers['content-type']` resolve to the same value.
@@ -218,7 +219,7 @@ A tester writes a suite that logs in (the server sets an HttpOnly session cookie
 - **FR-012**: Every trace node MUST carry a stable identity/path, a kind, an ordinal within its parent, an iteration index where applicable, a duration, an outcome (one of: passed, failed, errored, cancelled, timed-out, skipped), its diagnostics, and its children.
 - **FR-013**: Every loop iteration MUST be preserved with its own inner-step results; no iteration may overwrite another, and early exit MUST NOT leave stale or empty result slots.
 - **FR-014**: Step identity, ordinal, and ancestry MUST be captured at execution time such that numbering and hierarchy are unambiguous at every nesting depth (template-expanded and loop child steps MUST NOT collide on a shared number).
-- **FR-015**: Assertion results MUST record operation, expected value, actual value, outcome, and any error/diagnostic detail, associated with their owning step and iteration.
+- **FR-015**: Assertion results MUST record operation, the asserted subject (the original actual expression, e.g. the JSONPath being evaluated), expected value, actual value, an optional human description (from the assertion's `description`), outcome, and any error/diagnostic detail, associated with their owning step and iteration.
 
 ### Functional Requirements — Reporting projections (Pillar B)
 
@@ -259,7 +260,7 @@ A tester writes a suite that logs in (the server sets an HttpOnly session cookie
 
 ### Functional Requirements — HTTP step contract & session handling
 
-- **FR-038**: HTTP cookie state MUST persist deterministically across steps within one execution scope (a test case by default) via an explicit, JTest-managed cookie container, independent of the HTTP client's handler-pool lifetime. Relying on `IHttpClientFactory` default cookie behavior is not acceptable. An isolated child scope created to run a `use` template MUST inherit the enclosing case's cookie container (variables remain isolated; the jar is shared), so a login performed inside a template establishes the case session and the template-invocation path honors the same per-case scope as the direct-step path.
+- **FR-038**: HTTP cookie state MUST persist deterministically across steps within one execution scope (a test case by default) via an explicit, JTest-managed cookie container, independent of the HTTP client's handler-pool lifetime. Relying on `IHttpClientFactory` default cookie behavior is not acceptable.
 - **FR-039**: Cookie state MUST be isolated between test cases (and between runs); under parallel execution no case may observe another case's cookies. (Consistency with FR-005.)
 - **FR-040**: HTTP response data MUST expose headers as a case-insensitive keyed map addressable by name (e.g. `headers['content-type']`); multi-valued headers (e.g. `set-cookie`) MUST expose all values. Request data SHOULD expose headers the same way.
 - **FR-041**: HTTP response data MUST expose the status code under a documented canonical key `statusCode` with a retained alias `status`; both MUST resolve to the integer HTTP status.
@@ -278,6 +279,11 @@ A tester writes a suite that logs in (the server sets an HttpOnly session cookie
 - **FR-048**: JSONPath property matching MUST remain case-sensitive; JTest MUST NOT silently perform case-insensitive matching (explicit non-goal, to avoid ambiguous or duplicate matches).
 - **FR-049**: A JSONPath that matches nothing MUST be recorded as a distinct, visible diagnostic in the trace and report at its point of use (a `save` source or an assertion `actual`/`expected`), distinguishable from a path that matches an actual `null`. An unresolved path MUST NOT be silently coerced to `null` in a way that can mask a failure or produce a misleading pass.
 
+### Functional Requirements — Reporting clarity & ergonomics (added post-implementation)
+
+- **FR-050**: The HTML report MUST make each assertion self-explanatory: it MUST show the asserted subject (the original actual expression, e.g. the JSONPath), the operation, expected and actual values where applicable, and the assertion's optional human `description`. A reader MUST be able to tell WHAT was asserted from a passing assertion, not only its resolved actual value.
+- **FR-051**: The HTML report MUST render request/response bodies in a dedicated viewer that pretty-prints JSON (indented), is individually collapsible/expandable, and provides a one-click copy of the body text. This is a projection-layer affordance only: it MUST remain self-contained (no external assets, FR-018) and safe (values rendered inert, FR-024), and MUST NOT override the oversized/binary handling of FR-023.
+
 ### Key Entities
 
 - **Run**: one invocation of JTest over a set of discovered inputs; owns overall outcome, timings, tool/schema versions, and the suites executed.
@@ -286,13 +292,13 @@ A tester writes a suite that logs in (the server sets an HttpOnly session cookie
 - **Dataset Result**: outcome of a case executed against one data row/parameter set.
 - **Step Node**: a single step execution with identity, kind, parent, ordinal, iteration index (if any), timings, outcome, diagnostics, children; covers ordinary steps, template expansions, and loop constructs.
 - **Iteration**: one pass of a loop, owning its own child step nodes and outcome.
-- **Assertion Result**: expected value, actual value, operation, outcome, and diagnostics, owned by a step/iteration.
+- **Assertion Result**: operation, asserted subject (the original actual expression), expected value, actual value, optional human description, outcome, and diagnostics, owned by a step/iteration.
 - **Diagnostic**: an error/warning with message and location, attachable to any node.
 - **Redaction Rule**: the policy by which secret values (by key and by value) are masked across all projections.
 - **Language Schema**: the authoritative, versioned machine-readable description of the JTest test-definition language.
 - **Report**: a read-only projection of the trace into a format (HTML primary; Markdown/console secondary).
 - **HTTP Exchange**: the request/response captured for an HTTP step — method, URL, a case-insensitive keyed header map for request/response headers (multi-valued headers like `set-cookie` expose all values), bodies, and status (`statusCode`/`status`) — with cookie/authorization values redacted.
-- **Execution Scope** (also called the session scope): the per-case boundary that owns a cookie container; persists cookies across that scope's steps and is isolated from other scopes. An isolated child scope (e.g. a `use` template invocation) shares the caller's cookie container while keeping its variables isolated, so the session established anywhere in the case is visible to the whole case.
+- **Execution Scope** (also called the session scope): the per-case boundary that owns a cookie container; persists cookies across that scope's steps and is isolated from other scopes.
 
 ## Success Criteria *(mandatory)*
 
@@ -310,12 +316,14 @@ A tester writes a suite that logs in (the server sets an HttpOnly session cookie
 - **SC-010**: Running the same corpus sequentially and in parallel yields equivalent trace node sets and outcomes in 100% of comparisons.
 - **SC-011**: An engineer can locate the first failing assertion in a large run (≥1000 nodes) within 30 seconds using the report's failure-first ordering and search/filter.
 - **SC-012**: For the released package, the version reported by the tool, the package metadata, and the git tag agree (single reconciled value), and a matching `LICENSE` file is present.
-- **SC-013**: A two-step authenticated suite (login → protected endpoint) passes with no manually specified `Cookie` header in 100% of runs, across repeated executions and forced HTTP handler-pool recycling — including when the login step is performed inside a `use` template (the case session is established across the template boundary).
+- **SC-013**: A two-step authenticated suite (login → protected endpoint) passes with no manually specified `Cookie` header in 100% of runs, across repeated executions and forced HTTP handler-pool recycling.
 - **SC-014**: Two cases authenticating as different identities run in parallel never observe each other's cookies (0 cross-contamination) — and the run's node set/outcomes match the sequential run (consistent with SC-010).
 - **SC-015**: For every HTTP response, `statusCode`, `status`, and case-insensitive `headers[...]` access (including multi-valued `set-cookie`) resolve correctly in 100% of contract tests, and `Cookie`/`Set-Cookie`/`Authorization` values are redacted by default (0 leaks).
 - **SC-016**: After the documentation rewrite, 100% of test-definition examples in `docs/` validate against the shipped language schema (CI-enforced), and zero references to removed/legacy contract behavior remain.
 - **SC-017**: A documented JSONPath filter corpus (single-match, multi-match, and filter selectors) resolves correctly in `save`, assertions, and interpolation in 100% of cases; multi-match filters save the full array.
 - **SC-018**: An assertion or `save` referencing a path that matches nothing (e.g. a camelCase mismatch) produces a distinct "path matched nothing" diagnostic in the report in 100% of such cases, with zero occurrences of a silent `null` masking the failure.
+- **SC-019**: For 100% of assertions in the report, the asserted subject (and description when provided) is displayed alongside operation/expected/actual, so no assertion is shown as a bare resolved value.
+- **SC-020**: For 100% of HTTP steps whose body is JSON, the report renders the body as indented JSON in a collapsible viewer with a working copy control, with zero external asset requests.
 
 ## Assumptions
 

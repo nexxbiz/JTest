@@ -69,10 +69,16 @@
     var d = el("div", { class: "assertion " + (a.outcome || "").toLowerCase() });
     d.appendChild(el("span", { class: "op", text: a.operation }));
     d.appendChild(el("span", { text: "  " })); d.appendChild(badge(a.outcome));
+    // What the check is: a human description (if provided) and the asserted subject (the original
+    // expression, e.g. the JSONPath) — so a passing assertion reads as what it verified, not a bare value.
+    if (a.description) d.appendChild(kv("check", a.description));
+    if (a.subject != null && a.subject !== "") d.appendChild(kv("subject", stringify(a.subject)));
     if (a.expected !== undefined) d.appendChild(kv("expected", stringify(a.expected)));
     if (a.actual !== undefined) d.appendChild(kv("actual", stringify(a.actual)));
     if (a.message) d.appendChild(el("div", { class: "diag", text: a.message }));
-    d.setAttribute("data-text", searchText([a.operation, a.outcome, a.message, stringify(a.expected), stringify(a.actual)]));
+    d.setAttribute("data-text", searchText([a.operation, a.description,
+      a.subject == null ? null : stringify(a.subject), a.outcome, a.message,
+      stringify(a.expected), stringify(a.actual)]));
     return d;
   }
   function stringify(v) { return typeof v === "string" ? v : JSON.stringify(v); }
@@ -87,8 +93,80 @@
     var box = el("div");
     box.appendChild(kv("request", (http.method || "") + " " + (http.url || "")));
     if (http.statusCode != null) box.appendChild(kv("status", http.statusCode));
-    if (http.responseBody != null) { box.appendChild(el("div", { class: "k", text: "response body:" })); box.appendChild(pre(http.responseBody)); }
+    if (http.requestBody != null && http.requestBody !== "") box.appendChild(renderBodyBox("request body", http.requestBody));
+    if (http.responseBody != null && http.responseBody !== "") box.appendChild(renderBodyBox("response body", http.responseBody));
     body.appendChild(box);
+  }
+
+  // Pretty-print a body string as indented JSON when it parses as JSON; report whether it did.
+  function prettyJson(raw) {
+    if (raw == null) return { text: "", json: false };
+    if (typeof raw !== "string") {
+      try { return { text: JSON.stringify(raw, null, 2), json: true }; }
+      catch (e) { return { text: String(raw), json: false }; }
+    }
+    var t = raw.trim();
+    if (t && (t.charAt(0) === "{" || t.charAt(0) === "[")) {
+      try { return { text: JSON.stringify(JSON.parse(raw), null, 2), json: true }; }
+      catch (e) { /* not valid JSON — fall through and show raw */ }
+    }
+    return { text: raw, json: false };
+  }
+
+  // A body viewer: a header row (label + expand/collapse + copy) over a pretty, JSON-aware <pre>.
+  function renderBodyBox(labelText, raw) {
+    var pj = prettyJson(raw);
+    var boxEl = el("div", { class: "bodybox" });
+
+    var head = el("div", { class: "bodybox-head" });
+    head.appendChild(el("span", { class: "k", text: labelText + (pj.json ? " (JSON)" : "") }));
+    var toggle = el("button", { class: "btn", text: "Collapse", attrs: { type: "button", "aria-expanded": "true" } });
+    var copy = el("button", { class: "btn", text: "Copy", attrs: { type: "button" } });
+    head.appendChild(toggle);
+    head.appendChild(copy);
+    boxEl.appendChild(head);
+
+    var pre = el("pre", { class: "bodybox-pre" + (pj.json ? " json" : ""), text: pj.text });
+    boxEl.appendChild(pre);
+
+    toggle.addEventListener("click", function () {
+      var hidden = pre.classList.toggle("hidden");
+      toggle.textContent = hidden ? "Expand" : "Collapse";
+      toggle.setAttribute("aria-expanded", String(!hidden));
+    });
+    copy.addEventListener("click", function () { copyText(pj.text, copy); });
+    return boxEl;
+  }
+
+  function copyText(text, btn) {
+    function done(ok) { flash(btn, ok ? "Copied" : "Copy failed"); }
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function () { done(true); }, function () { done(fallbackCopy(text)); });
+        return;
+      }
+    } catch (e) { /* fall through to execCommand */ }
+    done(fallbackCopy(text));
+  }
+
+  // Clipboard API is unavailable in some offline/file:// contexts — fall back to a hidden textarea.
+  function fallbackCopy(text) {
+    try {
+      var ta = document.createElement("textarea");
+      ta.value = text; ta.setAttribute("readonly", "");
+      ta.style.position = "absolute"; ta.style.left = "-9999px";
+      document.body.appendChild(ta); ta.select();
+      var ok = document.execCommand("copy");
+      document.body.removeChild(ta);
+      return ok;
+    } catch (e) { return false; }
+  }
+
+  function flash(btn, msg) {
+    var prev = btn.getAttribute("data-label") || btn.textContent;
+    btn.setAttribute("data-label", prev);
+    btn.textContent = msg;
+    setTimeout(function () { btn.textContent = btn.getAttribute("data-label") || prev; }, 1200);
   }
 
   function renderStep(step) {

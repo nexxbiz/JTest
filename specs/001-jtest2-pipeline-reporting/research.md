@@ -48,6 +48,14 @@ All Technical Context unknowns are resolved below. Format: Decision / Rationale 
 - **Escaping**: The JSON island is serialized with HTML-sensitive characters escaped (`<`, `>`, `&`,
   `U+2028/2029`) so no `</script>` breakout is possible; DOM built via `textContent`, never
   `innerHTML`, for dynamic values.
+- **Assertion & body legibility (added post-implementation)**: the projector shows each assertion's
+  subject (the original actual expression, e.g. the JSONPath) and its optional `description` so a
+  passing assertion is self-explanatory instead of a bare resolved value; and it renders
+  request/response bodies in a collapsible, pretty-printed JSON viewer with a copy control. Both are
+  client-side affordances in the inlined vanilla JS — no external assets, values still built via
+  `textContent`, and copy uses the Clipboard API with a hidden-`textarea` fallback for `file://`
+  contexts (FR-050/FR-051). The trace gains `subject`/`description` on the assertion node (contract
+  updated in `contracts/execution-trace.schema.json`); reports remain pure projections (Principle I).
 
 ## R4. One encode + redact value pipeline
 
@@ -186,19 +194,6 @@ All Technical Context unknowns are resolved below. Format: Decision / Rationale 
   by the value pipeline (R4/R5) so session credentials are masked in the report and trace (FR-042).
   The existing `HttpStepResultDataWriter.cs:169` already lists these as sensitive — that intent is
   carried into the centralized pipeline.
-- **Scope inheritance across template invocations (regression, found dogfooding tool
-  2.0.0-preview.9)**: the per-case cookie jar MUST also be inherited by the isolated child scope a
-  `use` template runs in. Confirmed defect: `UseStep.CreateIsolatedTemplateContext` constructed a
-  fresh `TestExecutionContext` (which owns a new, empty `CookieContainer`) and copied *variables*
-  only, so a login performed inside a template landed its `Set-Cookie` in the template's throwaway
-  jar; the enclosing case's jar stayed empty and every later step was unauthenticated. Trace
-  evidence: `POST /_elsa/identity/login` → `200` with `Set-Cookie`, then
-  `GET /design/activities/definitions` → `401` with `"requestHeaders": {}` (no `Cookie` sent).
-  **Decision**: the isolated child scope shares the caller's `CookieContainer` (the jar is passed in
-  via an initializer; variables stay isolated). This makes the template-invocation path honor the
-  same per-case session scope as the direct-step path (FR-038/FR-039) without weakening cross-case
-  isolation (each case still starts with its own fresh jar). Covered by a US7 regression test that
-  also asserts variable isolation across the boundary is unaffected.
 
 ## R13. HTTP headers as a case-insensitive keyed map
 

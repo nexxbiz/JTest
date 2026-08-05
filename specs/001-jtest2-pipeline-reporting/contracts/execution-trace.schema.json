@@ -196,6 +196,8 @@
         "operation": { "type": "string" },
         "expected": {},
         "actual": {},
+        "subject": { "description": "The original actual expression asserted (e.g. a JSONPath), for report clarity." },
+        "description": { "type": "string", "description": "Optional human description of the check." },
         "outcome": { "type": "string", "enum": ["passed", "failed"] },
         "message": { "type": "string" }
       }

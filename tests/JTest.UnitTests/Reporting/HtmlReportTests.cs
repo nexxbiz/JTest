@@ -116,4 +116,22 @@ public class HtmlReportTests
         Assert.DoesNotContain("<img", html);
         Assert.Contains("\\u003C", TraceFixtures.ExtractEmbeddedTrace(html));
     }
+
+    // Assertion clarity + response-body viewer: the asserted subject and description are surfaced, and
+    // the report includes the JSON body viewer with a copy affordance (FR-050/FR-051).
+    [Fact]
+    public void Report_SurfacesAssertionSubject_And_BodyViewerAffordances()
+    {
+        var html = Generate(TraceFixtures.Mixed());
+
+        // Subject + description of the failing assertion travel into the embedded trace.
+        var embedded = TraceFixtures.ExtractEmbeddedTrace(html);
+        Assert.Contains("{{$.this.statusCode}}", embedded); // the asserted subject expression
+        Assert.Contains("status is 200", embedded);          // the human description
+
+        // The renderer provides a collapsible, JSON-aware body viewer with a copy control.
+        Assert.Contains("bodybox", html);
+        Assert.Contains("renderBodyBox", html);
+        Assert.Contains("Copy", html);
+    }
 }

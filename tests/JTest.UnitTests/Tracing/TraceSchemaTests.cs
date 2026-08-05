@@ -46,6 +46,8 @@ public class TraceSchemaTests
         {
             Id = TraceBuilder.Path(innerPath, "assert", 1),
             Operation = "equals",
+            Subject = "{{$.this.statusCode}}",
+            Description = "status is 200",
             Expected = 200,
             Actual = 200,
             Outcome = Outcome.Passed
