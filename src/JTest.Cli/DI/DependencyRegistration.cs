@@ -2,8 +2,6 @@ using JTest.Cli.Services;
 using JTest.Core;
 using JTest.Core.Assertions;
 using JTest.Core.Execution;
-using JTest.Core.Output;
-using JTest.Core.Output.Markdown;
 using JTest.Core.Steps;
 using JTest.Core.Templates;
 using JTest.Core.TypeDescriptors;
@@ -22,7 +20,6 @@ internal static class DependencyRegistration
     {
         RegisterCoreServices(typeRegistrar);
         RegisterExecutionServices(typeRegistrar);
-        RegisterOutputServices(typeRegistrar);
     }
 
 
@@ -45,15 +42,5 @@ internal static class DependencyRegistration
             .Register<IJTestCaseExecutor, JTestCaseExecutor>()
             .Register<IJTestSuiteExecutor, JTestSuiteExecutor>()
             .Register<IJTestSuiteExecutionResultProcessor, JTestSuiteExecutionResultProcessor>();
-    }
-
-    private static void RegisterOutputServices(TypeRegistrar typeRegistrar)
-    {
-        typeRegistrar
-            .Register<MarkdownOutputGenerator>()
-            .RegisterInstance<IDictionary<string, IOutputGenerator>>(sp => new Dictionary<string, IOutputGenerator>(StringComparer.OrdinalIgnoreCase)
-            {
-                [MarkdownOutputGenerator.FormatKey] = (MarkdownOutputGenerator)sp.GetService(typeof(MarkdownOutputGenerator))!
-            });
     }
 }

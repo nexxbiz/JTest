@@ -35,7 +35,7 @@ public sealed class RunCommandSettings : CommandSettings
     public int? ParallelTestExecutionCount { get; set; }
 
     [CommandOption("-o|--output")]
-    [Description("Output folder path where reports are saved (default: working directory)")]
+    [Description("Output folder for the report and trace when no explicit --report/--trace path is given (default: artifacts)")]
     public string? OutputDirectoryPath { get; set; }
 
     [CommandOption("-c|--categories")]
@@ -43,11 +43,11 @@ public sealed class RunCommandSettings : CommandSettings
     public string? Categories { get; set; }
 
     [CommandOption("--skip-output")]
-    [Description("When specified, then does not output a report file (default: false)")]
+    [Description("Do not write the default report/trace files (explicit --report/--trace are still written). Default: false")]
     public bool? SkipOutput { get; set; }
 
     [CommandOption("-f|--output-format")]
-    [Description("One of the following output formats: 'markdown' (default: markdown)")]
+    [Description("Default report format when --report is not given: 'html' (default) or 'markdown'")]
     public string? OutputFormat { get; set; }
 
     [CommandOption("--report")]

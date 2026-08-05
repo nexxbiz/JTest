@@ -1,8 +1,6 @@
 using JTest.Core;
 using JTest.Core.Assertions;
 using JTest.Core.Execution;
-using JTest.Core.Output;
-using JTest.Core.Output.Markdown;
 using JTest.Core.Steps;
 using JTest.Core.Templates;
 using JTest.Core.TypeDescriptors;
@@ -39,13 +37,5 @@ internal static class DependencyRegistrationHelper
         services.AddScoped<IJTestCaseExecutor, JTestCaseExecutor>();
         services.AddScoped<IJTestSuiteExecutor, JTestSuiteExecutor>();
         services.AddScoped<IJTestSuiteExecutionResultProcessor, JTestSuiteExecutionResultProcessor>();
-        
-        // Output services
-        services.AddTransient<MarkdownOutputGenerator>();
-        services.AddSingleton<IDictionary<string, IOutputGenerator>>(serviceProvider => 
-            new Dictionary<string, IOutputGenerator>(StringComparer.OrdinalIgnoreCase)
-            {
-                [MarkdownOutputGenerator.FormatKey] = serviceProvider.GetRequiredService<MarkdownOutputGenerator>()
-            });
     }
 }

@@ -146,6 +146,14 @@ All Technical Context unknowns are resolved below. Format: Decision / Rationale 
   leftover dirs are net10.0 build output that will confuse `dotnet build`/discovery.
 - **Alternatives**: Drop Markdown entirely (unnecessary churn for users relying on it); keep leftover
   dirs (build noise, potential name collisions).
+- **Output defaults & legacy-writer retirement (corrected post-implementation)**: dogfooding showed the
+  legacy per-suite Markdown writer was still wired and, because `--output-format` defaulted to markdown
+  and `--skip-output` defaulted false, it dumped a timestamped HTML-table `.md` into the working folder
+  on every run. Decision: the result processor is reduced to the **console summary only**; all file
+  output is the trace projection written by the run command. Default `run` writes `artifacts/report.html`
+  + `artifacts/trace.json`; `-f markdown` writes `report.md` (the `MarkdownReportGenerator` projection)
+  instead of HTML; explicit `--report`/`--trace` override. The legacy `src/JTest.Core/Output/` writer set
+  is **removed** (FR-052). This finally delivers R10's "Markdown is a projection, not a de-facto source."
 
 ## R11. Testing strategy
 

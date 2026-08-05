@@ -25,17 +25,22 @@ jtest run <paths...> [options]
 | Option | Type | Default | Behavior |
 |--------|------|---------|----------|
 | `<paths...>` | glob(s) | required | Test files/globs to discover. |
-| `--report <file>` | path | none | Write the self-contained HTML report (FR-018). |
-| `--trace <file>` | path | none | Write the canonical execution-trace JSON (FR-009). |
-| `--report-format <html\|markdown>` | enum | html | Human-facing projection when `--report` set. |
+| `-o, --output <dir>` | path | `artifacts` | Folder for the default report + trace when no explicit `--report`/`--trace` is given. |
+| `-f, --output-format <html\|markdown>` | enum | `html` | Format of the default report: HTML (self-contained) or a clean Markdown projection (`report.md`). |
+| `--report <file>` | path | `<output>/report.<html\|md>` | Explicit report path (overrides the default location); format from `--report-format`/`-f` or the file extension. |
+| `--trace <file>` | path | `<output>/trace.json` | Explicit canonical execution-trace JSON path (FR-009). |
+| `--report-format <html\|markdown>` | enum | `html` | Format for an explicit `--report`. |
+| `--skip-output` | flag | off | Do not write the **default** report/trace. Explicit `--report`/`--trace` are still written. |
 | `--parallel` | flag | off | Execute suites in parallel; results equivalent to sequential (FR-005). |
 | `--timeout <duration>` | duration | none | Overall run timeout → `timedOut` + exit 4. |
 | `--include-variables` | flag | off | Opt-in env/global/variable dump, values masked (FR-027/28). |
 | `--fail-on-empty` | bool | true | Discovery matched input but zero results → exit 2 (FR-003). |
 
-Behavior: the canonical trace is **always built in-memory**; `--trace`/`--report` persist
-projections of it. Exit code per the table above. Nothing is dropped: a crashing suite is an
-`errored` node (FR-002).
+Behavior: the canonical trace is **always built in-memory**; the report and trace persist
+projections of it. **By default a run writes exactly two files — `artifacts/report.html` and
+`artifacts/trace.json`** (or `report.md` when `-f markdown`). JTest never writes any other report
+file; in particular it does **not** dump a per-suite Markdown file into the suite/working folder.
+Exit code per the table above. Nothing is dropped: a crashing suite is an `errored` node (FR-002).
 
 ## `jtest validate` — validate definitions against the language schema
 

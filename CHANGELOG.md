@@ -35,6 +35,10 @@ exit-code gate and a self-contained, safe HTML report, and formalizes the test-d
   separate level — its steps render directly under the case (data-driven cases still show each dataset) —
   and nested detail uses a thin, downward-fading indentation guide rail instead of a hard border at every
   level, so deep trees stay readable.
+- **No more stray Markdown dumps.** `jtest run` no longer writes a timestamped per-suite Markdown file
+  (HTML-table soup) into the working folder. By default it writes just `artifacts/report.html` +
+  `artifacts/trace.json`; `-f markdown` writes a clean `artifacts/report.md` (a projection of the trace)
+  instead of the HTML. Explicit `--report`/`--trace` paths still win. The legacy Markdown writer has been removed.
 - **Redacted by default:** `Cookie`/`Set-Cookie`/`Authorization` and declared secret values are
   masked in reports and the trace; all dynamic values are rendered inert (no XSS).
 

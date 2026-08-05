@@ -1,8 +1,12 @@
-﻿using JTest.Core.Models;
+using JTest.Core.Models;
 
 namespace JTest.Core.Execution;
 
 public interface IJTestSuiteExecutionResultProcessor
 {
-    void Process(IEnumerable<JTestSuiteExecutionResult> results, string outputDirectoryPath, bool isDebug, bool skipOutput, string? outputFormat);
+    /// <summary>
+    /// Writes the human-readable run summary to the console. File artifacts (HTML report and the
+    /// canonical trace JSON) are projections of the trace and are written by the run command, not here.
+    /// </summary>
+    void WriteConsoleSummary(IEnumerable<JTestSuiteExecutionResult> results);
 }

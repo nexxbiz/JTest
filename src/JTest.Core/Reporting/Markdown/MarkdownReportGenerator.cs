@@ -48,23 +48,45 @@ public sealed class MarkdownReportGenerator
     {
         var indent = new string(' ', depth * 2);
         var label = _values.Markdown(step.Name ?? step.StepType);
-        sb.AppendLine($"{indent}- {label} `#{step.Ordinal}` ({_values.Markdown(step.StepType)}) — {step.Outcome}");
+        sb.AppendLine($"{indent}- **{label}** `#{step.Ordinal}` · {_values.Markdown(step.StepType)} · **{step.Outcome}**");
+
+        if (!string.IsNullOrWhiteSpace(step.Description))
+            sb.AppendLine($"{indent}  - _{_values.Markdown(step.Description)}_");
+
+        if (step.Http is { } http)
+            sb.AppendLine($"{indent}  - `{_values.Markdown(http.Method)} {_values.Markdown(http.Url)}` → {http.StatusCode}");
 
         foreach (var assertion in step.Assertions ?? Enumerable.Empty<AssertionResult>())
-        {
-            var expected = _values.Markdown(assertion.Expected?.ToString());
-            var actual = _values.Markdown(assertion.Actual?.ToString());
-            sb.AppendLine($"{indent}  - assert `{_values.Markdown(assertion.Operation)}` — expected {expected}, actual {actual} — {assertion.Outcome}");
-        }
+            WriteAssertion(sb, assertion, indent + "  ");
 
         foreach (var child in step.Children ?? Enumerable.Empty<StepNode>())
             WriteStep(sb, child, depth + 1);
 
         foreach (var iteration in step.Iterations ?? Enumerable.Empty<Iteration>())
         {
-            sb.AppendLine($"{indent}  - iteration {iteration.Index} — {iteration.Outcome}");
+            sb.AppendLine($"{indent}  - iteration {iteration.Index} · **{iteration.Outcome}**");
             foreach (var inner in iteration.Steps)
                 WriteStep(sb, inner, depth + 2);
         }
+    }
+
+    // A single readable line per assertion: what was checked (subject/description), the operation,
+    // expected/actual where present, its outcome, and any failure message.
+    private void WriteAssertion(StringBuilder sb, AssertionResult assertion, string indent)
+    {
+        var parts = new List<string>();
+        if (assertion.Subject is not null) parts.Add($"subject `{_values.Markdown(assertion.Subject.ToString())}`");
+        if (assertion.Expected is not null) parts.Add($"expected `{_values.Markdown(assertion.Expected.ToString())}`");
+        if (assertion.Actual is not null) parts.Add($"actual `{_values.Markdown(assertion.Actual.ToString())}`");
+
+        var detail = parts.Count > 0 ? " — " + string.Join(", ", parts) : string.Empty;
+        var description = string.IsNullOrWhiteSpace(assertion.Description)
+            ? string.Empty
+            : $" ({_values.Markdown(assertion.Description)})";
+
+        sb.AppendLine($"{indent}- assert `{_values.Markdown(assertion.Operation)}`{description} — **{assertion.Outcome}**{detail}");
+
+        if (!string.IsNullOrWhiteSpace(assertion.Message))
+            sb.AppendLine($"{indent}  - {_values.Markdown(assertion.Message)}");
     }
 }

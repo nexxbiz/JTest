@@ -59,8 +59,7 @@ public class RunCommand : CommandBase<RunCommandSettings>
 
         var resultList = results as IReadOnlyList<JTestSuiteExecutionResult> ?? results.ToList();
 
-        var outputDirectory = GetOutputDirectory(settings);
-        _testExecutionResultsProcessor.Process(resultList, outputDirectory, IsDebug, settings.SkipOutput == true, settings.OutputFormat);
+        _testExecutionResultsProcessor.WriteConsoleSummary(resultList);
 
         // The canonical trace is the single source of truth for both the exit code and the reports:
         // its aggregated counts yield the class-specific code (test failure / execution error /
@@ -80,28 +79,68 @@ public class RunCommand : CommandBase<RunCommandSettings>
         return exitCode;
     }
 
+    // Default output folder for reports/trace when no explicit path is given.
+    private const string DefaultOutputDirectory = "artifacts";
+    private const string DefaultReportBaseName = "report";
+    private const string DefaultTraceFileName = "trace.json";
+
+    /// <summary>
+    /// Persists the report and canonical trace, which are projections of the in-memory trace.
+    /// - The default report is a self-contained HTML file; `-f markdown` produces a Markdown report instead.
+    /// - With no explicit paths, both land in <c>artifacts/</c> (report.html|report.md, trace.json).
+    /// - An explicit <c>--report</c>/<c>--trace</c> always wins and is written even under <c>--skip-output</c>.
+    /// - <c>--skip-output</c> suppresses the defaults only.
+    /// The legacy per-suite Markdown dump is gone — no report file is ever written to the suite folder.
+    /// </summary>
     private static void WriteOutputs(RunCommandSettings settings, ExecutionTrace trace)
     {
-        if (!string.IsNullOrWhiteSpace(settings.TraceFile))
+        var outputDir = string.IsNullOrWhiteSpace(settings.OutputDirectoryPath)
+            ? DefaultOutputDirectory
+            : settings.OutputDirectoryPath;
+
+        // A single format selector: --report-format wins for an explicit --report, else -f/--output-format.
+        var format = !string.IsNullOrWhiteSpace(settings.ReportFormat) ? settings.ReportFormat : settings.OutputFormat;
+
+        // Report: explicit --report path wins; otherwise default into the output dir unless output is skipped.
+        var reportPath = settings.ReportFile;
+        if (string.IsNullOrWhiteSpace(reportPath) && settings.SkipOutput != true)
         {
-            var dir = Path.GetDirectoryName(Path.GetFullPath(settings.TraceFile));
-            if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
-            File.WriteAllText(settings.TraceFile, TraceJson.Serialize(trace));
+            var ext = IsMarkdown(format, path: null) ? ".md" : ".html";
+            reportPath = Path.Combine(outputDir, DefaultReportBaseName + ext);
+        }
+        if (!string.IsNullOrWhiteSpace(reportPath))
+        {
+            EnsureDirectory(reportPath);
+            if (IsMarkdown(format, reportPath))
+                File.WriteAllText(reportPath, new JTest.Core.Reporting.Markdown.MarkdownReportGenerator().Generate(trace));
+            else
+                new HtmlReportGenerator().Write(trace, reportPath);
         }
 
-        if (!string.IsNullOrWhiteSpace(settings.ReportFile))
+        // Trace: explicit --trace path wins; otherwise default into the output dir unless output is skipped.
+        var tracePath = settings.TraceFile;
+        if (string.IsNullOrWhiteSpace(tracePath) && settings.SkipOutput != true)
+            tracePath = Path.Combine(outputDir, DefaultTraceFileName);
+        if (!string.IsNullOrWhiteSpace(tracePath))
         {
-            if (string.Equals(settings.ReportFormat, "markdown", StringComparison.OrdinalIgnoreCase))
-            {
-                var dir = Path.GetDirectoryName(Path.GetFullPath(settings.ReportFile));
-                if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
-                File.WriteAllText(settings.ReportFile, new JTest.Core.Reporting.Markdown.MarkdownReportGenerator().Generate(trace));
-            }
-            else
-            {
-                new HtmlReportGenerator().Write(trace, settings.ReportFile);
-            }
+            EnsureDirectory(tracePath);
+            File.WriteAllText(tracePath, TraceJson.Serialize(trace));
         }
+    }
+
+    /// <summary>Markdown when the format is explicitly markdown/md, or (absent a format) the path ends in .md.</summary>
+    private static bool IsMarkdown(string? format, string? path)
+    {
+        if (!string.IsNullOrWhiteSpace(format))
+            return format.Equals("markdown", StringComparison.OrdinalIgnoreCase)
+                || format.Equals("md", StringComparison.OrdinalIgnoreCase);
+        return path is not null && path.EndsWith(".md", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static void EnsureDirectory(string filePath)
+    {
+        var dir = Path.GetDirectoryName(Path.GetFullPath(filePath));
+        if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
     }
 
     private async Task<IEnumerable<JTestSuiteExecutionResult>?> ExecuteRunCommand(RunCommandSettings settings, CancellationToken cancellationToken)
@@ -146,13 +185,5 @@ public class RunCommand : CommandBase<RunCommandSettings>
         var environmentVariables = settings.GetEnvironmentVariables();
         var globalVariables = settings.GetGlobalVariables();
         _variablesContext.Initialize(environmentVariables, globalVariables);
-    }
-
-    private static string GetOutputDirectory(RunCommandSettings settings)
-    {
-        if (!string.IsNullOrWhiteSpace(settings.OutputDirectoryPath))
-            return settings.OutputDirectoryPath;
-
-        return Directory.GetCurrentDirectory();
     }
 }
