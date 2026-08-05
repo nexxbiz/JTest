@@ -48,6 +48,8 @@
   // Build a collapsible node. childrenBuilder appends the body content.
   function node(kindLabel, label, outcome, durationMs, extraSearch, buildBody) {
     var d = el("details", { class: "node", attrs: { "data-outcome": (outcome || "").toLowerCase() } });
+    // Only suites and cases are drawn as boxes; everything nested uses the indentation guide rail.
+    if (kindLabel === "suite" || kindLabel === "case") d.className += " box";
     if (isFailure(outcome)) d.open = true; // failure-first: expand failing paths
 
     var summary = el("summary");
@@ -201,7 +203,18 @@
 
   function renderCase(c) {
     return node("case", c.name, c.outcome, c.durationMs, c.path, function (body) {
-      sortFailureFirst(c.datasets).forEach(function (ds) { body.appendChild(renderDataset(ds)); });
+      var datasets = c.datasets || [];
+      // A single default (unparameterized) dataset is engine bookkeeping — collapse it away and
+      // render its steps directly under the case. Data-driven cases (multiple/named/parameterized
+      // datasets) still show each dataset.
+      var lone = datasets.length === 1 &&
+        (!datasets[0].label || datasets[0].label === "default") && !datasets[0].parameters;
+      if (lone) {
+        (datasets[0].steps || []).forEach(function (s) { body.appendChild(renderStep(s)); });
+        renderDiagnostics(body, datasets[0].diagnostics);
+      } else {
+        sortFailureFirst(datasets).forEach(function (ds) { body.appendChild(renderDataset(ds)); });
+      }
       renderDiagnostics(body, c.diagnostics);
     });
   }
@@ -282,7 +295,7 @@
     app.appendChild(buildControls(app));
 
     if (trace.environment) {
-      var envNode = el("details", { class: "node", attrs: { "data-outcome": "passed", "data-text": "variables environment globals" } });
+      var envNode = el("details", { class: "node box", attrs: { "data-outcome": "passed", "data-text": "variables environment globals" } });
       var envSummary = el("summary");
       envSummary.appendChild(el("span", { class: "kind", text: "variables" }));
       envSummary.appendChild(el("span", { class: "label", text: "Environment & globals (masked)" }));

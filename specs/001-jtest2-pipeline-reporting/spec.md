@@ -80,6 +80,7 @@ An engineer opens the HTML report produced by a pipeline run — on a machine wi
 5. **Given** any report, **When** navigated with keyboard only, **Then** all detail is reachable and the report meets WCAG 2.1 AA (semantic structure, visible focus, text contrast ≥ 4.5:1).
 6. **Given** the same run, **When** the canonical result file and the HTML report are compared, **Then** the report neither adds information absent from the canonical result nor omits any node except through an explicit, user-chosen view filter.
 7. **Given** an assertion (passing or failing) and an HTTP step with a JSON body, **When** the report is opened, **Then** the assertion shows what was asserted (its subject expression, operation, expected/actual, and any description) and the body is shown in a collapsible, pretty-printed JSON viewer with a copy button.
+8. **Given** a case with a single default (unparameterized) dataset, **When** the report opens, **Then** the redundant dataset level is not shown and the case's steps appear directly under it; a data-driven case with multiple datasets still shows each dataset. Nested detail is indented under a light guide rail rather than a full border at every level.
 
 ---
 
@@ -183,6 +184,8 @@ A tester writes a suite that logs in (the server sets an HttpOnly session cookie
 - **Active markup in data**: assertion values, error text, names, descriptions, and bodies containing HTML/script → rendered inert.
 - **Opaque assertion**: an assertion that only carries a resolved actual value (e.g. `exists`) still shows its subject expression, so the reader can tell what was checked without opening the source suite.
 - **JSON body in the report**: a request/response body is pretty-printed and individually collapsible with a copy action; oversized/binary bodies remain governed by the FR-023 truncation/summary rules.
+- **Redundant default dataset**: a case with exactly one implicit default dataset renders without the extra dataset level (steps shown directly under the case); no step, assertion, or diagnostic is lost, and the canonical trace still records the dataset node.
+- **Deeply nested detail**: nested nodes use a light indentation guide rail rather than a full border at each level, keeping deep trees readable.
 - **Non-text / oversized content**: very large or binary/non-UTF-8 response bodies → represented safely without breaking or bloating the report unusably.
 - **Schema-invalid definition**: unknown step type, wrong type, missing required field, dangling reference → rejected with a located diagnostic and non-zero exit.
 - **Large run**: thousands of nodes → the report remains usable (searchable, navigable) and self-contained.
@@ -224,7 +227,7 @@ A tester writes a suite that logs in (the server sets an HttpOnly session cookie
 ### Functional Requirements — Reporting projections (Pillar B)
 
 - **FR-016**: Every report format (HTML, and any retained Markdown/console output) MUST be a read-only projection of the canonical trace; a report MUST NOT be the source of truth and MUST NOT add information absent from the trace.
-- **FR-017**: A report MUST NOT silently hide information present in the trace; any reduction of detail MUST be an explicit, user-selectable view state, and the complete nested execution MUST be shown by default.
+- **FR-017**: A report MUST NOT silently hide information present in the trace; any reduction of detail MUST be an explicit, user-selectable view state, and the complete nested execution MUST be shown by default. A purely structural node that carries no information of its own — specifically a case's single implicit/default dataset (default label, no parameters) — MAY be flattened in the projection by rendering its steps directly under the case; this hides no data (every step, assertion, and diagnostic is still shown) and MUST NOT be applied when a case has multiple, named, or parameterized datasets.
 - **FR-018**: The primary report MUST be a single self-contained HTML file with no external network or asset dependencies (all styles/scripts/assets inlined), openable offline.
 - **FR-019**: The HTML report MUST be failure-first: failures and errored/cancelled/timed-out nodes MUST be surfaced ahead of passing detail and the failing paths made immediately visible.
 - **FR-020**: The HTML report MUST be searchable/filterable and allow drill-down from run → suite → case → dataset → iteration → step → assertion, showing expected vs actual, timings, and diagnostics.
@@ -324,6 +327,7 @@ A tester writes a suite that logs in (the server sets an HttpOnly session cookie
 - **SC-018**: An assertion or `save` referencing a path that matches nothing (e.g. a camelCase mismatch) produces a distinct "path matched nothing" diagnostic in the report in 100% of such cases, with zero occurrences of a silent `null` masking the failure.
 - **SC-019**: For 100% of assertions in the report, the asserted subject (and description when provided) is displayed alongside operation/expected/actual, so no assertion is shown as a bare resolved value.
 - **SC-020**: For 100% of HTTP steps whose body is JSON, the report renders the body as indented JSON in a collapsible viewer with a working copy control, with zero external asset requests.
+- **SC-021**: For 100% of cases that have exactly one default (unparameterized) dataset, the report shows no separate dataset node while still rendering every step of that case; cases with multiple or parameterized datasets show each dataset. No node in the canonical trace is dropped by this projection choice (consistent with SC-004).
 
 ## Assumptions
 

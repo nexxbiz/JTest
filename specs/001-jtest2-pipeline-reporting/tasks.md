@@ -106,6 +106,7 @@ from. **⚠️ No user story can begin until this phase is complete.**
 - [X] T041 [US2] Register HTML/Markdown/JSON output generators in DI (both `src/JTest.Cli/DI/DependencyRegistration.cs` and `DependencyRegistrationHelper.cs`)
 - [X] T085 [US2] Assertion clarity: carry the asserted `subject` (original actual expression) and optional `description` through the trace and show them in the report so a passing assertion is self-explanatory (FR-015/FR-050). Files: `src/JTest.Core/Assertions/AssertionResult.cs`, `AssertionOperationBase.cs`, `src/JTest.Core/Tracing/TraceNodes.cs`, `src/JTest.Core/Execution/ExecutionTraceAssembler.cs`, `src/JTest.Core/Reporting/Html/report.js`, trace contract `contracts/execution-trace.schema.json`; tests in `tests/JTest.UnitTests/Tracing/TraceSchemaTests.cs` and `Reporting/HtmlReportTests.cs`
 - [X] T086 [US2] JSON body viewer: render request/response bodies in a collapsible, pretty-printed JSON box with a copy control, self-contained and inert (FR-051). Files: `src/JTest.Core/Reporting/Html/report.js`, `report.css`; test in `tests/JTest.UnitTests/Reporting/HtmlReportTests.cs`
+- [X] T087 [US2] Report layout: elide a case's lone default/unparameterized dataset (render its steps directly under the case; keep multi/parameterized datasets) and replace per-level borders with a boxed suite/case + thin gradient indentation-guide rail for nested nodes (FR-017). Projection-only, no evidence hidden. Files: `src/JTest.Core/Reporting/Html/report.js`, `report.css`
 
 **Checkpoint**: `run` produces a complete, offline, failure-first HTML report — with self-explanatory assertions and a JSON body viewer.
 
@@ -310,6 +311,6 @@ demoable increment that does not break earlier ones.
 - Tests are required (Principle VII); write per-story tests before/with implementation and ensure they fail first.
 - `[P]` = different files, no dependency on an incomplete task.
 - Commit after each task or logical group; keep the branch pushed.
-- Total: 86 tasks — Setup 8, Foundational 12, US1 9, US2 14, US3 5, US4 10, US7 10, US5 7, US6 3, Docs 4, Polish 4.
+- Total: 87 tasks — Setup 8, Foundational 12, US1 9, US2 15, US3 5, US4 10, US7 10, US5 7, US6 3, Docs 4, Polish 4.
 - T084 was added post-implementation to capture a defect found while dogfooding `2.0.0-preview.9` (per-case cookie session dropped across a `use` template boundary); the fix and its regression test are folded into US7.
-- T085–T086 were added post-implementation from dogfooding feedback on report legibility (assertions didn't show what was asserted; response bodies were raw): assertion subject/description are now surfaced and bodies render in a collapsible JSON viewer. Folded into US2.
+- T085–T087 were added post-implementation from dogfooding feedback on report legibility: assertions now surface subject/description, response bodies render in a collapsible JSON viewer, the redundant single default dataset level is elided, and nested detail uses an indentation-guide rail instead of stacked borders. Folded into US2.

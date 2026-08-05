@@ -56,6 +56,11 @@ All Technical Context unknowns are resolved below. Format: Decision / Rationale 
   `textContent`, and copy uses the Clipboard API with a hidden-`textarea` fallback for `file://`
   contexts (FR-050/FR-051). The trace gains `subject`/`description` on the assertion node (contract
   updated in `contracts/execution-trace.schema.json`); reports remain pure projections (Principle I).
+- **Report layout calm (added post-implementation)**: only suites and cases render as boxes; nested
+  nodes drop their per-level borders and instead hang off a single thin, downward-fading gradient rail
+  aligned under the disclosure arrow (a JSON-tree feel that stays readable when deeply nested). A case's
+  single default/unparameterized dataset is elided in the projection (its steps render directly under the
+  case) — no evidence is hidden and the trace still carries the dataset node, so this stays within FR-017.
 
 ## R4. One encode + redact value pipeline
 

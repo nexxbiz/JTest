@@ -31,6 +31,10 @@ exit-code gate and a self-contained, safe HTML report, and formalizes the test-d
   so a passing check reads as what it verified, not just a bare resolved value.
 - **JSON body viewer:** request/response bodies render in a collapsible, pretty-printed JSON box with
   a copy button (self-contained, values inert; oversized/binary bodies still follow the truncation rules).
+- **Calmer report layout:** a case's single default (unparameterized) dataset is no longer shown as a
+  separate level — its steps render directly under the case (data-driven cases still show each dataset) —
+  and nested detail uses a thin, downward-fading indentation guide rail instead of a hard border at every
+  level, so deep trees stay readable.
 - **Redacted by default:** `Cookie`/`Set-Cookie`/`Authorization` and declared secret values are
   masked in reports and the trace; all dynamic values are rendered inert (no XSS).
 

@@ -167,3 +167,6 @@ so numbering and ancestry are unambiguous and reconstructable (FR-014, SC-009).
 - `counts` at each level MUST equal the aggregation of its children's outcomes.
 - The persisted trace MUST contain no unredacted declared-secret values (SC-007).
 - `traceSchemaVersion` and `toolVersion` MUST be non-empty (FR-010).
+- A case's lone default dataset (default label, no parameters) is a **projection-elision candidate**:
+  reports MAY render its steps directly under the case (FR-017). The canonical trace still records the
+  dataset node — the elision is a view decision, never a change to the evidence (Principle I).

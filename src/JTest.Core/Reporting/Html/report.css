@@ -11,6 +11,7 @@
   --abort-bg: #6e4400; --abort-fg: #ffffff;
   --skip-bg: #57606a; --skip-fg: #ffffff;
   --focus: #0349b4;
+  --rail: #d0d7de;
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -22,6 +23,7 @@
     --abort-bg: #d29922; --abort-fg: #161200;
     --skip-bg: #768390; --skip-fg: #0d1117;
     --focus: #6cb6ff;
+    --rail: #30363d;
   }
 }
 * { box-sizing: border-box; }
@@ -63,28 +65,48 @@ h1 { font-size: 1.5rem; margin: 0 0 .25rem; }
 }
 .controls label { display: inline-flex; align-items: center; gap: .35rem; color: var(--muted); font-size: .85rem; }
 
-details.node { border: 1px solid var(--border); border-left-width: 3px; border-radius: 6px; margin: .35rem 0; background: var(--bg); }
-/* Failing paths get a subtle left accent rail (not a full red box at every nesting level). */
-details.node[data-outcome="failed"] { border-left-color: var(--fail-bg); }
-details.node[data-outcome="errored"] { border-left-color: var(--error-bg); }
-details.node[data-outcome="timedout"], details.node[data-outcome="cancelled"] { border-left-color: var(--abort-bg); }
-details.node[data-outcome="passed"], details.node[data-outcome="skipped"] { border-left-color: var(--border); }
+/* Only suites and cases are boxes. Everything nested is borderless and hangs off a thin, downward-
+   fading guide rail (like a JSON tree), so deep nesting stays calm instead of stacking hard borders. */
+details.node { border: 0; border-radius: 6px; margin: 0; background: transparent; }
+details.node.box { border: 1px solid var(--border); border-left-width: 3px; border-radius: 8px;
+  margin: .5rem 0; background: var(--bg); }
+/* Failure accent lives on the boxed rail — never as a full red box at every nesting level. */
+details.node.box[data-outcome="failed"] { border-left-color: var(--fail-bg); }
+details.node.box[data-outcome="errored"] { border-left-color: var(--error-bg); }
+details.node.box[data-outcome="timedout"], details.node.box[data-outcome="cancelled"] { border-left-color: var(--abort-bg); }
+details.node.box[data-outcome="passed"], details.node.box[data-outcome="skipped"] { border-left-color: var(--border); }
+
 details.node > summary {
-  cursor: pointer; padding: .5rem .65rem; display: flex; gap: .5rem; align-items: center;
+  cursor: pointer; padding: .4rem .55rem; display: flex; gap: .5rem; align-items: center;
   list-style: none; border-radius: 6px;
 }
+details.node > summary:hover { background: var(--panel); }
 details.node > summary::-webkit-details-marker { display: none; }
-details.node > summary::before { content: "\25B6"; color: var(--muted); font-size: .7rem; transition: transform .1s; }
+details.node > summary::before { content: "\25B6"; color: var(--muted); font-size: .7rem; transition: transform .1s; flex: none; }
 details.node[open] > summary::before { transform: rotate(90deg); }
 summary .kind { color: var(--muted); font-size: .72rem; text-transform: uppercase; letter-spacing: .03em; }
 summary .label { font-weight: 600; }
 summary .dur { color: var(--muted); font-size: .8rem; margin-left: auto; font-variant-numeric: tabular-nums; }
-.node > .body { padding: .1rem .65rem .6rem 1.6rem; }
+
+/* Children indent under a 1px vertical guide aligned beneath the parent's arrow; it fades downward. */
+.node > .body { position: relative; padding: .1rem .5rem .35rem 1rem; margin-left: .6rem; }
+.node.box > .body { margin-left: .35rem; }
+.node > .body::before {
+  content: ""; position: absolute; left: 0; top: .1rem; bottom: .35rem; width: 1px;
+  background: linear-gradient(to bottom, var(--rail), transparent);
+}
+.node[data-outcome="failed"] > .body::before,
+.node[data-outcome="errored"] > .body::before,
+.node[data-outcome="timedout"] > .body::before,
+.node[data-outcome="cancelled"] > .body::before {
+  background: linear-gradient(to bottom, var(--fail-bg), transparent); opacity: .55;
+}
 
 .kv { margin: .3rem 0; }
 .kv .k { color: var(--muted); }
-.assertion { padding: .3rem .5rem; border-left: 3px solid var(--border); margin: .3rem 0; }
-.assertion.failed { border-left-color: var(--fail-bg); }
+/* Assertions read as calm rows; only a failing one carries a thin red edge. */
+.assertion { padding: .2rem .5rem; margin: .25rem 0; }
+.assertion.failed { border-left: 2px solid var(--fail-bg); }
 .assertion .op { font-weight: 600; }
 pre { background: var(--panel); border: 1px solid var(--border); border-radius: 6px;
   padding: .5rem .6rem; overflow-x: auto; margin: .3rem 0; font-size: .82rem; }
