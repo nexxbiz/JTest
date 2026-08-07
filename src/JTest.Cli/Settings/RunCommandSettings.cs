@@ -22,9 +22,11 @@ public sealed class RunCommandSettings : CommandSettings
     [Description("File path to environment variables")]
     public string? EnvironmentVariablesFile { get; set; }
 
+    // Must be an array: Spectre.Console.Cli only binds repeated occurrences of an option to an
+    // array property, so an IEnumerable<string> stayed null and every -e value was dropped (#74).
     [CommandOption("-e|--env")]
-    [Description("Environment variable formatted as key=value. You can specify the option multiple times to define multiple enviornment variables")]
-    public IEnumerable<string>? EnvironmentVariables { get; set; }
+    [Description("Environment variable formatted as key=value. You can specify the option multiple times to define multiple environment variables. Takes precedence over --env-file")]
+    public string[]? EnvironmentVariables { get; set; }
 
     [CommandOption("--globals-file")]
     [Description("File path to global variables")]
@@ -101,9 +103,13 @@ public sealed class RunCommandSettings : CommandSettings
             categories = Categories.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         }
 
-        if (EnvironmentVariables?.Any() == true || !string.IsNullOrWhiteSpace(EnvironmentVariablesFile))
+        if (EnvironmentVariables?.Length > 0 || !string.IsNullOrWhiteSpace(EnvironmentVariablesFile))
         {
-            SetEnvironmentVariables();
+            var environmentResult = SetEnvironmentVariables();
+            if (!environmentResult.Successful)
+            {
+                return environmentResult;
+            }
         }
 
         if (!string.IsNullOrWhiteSpace(GlobalVariablesFile))
@@ -123,21 +129,37 @@ public sealed class RunCommandSettings : CommandSettings
         );
     }
 
-    private void SetEnvironmentVariables()
+    /// <summary>
+    /// Builds the effective environment from both sources: <c>--env-file</c> first, then
+    /// <c>-e/--env</c> laid over it, so the command line — the more specific source — wins on a key
+    /// given twice instead of throwing on a duplicate key.
+    /// </summary>
+    private ValidationResult SetEnvironmentVariables()
     {
-        var environmentVariables = EnvironmentVariables?.ToDictionary(
-            x => x.Split('=', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).First(),
-            x => (object?)x.Split('=', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).LastOrDefault()
-        )
-        ?? [];
+        var merged = new Dictionary<string, object?>();
 
         if (!string.IsNullOrWhiteSpace(EnvironmentVariablesFile))
         {
-            var envVarsFromFile = GetVariableFromFile(EnvironmentVariablesFile);
-            foreach (var env in envVarsFromFile ?? [])
-                environmentVariables.Add(env.Key, env.Value);
+            foreach (var env in GetVariableFromFile(EnvironmentVariablesFile) ?? [])
+                merged[env.Key] = env.Value;
         }
 
-        this.environmentVariables = environmentVariables.AsReadOnly();
+        foreach (var entry in EnvironmentVariables ?? [])
+        {
+            // Only the first '=' separates key from value; values legitimately contain more of them
+            // (connection strings, base64 padding), so the rest is taken verbatim.
+            var separatorIndex = entry.IndexOf('=');
+            var key = separatorIndex < 0 ? string.Empty : entry[..separatorIndex].Trim();
+            if (key.Length == 0)
+            {
+                return ValidationResult.Error(
+                    $"Environment variable '{entry}' must be formatted as key=value.");
+            }
+
+            merged[key] = entry[(separatorIndex + 1)..];
+        }
+
+        environmentVariables = merged.AsReadOnly();
+        return ValidationResult.Success();
     }
 }

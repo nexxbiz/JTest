@@ -76,6 +76,7 @@ from. **⚠️ No user story can begin until this phase is complete.**
 - [X] T027 [US1] Wire `RunCommand` exit code through `ExitCodeService` (replace `results.All(...)` logic) in `src/JTest.Cli/Commands/RunCommand.cs`
 - [X] T028 [US1] Fix `ValidateCommand` to return non-zero on any invalid file and report honest counts in `src/JTest.Cli/Commands/ValidateCommand.cs`
 - [X] T029 [US1] Emit a distinct diagnostic when a JSONPath matches nothing, distinguishable from a matched `null`, in `src/JTest.Core/Utilities/VariableInterpolator.cs` and `src/JTest.Core/Steps/StepProcessor.cs` (FR-049)
+- [X] T089 [US1] `-e/--env` reaches `$.env` (FR-053): bind the repeatable option to `string[]` (`Spectre.Console.Cli` never binds an `IEnumerable<string>`, so every value was dropped — issue #74), split on the first `=` only, reject a keyless entry as a usage error, and merge `--env-file` first with `-e` laid over it so the command line wins instead of throwing on a duplicate key. Files: `src/JTest.Cli/Settings/RunCommandSettings.cs`, `contracts/cli-contract.md`; regression tests driving the real parser in `tests/JTest.UnitTests/Cli/EnvironmentVariableOptionTests.cs`
 
 **Checkpoint**: A crash/empty/invalid run can never exit 0. MVP deliverable.
 
@@ -312,6 +313,7 @@ demoable increment that does not break earlier ones.
 - Tests are required (Principle VII); write per-story tests before/with implementation and ensure they fail first.
 - `[P]` = different files, no dependency on an incomplete task.
 - Commit after each task or logical group; keep the branch pushed.
-- Total: 88 tasks — Setup 8, Foundational 12, US1 9, US2 16, US3 5, US4 10, US7 10, US5 7, US6 3, Docs 4, Polish 4.
+- Total: 89 tasks — Setup 8, Foundational 12, US1 10, US2 16, US3 5, US4 10, US7 10, US5 7, US6 3, Docs 4, Polish 4.
 - T084 was added post-implementation to capture a defect found while dogfooding `2.0.0-preview.9` (per-case cookie session dropped across a `use` template boundary); the fix and its regression test are folded into US7.
 - T085–T088 were added post-implementation from dogfooding feedback: assertions now surface subject/description, response bodies render in a collapsible JSON viewer, the redundant single default dataset level is elided, nested detail uses an indentation-guide rail, and the legacy per-suite Markdown dump is retired in favour of tidy `artifacts/` defaults (HTML+trace, or a clean Markdown projection). Folded into US2.
+- T089 was added post-implementation for issue #74 (reported against `2.0.0-preview.13`): `-e/--env` was silently ignored, so a pipeline could not retarget a suite's `env`. Folded into US1.

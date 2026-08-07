@@ -27,14 +27,26 @@ jtest run <paths...> [options]
 | `--report <file>` | Write a self-contained HTML report. |
 | `--trace <file>` | Write the canonical execution-trace JSON. |
 | `-p, --parallel <n>` | Run suites in parallel (results are equivalent to sequential). |
-| `-e, --env <k=v>` | Set an environment variable (repeatable). |
-| `--env-file <file>` | Load environment variables from a file. |
+| `-e, --env <k=v>` | Set an environment variable (repeatable); overrides the suite's own `env`. |
+| `--env-file <file>` | Load environment variables from a JSON file; also overrides the suite's `env`. |
 | `--globals-file <file>` | Load global variables from a file. |
 | `-c, --categories <list>` | Only run the given comma-separated categories. |
 | `-o, --output <dir>` | Output directory for the console/markdown report. |
 | `--skip-output` | Do not write the default report file. |
 
 The canonical trace is always built in-memory; `--trace`/`--report` persist projections of it.
+
+### Environment variables
+
+Precedence, lowest to highest: the suite's own `env` block → `--env-file` → `-e/--env`. So a
+pipeline can point a suite at a dynamically allocated address without rewriting the file:
+
+```bash
+jtest run tests/api.suite.json -e "baseUrl=http://localhost:$PORT" -e "apiKey=$API_KEY"
+```
+
+Only the first `=` separates key from value, so values may contain `=` (connection strings, base64).
+A key given twice takes the last occurrence; an entry with no key (`-e baseUrl`) is a usage error.
 
 ## `jtest validate`
 

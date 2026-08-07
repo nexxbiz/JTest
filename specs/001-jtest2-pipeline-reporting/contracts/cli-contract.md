@@ -35,6 +35,15 @@ jtest run <paths...> [options]
 | `--timeout <duration>` | duration | none | Overall run timeout → `timedOut` + exit 4. |
 | `--include-variables` | flag | off | Opt-in env/global/variable dump, values masked (FR-027/28). |
 | `--fail-on-empty` | bool | true | Discovery matched input but zero results → exit 2 (FR-003). |
+| `-e, --env <key=value>` | repeatable | none | Sets `$.env.<key>` for the run, overriding a suite-level `env` entry of the same name (FR-053). |
+| `--env-file <file>` | path | none | JSON object of environment variables, same precedence over suite `env`. |
+| `--globals-file <file>` | path | none | JSON object of global variables (`$.globals`). |
+| `-c, --categories <list>` | csv | all | Only run suites in the given categories. |
+
+**Environment precedence** (FR-053), lowest to highest: suite `env` block → `--env-file` → `-e/--env`.
+Repeating `-e` defines several variables; a key given twice takes the last occurrence. Only the
+first `=` separates key from value, so values may contain `=`. An entry with no key
+(`-e baseUrl`) is a usage error — never a silent drop.
 
 Behavior: the canonical trace is **always built in-memory**; the report and trace persist
 projections of it. **By default a run writes exactly two files — `artifacts/report.html` and

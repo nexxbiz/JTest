@@ -30,6 +30,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\JTest.Core\JTest.Core.csproj" />
+    <ProjectReference Include="..\..\src\JTest.Cli\JTest.Cli.csproj" />
   </ItemGroup>
 
   <ItemGroup>

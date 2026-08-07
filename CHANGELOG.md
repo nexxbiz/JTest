@@ -42,6 +42,16 @@ exit-code gate and a self-contained, safe HTML report, and formalizes the test-d
 - **Redacted by default:** `Cookie`/`Set-Cookie`/`Authorization` and declared secret values are
   masked in reports and the trace; all dynamic values are rendered inert (no XSS).
 
+### CLI
+
+- **`-e/--env` works again.** Values passed on the command line were silently dropped and never
+  reached `$.env`, so a suite kept whatever its own `env` block declared and a pipeline could not
+  retarget it (#74). `-e key=value` is repeatable and now overrides both the suite `env` block and
+  `--env-file` (precedence: suite `env` → `--env-file` → `-e`). Only the first `=` separates key
+  from value, so values may contain `=`; a key supplied by both `--env-file` and `-e` no longer
+  aborts the run; and a malformed entry (`-e baseUrl`) is reported as a usage error instead of
+  being ignored.
+
 ### HTTP
 
 - Response/request **headers are a case-insensitive keyed map**; multi-valued headers (e.g.
