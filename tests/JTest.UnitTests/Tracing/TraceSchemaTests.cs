@@ -71,10 +71,32 @@ public class TraceSchemaTests
             Ordinal = 2, Outcome = Outcome.Passed, Iterations = new[] { iteration }
         };
 
+        // An assertion that failed on an unresolved path, and a step carrying the matching save
+        // warning — the FR-049 diagnostics must be part of the schema-validated shape.
+        var unresolved = new AssertionResult
+        {
+            Id = TraceBuilder.Path(step0Path, "assert", 1),
+            Operation = "equals",
+            Subject = "{{$.this.body.length}}",
+            Expected = 3,
+            Outcome = Outcome.Failed,
+            Message = "JSONPath '$.this.body.length' matched nothing",
+            Diagnostics = new[] { Diagnostic.Error("JSONPath '$.this.body.length' matched nothing") }
+        };
+
         var step0 = new StepNode
         {
             Id = step0Path, Path = step0Path, Kind = NodeKind.Step, StepType = "http",
-            Ordinal = 1, Outcome = Outcome.Passed
+            Ordinal = 1, Outcome = Outcome.Passed,
+            Assertions = new[] { unresolved },
+            Diagnostics = new[]
+            {
+                new Diagnostic
+                {
+                    Severity = DiagnosticSeverity.Warning,
+                    Message = "save '$.ctx.x': JSONPath '$.this.missing' matched nothing"
+                }
+            }
         };
 
         var dataset = new DatasetResult
@@ -107,7 +129,15 @@ public class TraceSchemaTests
             Outcome = Outcome.Passed,
             ExitCode = 0,
             Counts = Rollup.From(new[] { Outcome.Passed }),
-            Suites = new[] { suite }
+            Suites = new[] { suite },
+            Run = new Dictionary<string, object?>
+            {
+                ["uuid"] = "0f8fad5b-d9cb-469f-a165-70867728950e",
+                ["id"] = "0f8fad5b",
+                ["timestamp"] = "1970-01-01T00:00:00.0000000+00:00",
+                ["epoch"] = 0L,
+                ["epochMs"] = 0L
+            }
         };
     }
 

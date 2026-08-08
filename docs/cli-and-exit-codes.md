@@ -16,6 +16,10 @@ gate a pipeline reads.
 When more than one class occurs in a run, the reported code follows the precedence
 `2 > 3 > 4 > 1`. "No results" is never success.
 
+A suite that fails to load (malformed JSON, an unknown step type or assertion operator) is recorded
+as an errored suite rather than aborting the run: the remaining suites still execute, the report and
+trace are still written, and the failure is named in both.
+
 ## `jtest run`
 
 ```
@@ -56,6 +60,10 @@ jtest validate <paths...>
 
 Validates each file against the JTest language schema and prints located diagnostics. Exits `0` when
 all files are valid, `3` when any file is invalid. Use it as a fast pre-gate in CI.
+
+It also resolves every assertion operator, so a typo such as `"op": "isEqual"` is reported here —
+with its location and the supported operators — instead of surfacing later as a suite that fails to
+load.
 
 ## Other commands
 

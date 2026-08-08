@@ -54,8 +54,13 @@ exit-code gate and a self-contained, safe HTML report, and formalizes the test-d
 
 ### HTTP
 
-- Response/request **headers are a case-insensitive keyed map**; multi-valued headers (e.g.
-  `set-cookie`) expose all values. `$.this.headers['content-type']` now works.
+- Response/request **header keys are normalized to lower case**, so a header is addressable
+  regardless of the casing the server sent: `$.this.headers['content-type']` works whether the
+  response said `Content-Type` or `content-type`. The map was previously built with a
+  case-insensitive comparer, but that comparer does not survive the serialization to JSON that
+  precedes JSONPath evaluation, and RFC 9535 name selectors are case-sensitive — so only the
+  server's exact casing resolved, and any other casing silently produced an empty string.
+  Multi-valued headers (e.g. `set-cookie`) expose all values.
 - Response data exposes **`statusCode`** (canonical) and **`status`** (alias).
 - **Deterministic per-case cookie sessions:** a login step's cookies are carried to later steps in
   the same test case automatically, isolated between cases, independent of HTTP handler lifetime.
@@ -66,12 +71,43 @@ exit-code gate and a self-contained, safe HTML report, and formalizes the test-d
   diagnostics, and returns a non-zero exit code when any file is invalid. The previous check was a
   shallow structural probe mislabeled as "schema" validation, and it always exited `0`.
 - **Unknown step types and structurally invalid definitions are now rejected.**
+- **`jtest validate` now rejects an unknown assertion operator**, with its JSON Pointer location and
+  the list of supported operators — previously a typo like `"op": "isEqual"` validated clean and only
+  surfaced at run time. Operators are resolved against the runtime's own registry, so validation
+  cannot be stricter than execution: case variants such as `notEquals` remain valid.
+- **A suite that cannot be loaded no longer aborts the run.** Every discovered file was deserialized
+  eagerly, before execution and outside the executor's per-suite boundary, so one malformed
+  definition (bad JSON, unknown step type, unknown operator) took down the whole invocation: the
+  other suites never ran, no trace or report was written, and the process exited `127` — outside the
+  documented exit-code contract. A load failure is now captured as an errored suite: the remaining
+  suites still execute, artifacts are still written, the failure is named in the trace and report,
+  and the run exits `2` (execution error) as specified.
+- An unknown operator encountered at run time now reports the supported operators instead of
+  `Type with identifier 'x' is not registered`.
 - The `while` step now carries an explicit `type: "while"` identifier (previously relied on a
   class-name convention).
 - JSONPath is pinned to **RFC 9535** (JsonPath.Net); filter selectors use `?@.expr`. Filter and
   multi-match resolution is guaranteed in `save`, assertions, and interpolation.
 - A JSONPath that matches nothing is reported as a distinct diagnostic rather than silently
-  coerced to `null`.
+  coerced to `null` — now at the point of use, not only in the resolver. An assertion whose
+  actual/expected contains an unresolved path fails naming that path (and carries it in the trace as
+  an assertion-level diagnostic) instead of comparing a blank value; a `save` from an unresolved path
+  records a warning on the step. `exists`/`notexists` are exempt, since for them "matched nothing" is
+  the answer being tested. The diagnostic hints at the common JavaScript-isms — `.length`, `.count`,
+  `.size` do not exist in RFC 9535 JSONPath — and otherwise at casing.
+- **`in` accepts scalar actual values.** `{ "op": "in", "actualValue": "{{$.this.statusCode}}",
+  "expectedValue": [200, 201] }` was rejected with "expects a collection or string, but got integer":
+  the cardinality guard checked the wrong operand. `in` asks whether a *scalar* actual is one of the
+  *expected* values, so it is the expectedValue that must be a collection — which is now what is
+  validated, with a clearer error when it is not.
+- **`for` accepts an empty item list**, running zero iterations instead of failing validation. The
+  natural "clean up whatever is left over" loop has the zero-items case as its normal state.
+- **New `$.run` variables** — `$.run.id` (short unique token), `$.run.uuid`, `$.run.timestamp`,
+  `$.run.epoch`, `$.run.epochMs`. A suite that creates a resource with globally-unique server-side
+  identity (e.g. an HTTP route) can now generate a fresh value per run instead of passing once and
+  conflicting forever. Values are stable for the whole run, so a create step and a later fetch step
+  agree without an intervening `save`, and they are recorded in the trace under `run` so a failed run
+  stays reproducible.
 
 ### Release
 

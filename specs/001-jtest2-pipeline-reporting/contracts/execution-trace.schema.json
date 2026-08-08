@@ -17,7 +17,12 @@
     "counts": { "$ref": "#/$defs/rollup" },
     "suites": { "type": "array", "items": { "$ref": "#/$defs/suite" } },
     "diagnostics": { "type": "array", "items": { "$ref": "#/$defs/diagnostic" } },
-    "environment": { "$ref": "#/$defs/redactedMap" }
+    "environment": { "$ref": "#/$defs/redactedMap" },
+    "run": {
+      "type": "object",
+      "description": "Generated per-run values exposed to suites as $.run (uuid, id, timestamp, epoch, epochMs). Always recorded, so a suite that derives unique identifiers from them stays reproducible.",
+      "additionalProperties": true
+    }
   },
   "$defs": {
     "outcome": {
@@ -199,7 +204,12 @@
         "subject": { "description": "The original actual expression asserted (e.g. a JSONPath), for report clarity." },
         "description": { "type": "string", "description": "Optional human description of the check." },
         "outcome": { "type": "string", "enum": ["passed", "failed"] },
-        "message": { "type": "string" }
+        "message": { "type": "string" },
+        "diagnostics": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/diagnostic" },
+          "description": "Diagnostics at this assertion's point of use, e.g. a JSONPath that matched nothing (FR-049)."
+        }
       }
     },
     "httpExchange": {

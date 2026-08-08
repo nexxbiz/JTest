@@ -84,6 +84,66 @@ public class ExecutionTraceAssemblerTests
         Assert.Contains("\"kind\": \"loop\"", TraceJson.Serialize(trace));
     }
 
+    /// <summary>
+    /// FR-049: an unresolved path must be visible as a diagnostic at its point of use — on the failing
+    /// assertion, and as a step-level warning for a <c>save</c> that stored nothing.
+    /// </summary>
+    [Fact]
+    public void Assemble_UnresolvedPaths_SurfaceAsDiagnostics()
+    {
+        var failed = new JTest.Core.Assertions.AssertionResult(false, "JSONPath '$.this.body.length' matched nothing")
+        {
+            Operation = "equals",
+            Subject = "{{$.this.body.length}}",
+            UnresolvedPaths = ["$.this.body.length"]
+        };
+
+        var step = new StepProcessedResult(1)
+        {
+            Step = new WaitStep(new(Ms: 1)),
+            Success = false,
+            ErrorMessage = "Assertions failed",
+            AssertionResults = [failed],
+            Warnings = ["save '$.ctx.x': JSONPath '$.this.missing' matched nothing"]
+        };
+        var caseResult = new JTestCaseResult { TestCaseName = "unresolved" };
+        caseResult.AddStepResult(step);
+        var suite = new JTestSuiteExecutionResult("f.json", "s", null, new[] { caseResult });
+
+        var trace = ExecutionTraceAssembler.Assemble(
+            new[] { suite }, "2.0.0", 0, DateTimeOffset.UnixEpoch, DateTimeOffset.UnixEpoch);
+        var stepNode = trace.Suites[0].Cases[0].Datasets[0].Steps[0];
+
+        var assertionDiagnostics = stepNode.Assertions!.Single().Diagnostics;
+        Assert.NotNull(assertionDiagnostics);
+        Assert.Contains("$.this.body.length", assertionDiagnostics!.Single().Message);
+
+        var warning = stepNode.Diagnostics!.Single(d => d.Severity == DiagnosticSeverity.Warning);
+        Assert.Contains("$.this.missing", warning.Message);
+    }
+
+    [Fact]
+    public void Assemble_PassingAssertion_HasNoUnresolvedPathDiagnostics()
+    {
+        // A passing 'notexists' resolves nothing by design — that must not read as an error.
+        var passed = new JTest.Core.Assertions.AssertionResult(true)
+        {
+            Operation = "notexists",
+            Subject = "{{$.this.gone}}",
+            UnresolvedPaths = ["$.this.gone"]
+        };
+
+        var step = new StepProcessedResult(1) { Step = new WaitStep(new(Ms: 1)), Success = true, AssertionResults = [passed] };
+        var caseResult = new JTestCaseResult { TestCaseName = "absent" };
+        caseResult.AddStepResult(step);
+        var suite = new JTestSuiteExecutionResult("f.json", "s", null, new[] { caseResult });
+
+        var trace = ExecutionTraceAssembler.Assemble(
+            new[] { suite }, "2.0.0", 0, DateTimeOffset.UnixEpoch, DateTimeOffset.UnixEpoch);
+
+        Assert.Null(trace.Suites[0].Cases[0].Datasets[0].Steps[0].Assertions!.Single().Diagnostics);
+    }
+
     [Fact]
     public void Assemble_CrashingSuite_IsErroredNode_WithDiagnostic()
     {

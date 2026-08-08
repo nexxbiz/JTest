@@ -30,7 +30,10 @@
       "type": "object",
       "required": ["op"],
       "properties": {
-        "op": { "type": "string" }
+        "op": {
+          "type": "string",
+          "description": "Assertion operator, matched case-insensitively: equals, notequals, exists, notexists, in, contains, notcontains, startswith, endswith, match, greaterthan, greaterorequal, lessthan, lessorequal, between, length, empty, notempty, type. 'in' takes a collection as expectedValue ('one of these values'); length/empty/notempty inspect actualValue as a collection."
+        }
       }
     },
     "step": {

@@ -49,9 +49,10 @@ public sealed class StepProcessor(IAssertionProcessor assertionProcessor) : ISte
     }
 
     /// <summary>
-    /// Stores step result data in execution context
+    /// Stores step result data in execution context. Returns any FR-049 warnings raised by save
+    /// sources whose JSONPath matched nothing.
     /// </summary>
-    private void StoreResultInContext(IStep step, IExecutionContext context, object? data)
+    private IReadOnlyList<string> StoreResultInContext(IStep step, IExecutionContext context, object? data)
     {
         context.Variables["this"] = data;
 
@@ -60,25 +61,31 @@ public sealed class StepProcessor(IAssertionProcessor assertionProcessor) : ISte
             context.Variables[step.Configuration.Id] = data;
         }
 
-        ProcessSaveOperations(step.Configuration, context);
+        return ProcessSaveOperations(step.Configuration, context);
     }
 
     /// <summary>
     /// Processes save operations from step configuration
     /// </summary>
-    private void ProcessSaveOperations(IStepConfiguration? stepConfiguration, IExecutionContext context)
+    private IReadOnlyList<string> ProcessSaveOperations(IStepConfiguration? stepConfiguration, IExecutionContext context)
     {
         if (stepConfiguration is null || !(stepConfiguration.Save?.Count > 0))
         {
-            return;
+            return [];
         }
 
+        var warnings = new List<string>();
         var save = JsonSerializer.SerializeToElement(stepConfiguration.Save);
         foreach (var saveProperty in save.EnumerateObject())
         {
             try
             {
-                var resolvedValue = GetSaveValue(saveProperty.Value, context);
+                var resolvedValue = GetSaveValue(saveProperty.Value, context, out var unresolvedPaths);
+
+                foreach (var path in unresolvedPaths)
+                {
+                    warnings.Add($"save '{saveProperty.Name}': {VariableInterpolator.DescribeUnresolvedPath(path)}");
+                }
 
                 // Parse the target path to determine where to save
                 var targetPath = saveProperty.Name;
@@ -89,6 +96,8 @@ public sealed class StepProcessor(IAssertionProcessor assertionProcessor) : ISte
                 throw new InvalidOperationException($"Failed to process save operation '{saveProperty.Name}': {ex.Message}");
             }
         }
+
+        return warnings;
     }
 
     /// <summary>
@@ -195,7 +204,7 @@ public sealed class StepProcessor(IAssertionProcessor assertionProcessor) : ISte
         StepExecutionResult stepExecutionResult)
     {
         // Store result in context and process save operations
-        StoreResultInContext(step, context, stepExecutionResult.Data);
+        var saveWarnings = StoreResultInContext(step, context, stepExecutionResult.Data);
 
         // Detect context changes after save operations
         var contextChanges = DetectContextChanges(contextBefore, context.Variables);
@@ -227,6 +236,7 @@ public sealed class StepProcessor(IAssertionProcessor assertionProcessor) : ISte
             AssertionResults = assertionResults ?? [],
             Data = stepExecutionResult.Data,
             ContextChanges = contextChanges,
+            Warnings = saveWarnings,
             InnerResults = stepExecutionResult.InnerProcessedResults ?? [],
             Iterations = stepExecutionResult.Iterations ?? [],
             TimedOut = stepExecutionResult.TimedOut,
@@ -262,6 +272,20 @@ public sealed class StepProcessor(IAssertionProcessor assertionProcessor) : ISte
     /// <summary>
     /// Gets the save value from JSON element, handling different value types
     /// </summary>
+    private object? GetSaveValue(JsonElement element, IExecutionContext context, out IReadOnlyList<string> unresolvedPaths)
+    {
+        unresolvedPaths = [];
+
+        if (element.ValueKind == JsonValueKind.String)
+        {
+            var resolved = VariableInterpolator.ResolveVariableTokens(element.GetString() ?? "", context, out var unresolved);
+            unresolvedPaths = unresolved;
+            return resolved;
+        }
+
+        return GetSaveValue(element, context);
+    }
+
     private object? GetSaveValue(JsonElement element, IExecutionContext context)
     {
         return element.ValueKind switch

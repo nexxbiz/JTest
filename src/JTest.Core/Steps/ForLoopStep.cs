@@ -10,19 +10,15 @@ public sealed class ForLoopStep(IStepProcessor stepProcessor, ForLoopStepConfigu
 {
     protected override void Validate(IExecutionContext context, IList<string> validationErrors)
     {
-        IEnumerable<object?>? items = null;
         try
         {
-            items = Configuration.Items.ConvertToArray(context);
+            // An empty item list is valid: the loop runs zero iterations. "Clean up whatever is left
+            // over" is a normal shape, and its zero-items case must not be an error.
+            _ = Configuration.Items.ConvertToArray(context);
         }
         catch (Exception e)
         {
             validationErrors.Add(e.Message);
-        }
-
-        if (items?.Any() == false)
-        {
-            validationErrors.Add("At least 1 item must be specified");
         }
 
         if (!Configuration.Steps.Any())

@@ -18,18 +18,40 @@ public abstract class AssertionOperationBase(object? actualValue, object? expect
         .Replace("Assertion", string.Empty)
         .ToLowerInvariant();
 
+    /// <summary>
+    /// Operators for which an unresolved path IS the signal being tested, rather than a broken
+    /// expression — 'notexists' against a path that matches nothing must still pass.
+    /// </summary>
+    private static readonly string[] ExistenceOperators = ["exists", "notexists"];
+
     public AssertionResult Execute(IExecutionContext context)
     {
         object? resolvedActualValue = null;
         object? resolvedExpectedValue = null;
+        var unresolvedPaths = new List<string>();
 
         if (ActualValue is not null)
         {
-            resolvedActualValue = GetAssertionValue(ActualValue, context);
+            resolvedActualValue = GetAssertionValue(ActualValue, context, unresolvedPaths);
         }
         if (ExpectedValue is not null)
         {
-            resolvedExpectedValue = GetAssertionValue(ExpectedValue, context);
+            resolvedExpectedValue = GetAssertionValue(ExpectedValue, context, unresolvedPaths);
+        }
+
+        // An unresolved path makes any comparison meaningless: the operand never had a value, so a
+        // pass or a fail here would both be misleading. Report the path itself (FR-049). Existence
+        // operators are exempt — for them, "matched nothing" is the answer, not a broken expression.
+        if (unresolvedPaths.Count > 0 && !ExistenceOperators.Contains(OperationName))
+        {
+            return new AssertionResult(false, string.Join(" ", unresolvedPaths.Select(VariableInterpolator.DescribeUnresolvedPath)))
+            {
+                ActualValue = resolvedActualValue,
+                ExpectedValue = resolvedExpectedValue,
+                Subject = ActualValue,
+                Operation = OperationName,
+                UnresolvedPaths = unresolvedPaths
+            };
         }
 
         if (!ValidateCardinality(resolvedActualValue, resolvedExpectedValue, out var errorMessage))
@@ -39,7 +61,8 @@ public abstract class AssertionOperationBase(object? actualValue, object? expect
                 ActualValue = resolvedActualValue,
                 ExpectedValue = resolvedExpectedValue,
                 Subject = ActualValue,
-                Operation = OperationName
+                Operation = OperationName,
+                UnresolvedPaths = unresolvedPaths
             };
         }
 
@@ -53,7 +76,8 @@ public abstract class AssertionOperationBase(object? actualValue, object? expect
             ActualValue = resolvedActualValue,
             ExpectedValue = resolvedExpectedValue,
             Subject = ActualValue,
-            Operation = OperationName
+            Operation = OperationName,
+            UnresolvedPaths = unresolvedPaths
         };
     }
 
@@ -61,7 +85,7 @@ public abstract class AssertionOperationBase(object? actualValue, object? expect
 
     protected abstract string GetErrorMessage(object? resolvedActualValue, object? resolvedExpectedValue);
 
-    private static object? GetAssertionValue(object value, IExecutionContext context)
+    private static object? GetAssertionValue(object value, IExecutionContext context, ICollection<string> unresolvedPaths)
     {
         if (value is JsonElement jsonElement && jsonElement.ValueKind == JsonValueKind.String)
         {
@@ -70,7 +94,13 @@ public abstract class AssertionOperationBase(object? actualValue, object? expect
 
         if (value is string stringValue)
         {
-            return VariableInterpolator.ResolveVariableTokens(stringValue, context);
+            var resolved = VariableInterpolator.ResolveVariableTokens(stringValue, context, out var unresolved);
+            foreach (var path in unresolved)
+            {
+                unresolvedPaths.Add(path);
+            }
+
+            return resolved;
         }
 
         return value;
@@ -80,13 +110,23 @@ public abstract class AssertionOperationBase(object? actualValue, object? expect
     {
         errorMessage = null;
 
-        var collectionOperators = new[] { "length", "empty", "notempty", "in" };
+        // Operators that inspect the actual value AS a collection. 'in' is deliberately not one of
+        // them: it asks whether a scalar actual is one of the expected values, so it is the EXPECTED
+        // value that must be a collection.
+        var collectionOperators = new[] { "length", "empty", "notempty" };
 
         if (collectionOperators.Contains(OperationName) && resolvedActualValue != null && !IsCollectionLike(resolvedActualValue))
         {
             errorMessage =
                 $"Operator '{OperationName}' expects a collection or string, but got {GetValueTypeDescription(resolvedActualValue)}. " +
                 "Consider using a scalar operator like 'equals' or 'type' instead.";
+        }
+
+        if (OperationName == "in" && resolvedExpectedValue != null && !IsCollectionLike(resolvedExpectedValue))
+        {
+            errorMessage =
+                $"Operator 'in' expects a collection as expectedValue (e.g. [200, 201]), but got " +
+                $"{GetValueTypeDescription(resolvedExpectedValue)}.";
         }
 
         if (OperationName == "between" && resolvedExpectedValue != null && !(resolvedExpectedValue is JsonElement { ValueKind: JsonValueKind.Array }))

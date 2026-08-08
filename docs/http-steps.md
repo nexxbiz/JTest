@@ -20,7 +20,7 @@ An `http` step sends a request and exposes the response as `$.this` for later st
 {
   "statusCode": 200,          // HTTP status (canonical)
   "status": 200,              // alias of statusCode
-  "headers": {                // case-insensitive keyed map
+  "headers": {                // keys are always lower case
     "content-type": "application/json",
     "set-cookie": ["session=…; HttpOnly", "csrf=…"]   // multi-valued headers are arrays
   },
@@ -30,7 +30,13 @@ An `http` step sends a request and exposes the response as `$.this` for later st
 ```
 
 - Read the status with `{{$.this.statusCode}}` (or `{{$.this.status}}`).
-- Read a header case-insensitively: `{{$.this.headers['content-type']}}`.
+- **Header keys are normalized to lower case**, on both the response and `request.headers`. Address
+  them that way regardless of the casing the server sent: `{{$.this.headers['content-type']}}` works
+  whether the response said `Content-Type`, `content-type`, or `CONTENT-TYPE`.
+  Header names are case-insensitive per RFC 9110, but JSONPath name selectors are case-**sensitive**
+  per RFC 9535, so the map is normalized at capture rather than matched loosely at lookup.
+  `{{$.this.headers['Content-Type']}}` therefore matches nothing and is reported as an unresolved
+  path — see [unresolved paths](language-reference.md#variables-and-jsonpath).
 - Multi-valued headers such as `set-cookie` are arrays.
 
 ## Cookies and sessions

@@ -75,7 +75,12 @@ public class RunCommand : CommandBase<RunCommandSettings>
             ? VariableDump.Build(_variablesContext.EnvironmentVariables, _variablesContext.GlobalVariables)
             : null;
 
-        WriteOutputs(settings, trace with { ExitCode = exitCode, Environment = environment });
+        WriteOutputs(settings, trace with
+        {
+            ExitCode = exitCode,
+            Environment = environment,
+            Run = _variablesContext.RunVariables
+        });
         return exitCode;
     }
 
@@ -145,9 +150,8 @@ public class RunCommand : CommandBase<RunCommandSettings>
 
     private async Task<IEnumerable<JTestSuiteExecutionResult>?> ExecuteRunCommand(RunCommandSettings settings, CancellationToken cancellationToken)
     {
-        var testSuites = ReadTestSuites(settings);
-        var jTestSuites = testSuites as JTestSuite[] ?? testSuites.ToArray();
-        if (jTestSuites.Length == 0)
+        var loads = ReadTestSuites(settings);
+        if (loads.Count == 0)
         {
             Console.WriteLine(
                 $"Error: No test files found matching patterns: {string.Join(", ", settings.TestFilePatterns)}",
@@ -156,28 +160,97 @@ public class RunCommand : CommandBase<RunCommandSettings>
             return null;
         }
 
-        if (settings.ParallelTestExecutionCount > 1)
+        var loaded = loads.Where(l => l.Suite is not null).Select(l => l.Suite!).ToArray();
+
+        foreach (var failure in loads.Where(l => l.Suite is null))
         {
-            Console.WriteLine($"Running {jTestSuites.Length} test files in parallel (max concurrent: {settings.ParallelTestExecutionCount})");
-            return _testSuiteExecutor.ExecuteParallel(jTestSuites, settings.ParallelTestExecutionCount.Value, cancellationToken);
+            Console.WriteLine($"Test file {failure.FilePath} failed to load: {failure.Error}", new Style(foreground: Color.Red));
         }
 
-        return await _testSuiteExecutor.Execute(jTestSuites, cancellationToken);
+        var executed = Array.Empty<JTestSuiteExecutionResult>() as IEnumerable<JTestSuiteExecutionResult>;
+        if (loaded.Length > 0)
+        {
+            if (settings.ParallelTestExecutionCount > 1)
+            {
+                Console.WriteLine($"Running {loaded.Length} test files in parallel (max concurrent: {settings.ParallelTestExecutionCount})");
+                executed = _testSuiteExecutor.ExecuteParallel(loaded, settings.ParallelTestExecutionCount.Value, cancellationToken);
+            }
+            else
+            {
+                executed = await _testSuiteExecutor.Execute(loaded, cancellationToken);
+            }
+        }
+
+        return MergeInDiscoveryOrder(loads, executed);
     }
 
-    private IEnumerable<JTestSuite> ReadTestSuites(RunCommandSettings settings)
+    /// <summary>
+    /// Rebuilds the result list in discovery order, pairing each discovered file with either its
+    /// execution result or its load failure. Matching is by file path because parallel execution does
+    /// not preserve input order.
+    /// </summary>
+    private static IEnumerable<JTestSuiteExecutionResult> MergeInDiscoveryOrder(
+        IReadOnlyList<SuiteLoad> loads,
+        IEnumerable<JTestSuiteExecutionResult> executed)
+    {
+        var byPath = executed
+            .GroupBy(r => r.FilePath, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => new Queue<JTestSuiteExecutionResult>(g), StringComparer.OrdinalIgnoreCase);
+
+        var results = new List<JTestSuiteExecutionResult>(loads.Count);
+        foreach (var load in loads)
+        {
+            if (load.Suite is null)
+            {
+                // A suite that could not be loaded is captured as errored, never dropped — it fails the
+                // run AND still appears in the trace and report (FR-002).
+                results.Add(new JTestSuiteExecutionResult(load.FilePath, null, null, Array.Empty<JTestCaseResult>())
+                {
+                    ExecutionError = load.Error
+                });
+                continue;
+            }
+
+            if (byPath.TryGetValue(load.FilePath, out var queue) && queue.Count > 0)
+                results.Add(queue.Dequeue());
+        }
+
+        // Anything the executor returned that did not match a discovered path (defensive; keeps every
+        // result rather than silently losing one).
+        foreach (var leftover in byPath.Values.SelectMany(q => q))
+            results.Add(leftover);
+
+        return results;
+    }
+
+    /// <summary>One discovered file: either a parsed suite, or the error that prevented parsing it.</summary>
+    private sealed record SuiteLoad(string FilePath, JTestSuite? Suite, string? Error);
+
+    /// <summary>
+    /// Reads every discovered file, isolating failures per file. A malformed definition (bad JSON, an
+    /// unknown step type or assertion operator) must not abort the whole run: the other suites still
+    /// execute and the run still produces a trace and report.
+    /// </summary>
+    private IReadOnlyList<SuiteLoad> ReadTestSuites(RunCommandSettings settings)
     {
         var testFiles = JsonFileSearcher.Search(settings.TestFilePatterns, settings.GetCategories());
 
         return testFiles.Select(filePath =>
         {
-            var json = File.ReadAllText(filePath);
-            var testSuite = JsonSerializer.Deserialize<JTestSuite>(json, _serializerOptionsCache.Options)
-                ?? throw new ArgumentException($"Test suite at path '{filePath}' is not a valid JTestSuite");
-            testSuite.FilePath = filePath;
+            try
+            {
+                var json = File.ReadAllText(filePath);
+                var testSuite = JsonSerializer.Deserialize<JTestSuite>(json, _serializerOptionsCache.Options)
+                    ?? throw new ArgumentException($"Test suite at path '{filePath}' is not a valid JTestSuite");
+                testSuite.FilePath = filePath;
 
-            return testSuite;
-        });
+                return new SuiteLoad(filePath, testSuite, null);
+            }
+            catch (Exception ex)
+            {
+                return new SuiteLoad(filePath, null, ex.Message);
+            }
+        }).ToList();
     }
 
     private void InitializeVariablesContext(RunCommandSettings settings)

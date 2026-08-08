@@ -6,6 +6,7 @@ using JTest.Core.Models;
 using JTest.Core.Steps;
 using JTest.Core.Steps.Configuration;
 using JTest.Core.Templates;
+using JTest.Core.Utilities;
 using NSubstitute;
 using Spectre.Console;
 using Xunit;
@@ -94,6 +95,45 @@ public class HttpCookieSessionTests
         Assert.Contains("application/json", headers["content-type"]!.ToString()); // "Content-Type" read case-insensitively
         var setCookie = Assert.IsType<string[]>(headers["set-cookie"]);           // multi-valued → array
         Assert.Equal(2, setCookie.Length);
+    }
+
+    /// <summary>
+    /// Regression (FR-040): headers must be addressable in lower case through JSONPath — the layer
+    /// authors actually use. The dictionary's case-insensitive comparer does not survive the
+    /// serialization to JSON that precedes JSONPath evaluation, and RFC 9535 name selectors are
+    /// case-sensitive, so keys are normalized at capture instead. Previously `headers['content-type']`
+    /// resolved to an empty string whenever the server sent `Content-Type`.
+    /// </summary>
+    [Fact]
+    public async Task ResponseHeaders_AreAddressableInLowerCase_ThroughJsonPath()
+    {
+        var client = new HttpClient(new StubHandler());
+        var context = new TestExecutionContext();
+
+        var result = await new HttpStep(client, new HttpStepConfiguration("GET", "https://api.test/x")).ExecuteAsync(context);
+        context.Variables["this"] = result.Data;
+
+        var resolved = VariableInterpolator.ResolveVariableTokens("{{$.this.headers['content-type']}}", context, out var unresolved);
+
+        Assert.Empty(unresolved);
+        Assert.Contains("application/json", resolved!.ToString());
+    }
+
+    [Fact]
+    public async Task RequestHeaders_AreAlsoNormalized()
+    {
+        var client = new HttpClient(new StubHandler());
+        var context = new TestExecutionContext();
+
+        var configuration = new HttpStepConfiguration("POST", "https://api.test/x",
+            Headers: [new HttpStepRequestHeaderConfiguration("X-Correlation-Id", "abc")]);
+        var result = await new HttpStep(client, configuration).ExecuteAsync(context);
+        context.Variables["this"] = result.Data;
+
+        var resolved = VariableInterpolator.ResolveVariableTokens("{{$.this.request.headers['x-correlation-id']}}", context, out var unresolved);
+
+        Assert.Empty(unresolved);
+        Assert.Equal("abc", resolved);
     }
 
     /// <summary>

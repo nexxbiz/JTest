@@ -360,6 +360,12 @@ public sealed class HttpStep(HttpClient httpClient, HttpStepConfiguration config
     /// <summary>
     /// Build a case-insensitive keyed header map (FR-040). A single-valued header maps to a string;
     /// a multi-valued header (e.g. set-cookie) maps to an array of all its values.
+    ///
+    /// Keys are normalized to lower case. Header names are case-insensitive per RFC 9110 (and lower
+    /// case is the HTTP/2 wire form), but this map is addressed through JSONPath, whose name
+    /// selectors are case-SENSITIVE per RFC 9535 — a dictionary comparer cannot help, because the
+    /// context is serialized to JSON before evaluation. Normalizing at capture is what actually makes
+    /// `headers['content-type']` work regardless of the casing a given server happens to send.
     /// </summary>
     private static Dictionary<string, object?> ToHeaderMap(IEnumerable<KeyValuePair<string, IEnumerable<string>>> headers)
     {
@@ -367,7 +373,7 @@ public sealed class HttpStep(HttpClient httpClient, HttpStepConfiguration config
         foreach (var header in headers)
         {
             var values = header.Value.ToArray();
-            map[header.Key] = values.Length == 1 ? values[0] : values;
+            map[header.Key.ToLowerInvariant()] = values.Length == 1 ? values[0] : values;
         }
         return map;
     }

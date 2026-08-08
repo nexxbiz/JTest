@@ -33,6 +33,13 @@ public sealed record ExecutionTrace
 
     /// <summary>Opt-in, masked environment/global dump (FR-027/28). Omitted by default.</summary>
     public IReadOnlyDictionary<string, object?>? Environment { get; init; }
+
+    /// <summary>
+    /// The generated per-run values exposed to suites as <c>$.run</c>. Always recorded, unlike the
+    /// opt-in variable dump: a suite that derives unique identifiers from these is only reproducible
+    /// if the run's actual values are part of the evidence.
+    /// </summary>
+    public IReadOnlyDictionary<string, object?>? Run { get; init; }
 }
 
 public sealed record SuiteResult
@@ -143,6 +150,10 @@ public sealed record AssertionResult
     /// <summary>Only Passed or Failed for an assertion.</summary>
     public required Outcome Outcome { get; init; }
     public string? Message { get; init; }
+
+    /// <summary>Diagnostics at this assertion's point of use — notably a JSONPath in its
+    /// actual/expected that matched nothing, which is distinct from matching a null (FR-049).</summary>
+    public IReadOnlyList<Diagnostic>? Diagnostics { get; init; }
 }
 
 /// <summary>Added/modified context variables for a step (redacted).</summary>

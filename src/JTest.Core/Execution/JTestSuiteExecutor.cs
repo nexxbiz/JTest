@@ -145,7 +145,7 @@ public sealed class JTestSuiteExecutor(IJTestCaseExecutor testCaseExecutor, IVar
         int testNumber = 1;
         foreach (var testCase in testSuite.Tests)
         {
-            var context = CreateExecutionContext(mergedEnvironment, mergedGlobals);
+            var context = CreateExecutionContext(mergedEnvironment, mergedGlobals, variablesContext.RunVariables);
             var results = await testCaseExecutor.ExecuteAsync(testCase, context, testNumber);
             allResults.AddRange(results);
             testNumber++;
@@ -154,12 +154,18 @@ public sealed class JTestSuiteExecutor(IJTestCaseExecutor testCaseExecutor, IVar
         return allResults;
     }
 
-    private static TestExecutionContext CreateExecutionContext(Dictionary<string, object?>? environmentVariables, Dictionary<string, object?>? globalVariables)
+    private static TestExecutionContext CreateExecutionContext(
+        Dictionary<string, object?>? environmentVariables,
+        Dictionary<string, object?>? globalVariables,
+        IReadOnlyDictionary<string, object?>? runVariables)
     {
         var context = new TestExecutionContext();
         context.Variables["env"] = environmentVariables ?? [];
         context.Variables["globals"] = globalVariables ?? [];
         context.Variables["ctx"] = new Dictionary<string, object?>();
+        context.Variables["run"] = runVariables is null
+            ? new Dictionary<string, object?>()
+            : new Dictionary<string, object?>(runVariables);
 
         return context;
     }

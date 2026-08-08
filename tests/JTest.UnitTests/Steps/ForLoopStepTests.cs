@@ -49,6 +49,42 @@ public sealed class ForLoopStepTests
 
 
     [Fact]
+    public void When_Validate_And_ItemsEmpty_Then_Succeeds()
+    {
+        // An empty item list is the normal case for a "clean up whatever is left over" loop; it must
+        // mean zero iterations, not a validation error.
+        var context = new TestExecutionContext();
+        var configuration = new ForLoopStepConfiguration(
+            Array.Empty<object>(),
+            [Substitute.For<IStep>()]
+        );
+        var step = GetSut(configuration);
+
+        var result = step.Validate(context, out var errors);
+
+        Assert.True(result);
+        Assert.Empty(errors);
+    }
+
+    [Fact]
+    public async Task When_Execute_And_ItemsEmpty_Then_RunsZeroIterations()
+    {
+        var context = new TestExecutionContext();
+        var configuration = new ForLoopStepConfiguration(
+            Array.Empty<object>(),
+            [new WaitStep(new(Ms: 1))]
+        );
+        var step = GetSut(configuration);
+
+        var result = await step.ExecuteAsync(context, default);
+
+        Assert.NotNull(result.Data);
+        Assert.Equal(0, result.Data["completedIterationCount"]);
+        Assert.Equal(true, result.Data["allIterationsSucceeded"]);
+        Assert.Empty(result.InnerProcessedResults);
+    }
+
+    [Fact]
     public async Task When_Execute_And_StepFails_Then_BreaksLoop()
     {
         // Arrange
@@ -146,7 +182,6 @@ public sealed class ForLoopStepTests
 
     public static readonly IEnumerable<object[]> InvalidItemsTestMemberData =
     [
-        [Array.Empty<object>()],
         ["{{ $.unknownToken }}"],
         ["invalid type"],
         [123],

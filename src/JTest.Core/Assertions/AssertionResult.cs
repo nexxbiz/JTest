@@ -21,6 +21,13 @@ public sealed record AssertionResult(bool Success, string ErrorMessage = "")
     /// </summary>
     public object? Subject { get; init; }
 
+    /// <summary>
+    /// JSONPaths in this assertion's actual/expected that matched nothing. Recorded so the trace and
+    /// report can show an unresolved path as its own diagnostic instead of letting it collapse into a
+    /// blank value that reads like a data problem (FR-049).
+    /// </summary>
+    public IReadOnlyList<string> UnresolvedPaths { get; init; } = [];
+
     public bool MaskValue => mask == true;
 
     public void SetMask(bool? value)

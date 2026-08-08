@@ -50,6 +50,13 @@ public sealed class StepProcessedResult(int stepNumber)
     public ContextChanges? ContextChanges { get; init; }
 
     /// <summary>
+    /// Warnings raised while processing this step that are not failures — currently the FR-049
+    /// diagnostic for a <c>save</c> source whose JSONPath matched nothing. Saving an unresolved path
+    /// stores an empty value that can silently mask a later failure, so it must stay visible.
+    /// </summary>
+    public IReadOnlyList<string> Warnings { get; init; } = [];
+
+    /// <summary>
     /// Creates a successful step result
     /// </summary>
     public static StepProcessedResult CreateSuccess(int stepNumber, IStep step, IEnumerable<AssertionResult>? assertionResults, object? data = null, long durationMs = 0)

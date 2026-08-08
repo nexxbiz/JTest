@@ -5,6 +5,7 @@ using JTest.Core.Security;
 using JTest.Core.Steps;
 using JTest.Core.Tracing;
 using JTest.Core.TypeDescriptors;
+using JTest.Core.Utilities;
 using OldAssertion = JTest.Core.Assertions.AssertionResult;
 
 namespace JTest.Core.Execution;
@@ -143,8 +144,31 @@ public static class ExecutionTraceAssembler
             Assertions = assertions.Count > 0 ? assertions : null,
             Children = children.Count > 0 ? children : null,
             Iterations = isLoop ? iterations : null,
-            Diagnostics = string.IsNullOrEmpty(s.ErrorMessage) ? null : new[] { Diagnostic.Error(s.ErrorMessage!) }
+            Diagnostics = StepDiagnostics(s, redactor)
         };
+    }
+
+    /// <summary>Step-level diagnostics: the failure message, plus non-fatal warnings such as the
+    /// FR-049 notice for a <c>save</c> whose source path matched nothing.</summary>
+    private static IReadOnlyList<Diagnostic>? StepDiagnostics(StepProcessedResult s, ValueRedactor redactor)
+    {
+        var diagnostics = new List<Diagnostic>();
+
+        if (!string.IsNullOrEmpty(s.ErrorMessage))
+        {
+            diagnostics.Add(Diagnostic.Error(redactor.Redact(s.ErrorMessage!)));
+        }
+
+        foreach (var warning in s.Warnings)
+        {
+            diagnostics.Add(new Diagnostic
+            {
+                Severity = DiagnosticSeverity.Warning,
+                Message = redactor.Redact(warning)
+            });
+        }
+
+        return diagnostics.Count > 0 ? diagnostics : null;
     }
 
     private static Iteration Iteration(StepIteration it, string loopPath, ValueRedactor redactor)
@@ -168,7 +192,14 @@ public static class ExecutionTraceAssembler
         Subject = RedactScalar(a.Subject, redactor),
         Description = string.IsNullOrEmpty(a.Description) ? null : redactor.Redact(a.Description),
         Outcome = a.Success ? Outcome.Passed : Outcome.Failed,
-        Message = a.ErrorMessage is { Length: > 0 } m ? redactor.Redact(m) : null
+        Message = a.ErrorMessage is { Length: > 0 } m ? redactor.Redact(m) : null,
+        // Only where an unresolved path actually broke the check. A passing 'notexists' resolves
+        // nothing by design, and flagging that as an error would be noise on a green assertion.
+        Diagnostics = a.Success || a.UnresolvedPaths.Count == 0
+            ? null
+            : a.UnresolvedPaths
+                .Select(p => Diagnostic.Error(redactor.Redact(VariableInterpolator.DescribeUnresolvedPath(p))))
+                .ToArray()
     };
 
     // ---- HTTP exchange projection + redaction -------------------------------------------------
