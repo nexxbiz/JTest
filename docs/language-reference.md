@@ -160,6 +160,31 @@ The values are **stable for the whole run**: every step and every suite in one `
 same `$.run.id`, so a create step and a later fetch step agree without saving anything in between.
 They are recorded in the trace under `run`, so a failed run remains reproducible.
 
+### `$.now` and `$.random` — evaluated per reference
+
+| Field | Value |
+|-------|-------|
+| `$.now.iso` | Current UTC time, ISO-8601. |
+| `$.now.date` / `$.now.time` | `yyyy-MM-dd` / `HH:mm:ss`. |
+| `$.now.epoch` / `$.now.epochMs` | Unix seconds / milliseconds. |
+| `$.random.uuid` | A fresh v4 GUID. |
+| `$.random.id` | A fresh short token (8 hex chars). |
+
+These are evaluated **each time a token is read**, so two references produce two different values:
+
+```json
+{ "type": "http", "method": "POST", "url": "https://api.example.com/routes",
+  "body": { "path": "/orders-{{$.random.id}}" } }
+```
+
+> **Use `$.run` when the value must match later.** With `$.random`, a create step and a later fetch
+> step get *different* values. For minting a uniquely-named server-side resource that the suite then
+> interacts with — the usual case — use `$.run.id`, or `save` a `$.random` value once and reuse it.
+
+Real data wins: if your suite defines `$.now` or `$.random` itself (via `env`, `globals`, or `save`),
+your value is used and the built-in is ignored. Referencing a field that does not exist (e.g.
+`$.random.name`) is an error naming the available fields, not an empty string.
+
 JSONPath follows **RFC 9535** (evaluated by JsonPath.Net). Filter selectors use `?@.expr`, and a
 path that matches multiple nodes resolves to an array:
 
@@ -174,10 +199,18 @@ path that matches multiple nodes resolves to an array:
 A path that matches nothing is reported as a distinct diagnostic (it is not silently treated as
 `null`). JSONPath property matching is case-sensitive — `version.id` does not match `version.Id`.
 
-Concretely: an assertion whose `actualValue` or `expectedValue` contains a path that matched nothing
-fails with that path named, rather than comparing a blank value and failing for what looks like a
-data problem. A `save` whose source matched nothing records a warning on the step. The `exists` and
-`notexists` operators are exempt — for them, matching nothing is the answer being tested.
+Concretely:
+
+- A **step field** (a URL, header, query value, body value, or template argument) whose token matched
+  nothing **fails the step**. It is never filled in with an empty string. Silently substituting `""`
+  changes what the step does — a route named `greet-{{...}}` would become the literal `greet-`, so
+  every run targets the same resource and the suite can report success for a request it never
+  actually made.
+- An **assertion** whose `actualValue` or `expectedValue` contains such a path fails with that path
+  named, rather than comparing a blank value and failing for what looks like a data problem.
+- A **`save`** whose source matched nothing records a warning on the step.
+- The `exists` and `notexists` operators are exempt — for them, matching nothing is the answer being
+  tested.
 
 JSONPath is **RFC 9535**, not JavaScript. The JavaScript-isms authors reach for most often do not
 exist, and resolve to nothing:

@@ -1,6 +1,7 @@
 using Json.Path;
 using JTest.Core.Exceptions;
 using JTest.Core.Execution;
+using JTest.Core.Variables;
 using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -312,6 +313,42 @@ public static class VariableInterpolator
         }
     }
 
+    /// <summary>
+    /// Resolves <c>$.now</c> / <c>$.random</c>, which are computed rather than looked up. Real context
+    /// data wins: if a suite has saved something under that root, the stored value is used, so adding
+    /// these built-ins cannot change the meaning of an existing suite. An unknown field under a
+    /// built-in root throws rather than falling through to a path that matches nothing — naming the
+    /// mistake beats reporting "matched nothing" for a value that never could have existed.
+    /// </summary>
+    private static bool TryResolveBuiltIn(string path, IExecutionContext context, out object? value)
+    {
+        value = null;
+
+        if (!BuiltInVariables.TryResolve(path, out var resolved, out var error))
+        {
+            if (error is null) return false;
+
+            // Only complain when the root is genuinely the built-in (not shadowed by real data).
+            if (ContextDefinesBuiltInRoot(path, context)) return false;
+
+            throw new InvalidOperationException(error);
+        }
+
+        if (ContextDefinesBuiltInRoot(path, context)) return false;
+
+        value = resolved ?? string.Empty;
+        return true;
+    }
+
+    private static bool ContextDefinesBuiltInRoot(string path, IExecutionContext context)
+    {
+        var trimmed = path.Trim();
+        if (!trimmed.StartsWith("$.", StringComparison.Ordinal)) return false;
+
+        var root = trimmed[2..].Split('.')[0];
+        return context.Variables.ContainsKey(root);
+    }
+
     private static object? ResolveJsonPath(string path, IExecutionContext context, int depth, ICollection<string>? unresolved = null)
     {
         try
@@ -331,6 +368,11 @@ public static class VariableInterpolator
 
     private static object ExecuteJsonPath(string path, IExecutionContext context, int depth)
     {
+        if (TryResolveBuiltIn(path, context, out var builtIn))
+        {
+            return builtIn!;
+        }
+
         var jsonPath = JsonPath.Parse(path);
         var jsonNode = JsonSerializer.SerializeToNode(context.Variables);
         var result = jsonPath.Evaluate(jsonNode);

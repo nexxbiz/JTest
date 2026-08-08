@@ -1,3 +1,4 @@
+using JTest.Core.Exceptions;
 using JTest.Core.Execution;
 using JTest.Core.Models;
 using JTest.Core.Steps.Configuration;
@@ -154,7 +155,16 @@ public sealed class UseStep(IAnsiConsole ansiConsole, ITemplateContext templateC
         if (paramValue.ValueKind == JsonValueKind.String)
         {
             var stringValue = paramValue.GetString() ?? "";
-            return VariableInterpolator.ResolveVariableTokens(stringValue, parentContext);
+
+            // Same rule as any other step field: a template argument built from a path that matched
+            // nothing must not silently become "" inside the template (FR-061).
+            var resolved = VariableInterpolator.ResolveVariableTokens(stringValue, parentContext, out var unresolvedPaths);
+            if (unresolvedPaths.Count > 0)
+            {
+                throw new UnresolvedTokenException(stringValue, unresolvedPaths);
+            }
+
+            return resolved;
         }
 
         return GetJsonElementValue(paramValue);

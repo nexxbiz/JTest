@@ -12,6 +12,16 @@ exit-code gate and a self-contained, safe HTML report, and formalizes the test-d
 
 ### Reliability
 
+- **An unresolvable `{{...}}` token in a step field now fails the step instead of silently becoming
+  an empty string.** This was a false-positive generator, not a cosmetic issue: a suite that mints a
+  per-run unique resource name (e.g. an HTTP route `greet-{{$.random.uuid}}`) instead sent the
+  constant `greet-`, so every run targeted the *same* server-side resource. A run could pass while
+  being served by a previous run's artifact, with every assertion green — ordinary assertions cannot
+  detect this. The rule now covers URLs, methods, headers, query values, body values, file paths, and
+  template arguments; assertion and `save` operands were already covered.
+- **`$.now` and `$.random` exist.** They were documented as built-in variables but had no
+  implementation, so `{{$.now.iso}}` and `{{$.random.uuid}}` expanded to nothing — the direct cause of
+  the failure above. See the language reference for the fields and for when to prefer `$.run`.
 - **No false-green.** A suite that crashes, an empty-but-expected discovery, an invalid definition,
   a timeout, or a cancellation now produces a non-zero, class-specific exit code and is visible in
   the report. Exit codes: `0` success, `1` test failures, `2` execution error, `3` validation error,
@@ -102,6 +112,9 @@ exit-code gate and a self-contained, safe HTML report, and formalizes the test-d
   validated, with a clearer error when it is not.
 - **`for` accepts an empty item list**, running zero iterations instead of failing validation. The
   natural "clean up whatever is left over" loop has the zero-items case as its normal state.
+- **New `$.now` / `$.random` built-ins** — `$.now.iso|date|time|epoch|epochMs` and
+  `$.random.uuid|id`, evaluated at each reference. A suite that defines those roots itself keeps its
+  own values, and an unknown field under them is an error naming the available fields.
 - **New `$.run` variables** — `$.run.id` (short unique token), `$.run.uuid`, `$.run.timestamp`,
   `$.run.epoch`, `$.run.epochMs`. A suite that creates a resource with globally-unique server-side
   identity (e.g. an HTTP route) can now generate a fresh value per run instead of passing once and

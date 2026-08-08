@@ -1,3 +1,4 @@
+using JTest.Core.Exceptions;
 using JTest.Core.Execution;
 using JTest.Core.Steps.Configuration;
 using JTest.Core.Utilities;
@@ -55,6 +56,12 @@ public abstract class BaseStep<TConfiguration>(TConfiguration configuration) : I
         return ResolveVariable(value, context)?.ToString() ?? string.Empty;
     }
 
+    /// <summary>
+    /// Resolves tokens in a step field, failing if any path matched nothing (FR-061). Coercing an
+    /// unresolved token to an empty string here silently changes what the step does — a URL, route
+    /// name, or body value built from a missing value still gets sent, and the run can pass against
+    /// the wrong resource.
+    /// </summary>
     protected static object? ResolveVariable(string? value, IExecutionContext context)
     {
         if (string.IsNullOrWhiteSpace(value))
@@ -62,7 +69,13 @@ public abstract class BaseStep<TConfiguration>(TConfiguration configuration) : I
             return string.Empty;
         }
 
-        return VariableInterpolator.ResolveVariableTokens(value, context);
+        var resolved = VariableInterpolator.ResolveVariableTokens(value, context, out var unresolvedPaths);
+        if (unresolvedPaths.Count > 0)
+        {
+            throw new UnresolvedTokenException(value, unresolvedPaths);
+        }
+
+        return resolved;
     }
 
     protected static JsonElement SerializeToJsonElement(object? value)
