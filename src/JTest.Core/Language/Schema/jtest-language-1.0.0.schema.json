@@ -36,6 +36,11 @@
         }
       }
     },
+    "scalarMap": {
+      "type": "object",
+      "description": "Object of name/value pairs. Values carry text, so a number or boolean is accepted and used as its textual form; objects and arrays have no unambiguous text form.",
+      "additionalProperties": { "type": ["string", "number", "boolean", "null"] }
+    },
     "step": {
       "type": "object",
       "required": ["type"],
@@ -46,7 +51,25 @@
         "description": { "type": "string" },
         "steps": { "type": "array", "items": { "$ref": "#/$defs/step" } },
         "assert": { "type": "array", "items": { "$ref": "#/$defs/assertion" } },
-        "save": { "type": "object" }
+        "save": { "type": "object" },
+        "query": { "$ref": "#/$defs/scalarMap" },
+        "headers": {
+          "description": "Request headers, as an object of name/value pairs or an array of { name, value } objects.",
+          "oneOf": [
+            { "$ref": "#/$defs/scalarMap" },
+            {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["name", "value"],
+                "properties": {
+                  "name": { "type": "string" },
+                  "value": { "type": ["string", "number", "boolean", "null"] }
+                }
+              }
+            }
+          ]
+        }
       },
       "allOf": [
         { "if": { "required": ["type"], "properties": { "type": { "const": "http" } } },

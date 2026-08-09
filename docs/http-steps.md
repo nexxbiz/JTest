@@ -8,11 +8,29 @@ An `http` step sends a request and exposes the response as `$.this` for later st
 |-------|----------|-------------|
 | `method` | yes | HTTP method, e.g. `GET`, `POST`. |
 | `url` | yes | Request URL (may contain `{{ }}` tokens). |
-| `headers` | no | Request headers. |
+| `headers` | no | Request headers (see below). |
 | `body` | no | Request body (JSON object or string). |
 | `contentType` | no | Overrides the request content type. |
 | `query` | no | Query-string parameters. |
 | `file` / `formFiles` | no | File / multipart uploads. |
+
+### Request headers and query values
+
+`headers` accepts either shape — the object map is the usual one:
+
+```json
+{ "type": "http", "method": "GET", "url": "https://api.example.com/orders",
+  "headers": { "X-Tenant": "acme", "X-Retry-Count": 2 },
+  "query": { "take": 10, "skip": 0, "active": true, "sort": "name" } }
+```
+
+```json
+{ "headers": [ { "name": "X-Tenant", "value": "acme" } ] }
+```
+
+Header and query values carry text, so a **number or boolean is accepted** and used as its textual
+form — `"take": 10` sends `take=10`. Values with no unambiguous text form (an object or an array)
+are rejected by `jtest validate` with the offending key, rather than failing when the suite runs.
 
 ## Response (`$.this`)
 

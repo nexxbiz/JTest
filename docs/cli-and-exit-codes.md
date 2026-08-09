@@ -65,6 +65,10 @@ It also resolves every assertion operator, so a typo such as `"op": "isEqual"` i
 with its location and the supported operators — instead of surfacing later as a suite that fails to
 load.
 
+`validate` never green-lights a file `run` cannot load: after the schema passes, the definition is
+bound exactly as a run would bind it, and any failure is reported as a diagnostic. A file that
+validates clean will load.
+
 ## Other commands
 
 - `jtest debug <paths...>` — like `run`, with extra developer detail in the console output.

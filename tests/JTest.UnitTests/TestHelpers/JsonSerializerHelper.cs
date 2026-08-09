@@ -11,7 +11,24 @@ namespace JTest.UnitTests.TestHelpers;
 
 internal static class JsonSerializerHelper
 {
-    internal static readonly JsonSerializerOptions Options = GetSerializerOptions();  
+    internal static readonly JsonSerializerOptions Options = GetSerializerOptions();
+
+    /// <summary>The accessor form, for code that takes the real DI-registered dependency.</summary>
+    internal static JTest.Core.Utilities.JsonSerializerOptionsAccessor OptionsAccessor => BuildAccessor();
+
+    private static JTest.Core.Utilities.JsonSerializerOptionsAccessor BuildAccessor()
+    {
+        var services = new ServiceCollection()
+            .AddSingleton(new HttpClient())
+            .AddSingleton(AnsiConsole.Console)
+            .AddSingleton(StepProcessor.Default)
+            .AddSingleton<ITypeDescriptorRegistryProvider, TypeDescriptorRegistryProvider>()
+            .AddSingleton(Substitute.For<ITemplateContext>())
+            .AddSingleton<JTest.Core.Utilities.JsonSerializerOptionsAccessor>();
+
+        return services.BuildServiceProvider()
+            .GetRequiredService<JTest.Core.Utilities.JsonSerializerOptionsAccessor>();
+    }
 
     internal static JsonSerializerOptions GetSerializerOptions(ITypeDescriptorRegistryProvider? registryProvider = null, ITemplateContext? templateContext = null)
     {

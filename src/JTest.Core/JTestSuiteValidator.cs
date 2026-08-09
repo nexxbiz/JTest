@@ -1,12 +1,37 @@
 using JTest.Core.Language.Validation;
+using JTest.Core.Models;
 using JTest.Core.Utilities;
 using Spectre.Console;
+using System.Text.Json;
 
 namespace JTest.Core;
 
-public sealed class JTestSuiteValidator(IAnsiConsole console) : IJTestSuiteValidator
+public sealed class JTestSuiteValidator(IAnsiConsole console, JsonSerializerOptionsAccessor? serializerOptions = null) : IJTestSuiteValidator
 {
     private readonly SchemaValidator schemaValidator = new();
+
+    /// <summary>
+    /// Validation must reject anything the runner cannot load. Schema conformance alone does not
+    /// guarantee that: the schema describes shape, while the runner also has to bind the document to
+    /// its configuration types. Where the two disagreed, `jtest validate` called a file valid and
+    /// `jtest run` then failed on it — moving a diagnosable authoring problem to run time. So after
+    /// the schema passes, the file is deserialized exactly as a run would, and any failure is reported
+    /// as a validation diagnostic (FR-064).
+    /// </summary>
+    private LanguageDiagnostic? CheckRunnerCanLoad(string json)
+    {
+        if (serializerOptions is null) return null;
+
+        try
+        {
+            JsonSerializer.Deserialize<JTestSuite>(json, serializerOptions.Options);
+            return null;
+        }
+        catch (Exception ex)
+        {
+            return new LanguageDiagnostic("", $"Valid against the schema, but the runner cannot load it: {ex.Message}");
+        }
+    }
 
     public async Task<JTestValidationSummary> ValidateJTestSuites(IEnumerable<string> testFilePatterns, IEnumerable<string> categories)
     {
@@ -38,6 +63,11 @@ public sealed class JTestSuiteValidator(IAnsiConsole console) : IJTestSuiteValid
 
             var json = await File.ReadAllTextAsync(testFile);
             var result = schemaValidator.Validate(json);
+
+            if (result.IsValid && CheckRunnerCanLoad(json) is { } loadDiagnostic)
+            {
+                result = new LanguageValidationResult(false, [loadDiagnostic]);
+            }
 
             if (result.IsValid)
             {

@@ -81,6 +81,17 @@ exit-code gate and a self-contained, safe HTML report, and formalizes the test-d
   diagnostics, and returns a non-zero exit code when any file is invalid. The previous check was a
   shallow structural probe mislabeled as "schema" validation, and it always exited `0`.
 - **Unknown step types and structurally invalid definitions are now rejected.**
+- **`jtest validate` no longer green-lights a file `jtest run` cannot load.** The schema describes
+  shape, but the runner also binds the definition to its configuration types, and the two could
+  disagree — a numeric query value (`{ "query": { "take": 1 } }`) validated clean and then failed
+  deserialization at run time. Validation now performs the same binding a run does and reports any
+  failure as a diagnostic, so a file that validates will load.
+- **Scalar query and header values are accepted.** `{ "take": 1 }` means `take=1`; a query string and
+  a header carry text, so a number or boolean is used as its textual form. Only values with no
+  unambiguous text form (objects, arrays) are rejected, and now by validation, naming the key.
+- **Request `headers` accept the object-map shape** — `{ "X-Tenant": "acme" }` — alongside the
+  existing `[{ "name": ..., "value": ... }]` array. Only the array form parsed before, so the natural
+  shape (and the one mirroring the response contract) failed at load on a file validate had passed.
 - **`jtest validate` now rejects an unknown assertion operator**, with its JSON Pointer location and
   the list of supported operators — previously a typo like `"op": "isEqual"` validated clean and only
   surfaced at run time. Operators are resolved against the runtime's own registry, so validation
