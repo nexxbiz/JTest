@@ -1,3 +1,4 @@
+using JTest.Core.Exceptions;
 using JTest.Core.Execution;
 using JTest.Core.Models;
 using JTest.Core.Steps.Configuration;
@@ -116,7 +117,10 @@ public sealed class UseStep(IAnsiConsole ansiConsole, ITemplateContext templateC
 
     private TestExecutionContext CreateIsolatedTemplateContext(IExecutionContext parentContext, Template template)
     {
-        var templateContext = new TestExecutionContext();
+        // Variables are isolated, but the cookie jar is shared with the caller so that a login
+        // performed inside a template establishes the case's cookie session (fixes: cookies set in
+        // a `use` template were dropped, leaving later steps unauthenticated / 401).
+        var templateContext = new TestExecutionContext { Cookies = parentContext.Cookies };
 
         // Copy case data variables from parent context if they exist
         // This ensures templates can access case variables for data-driven testing
@@ -151,7 +155,16 @@ public sealed class UseStep(IAnsiConsole ansiConsole, ITemplateContext templateC
         if (paramValue.ValueKind == JsonValueKind.String)
         {
             var stringValue = paramValue.GetString() ?? "";
-            return VariableInterpolator.ResolveVariableTokens(stringValue, parentContext);
+
+            // Same rule as any other step field: a template argument built from a path that matched
+            // nothing must not silently become "" inside the template (FR-061).
+            var resolved = VariableInterpolator.ResolveVariableTokens(stringValue, parentContext, out var unresolvedPaths);
+            if (unresolvedPaths.Count > 0)
+            {
+                throw new UnresolvedTokenException(stringValue, unresolvedPaths);
+            }
+
+            return resolved;
         }
 
         return GetJsonElementValue(paramValue);

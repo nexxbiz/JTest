@@ -1,6 +1,7 @@
 using JTest.Core.Execution;
 using JTest.Core.Steps.Configuration;
 using JTest.Core.Utilities;
+using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
@@ -74,9 +75,38 @@ public sealed class HttpStep(HttpClient httpClient, HttpStepConfiguration config
     private async Task<Dictionary<string, object?>> PerformHttpRequest(IExecutionContext context)
     {
         var request = BuildHttpRequest(context);
+        ApplyScopeCookies(request, context);                  // send the scope's cookies (FR-038)
         var requestDetails = await CaptureRequestDetails(request, context);
         var response = await httpClient.SendAsync(request);
+        CollectScopeCookies(request.RequestUri, response, context); // persist Set-Cookie into the scope jar
         return await CreateResponseData(response, requestDetails);
+    }
+
+    /// <summary>Attach the execution scope's cookies to the outgoing request (JTest owns cookies,
+    /// so this is deterministic and independent of the HTTP handler's lifetime).</summary>
+    private static void ApplyScopeCookies(HttpRequestMessage request, IExecutionContext context)
+    {
+        if (context.Cookies is null || request.RequestUri is null || request.Headers.Contains("Cookie"))
+            return;
+
+        var cookieHeader = context.Cookies.GetCookieHeader(request.RequestUri);
+        if (!string.IsNullOrEmpty(cookieHeader))
+            request.Headers.TryAddWithoutValidation("Cookie", cookieHeader);
+    }
+
+    /// <summary>Store any Set-Cookie values from the response into the scope's cookie jar.</summary>
+    private static void CollectScopeCookies(Uri? uri, HttpResponseMessage response, IExecutionContext context)
+    {
+        if (context.Cookies is null || uri is null) return;
+
+        if (response.Headers.TryGetValues("Set-Cookie", out var setCookies))
+        {
+            foreach (var setCookie in setCookies)
+            {
+                try { context.Cookies.SetCookies(uri, setCookie); }
+                catch (CookieException) { /* ignore malformed Set-Cookie */ }
+            }
+        }
     }
 
     private HttpRequestMessage BuildHttpRequest(IExecutionContext context)
@@ -267,10 +297,8 @@ public sealed class HttpStep(HttpClient httpClient, HttpStepConfiguration config
 
     private async Task<object> CaptureRequestDetails(HttpRequestMessage request, IExecutionContext context)
     {
-        var headers = request.Headers
-            .Concat(request.Content?.Headers ?? Enumerable.Empty<KeyValuePair<string, IEnumerable<string>>>())
-            .Select(h => new { name = h.Key, value = string.Join(", ", h.Value) })
-            .ToArray();
+        var headers = ToHeaderMap(
+            request.Headers.Concat(request.Content?.Headers ?? Enumerable.Empty<KeyValuePair<string, IEnumerable<string>>>()));
 
         var bodyContent = GetRequestBodyContent(context);
         var body = bodyContent is not null
@@ -290,9 +318,12 @@ public sealed class HttpStep(HttpClient httpClient, HttpStepConfiguration config
     {
         var body = await GetResponseBody(response);
         var headers = GetResponseHeaders(response);
+        var status = (int)response.StatusCode;
         return new Dictionary<string, object?>
         {
-            ["status"] = (int)response.StatusCode,
+            // 'statusCode' is the canonical name; 'status' is a retained alias (FR-041).
+            ["statusCode"] = status,
+            ["status"] = status,
             ["headers"] = headers,
             ["body"] = body,
             ["request"] = requestDetails
@@ -323,13 +354,28 @@ public sealed class HttpStep(HttpClient httpClient, HttpStepConfiguration config
         }
     }
 
-    private static object[] GetResponseHeaders(HttpResponseMessage response)
-    {
-        var result = response.Headers
-            .Concat(response.Content.Headers)
-            .Select(h => new { name = h.Key, value = string.Join(", ", h.Value) });
+    private static Dictionary<string, object?> GetResponseHeaders(HttpResponseMessage response) =>
+        ToHeaderMap(response.Headers.Concat(response.Content.Headers));
 
-        return [.. result];
+    /// <summary>
+    /// Build a case-insensitive keyed header map (FR-040). A single-valued header maps to a string;
+    /// a multi-valued header (e.g. set-cookie) maps to an array of all its values.
+    ///
+    /// Keys are normalized to lower case. Header names are case-insensitive per RFC 9110 (and lower
+    /// case is the HTTP/2 wire form), but this map is addressed through JSONPath, whose name
+    /// selectors are case-SENSITIVE per RFC 9535 — a dictionary comparer cannot help, because the
+    /// context is serialized to JSON before evaluation. Normalizing at capture is what actually makes
+    /// `headers['content-type']` work regardless of the casing a given server happens to send.
+    /// </summary>
+    private static Dictionary<string, object?> ToHeaderMap(IEnumerable<KeyValuePair<string, IEnumerable<string>>> headers)
+    {
+        var map = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+        foreach (var header in headers)
+        {
+            var values = header.Value.ToArray();
+            map[header.Key.ToLowerInvariant()] = values.Length == 1 ? values[0] : values;
+        }
+        return map;
     }
 
     private bool? OnlyOneBodyTypeDefined()

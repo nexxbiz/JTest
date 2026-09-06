@@ -50,6 +50,13 @@ public sealed class StepProcessedResult(int stepNumber)
     public ContextChanges? ContextChanges { get; init; }
 
     /// <summary>
+    /// Warnings raised while processing this step that are not failures — currently the FR-049
+    /// diagnostic for a <c>save</c> source whose JSONPath matched nothing. Saving an unresolved path
+    /// stores an empty value that can silently mask a later failure, so it must stay visible.
+    /// </summary>
+    public IReadOnlyList<string> Warnings { get; init; } = [];
+
+    /// <summary>
     /// Creates a successful step result
     /// </summary>
     public static StepProcessedResult CreateSuccess(int stepNumber, IStep step, IEnumerable<AssertionResult>? assertionResults, object? data = null, long durationMs = 0)
@@ -85,6 +92,18 @@ public sealed class StepProcessedResult(int stepNumber)
     /// List of inner step results if this step contains nested steps (e.g., a template step)
     /// </summary>
     public IEnumerable<StepProcessedResult> InnerResults { get; init; } = [];
+
+    /// <summary>
+    /// Per-iteration results when this step is a loop; every iteration is retained (FR-013).
+    /// Empty for non-loop steps.
+    /// </summary>
+    public IEnumerable<StepIteration> Iterations { get; init; } = [];
+
+    /// <summary>The step exceeded a configured timeout (distinct outcome, FR-007).</summary>
+    public bool TimedOut { get; init; }
+
+    /// <summary>The step was cancelled (distinct outcome, FR-006).</summary>
+    public bool Cancelled { get; init; }
 
     public int StepNumber { get; } = stepNumber;
 }

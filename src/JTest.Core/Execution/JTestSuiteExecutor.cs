@@ -9,13 +9,24 @@ namespace JTest.Core.Execution;
 public sealed class JTestSuiteExecutor(IJTestCaseExecutor testCaseExecutor, IVariablesContext variablesContext, ITemplateContext templateContext, IAnsiConsole console)
     : IJTestSuiteExecutor
 {
-    public async Task<IEnumerable<JTestSuiteExecutionResult>> Execute(IEnumerable<JTestSuite> testFiles)
+    public async Task<IEnumerable<JTestSuiteExecutionResult>> Execute(IEnumerable<JTestSuite> testFiles, CancellationToken cancellationToken = default)
     {
         var allResults = new List<JTestSuiteExecutionResult>();
 
         foreach (var testFile in testFiles)
-        {            
-            console.WriteLine($"Running test file: {testFile.FilePath}", new Style(foreground: Color.GreenYellow));            
+        {
+            // Cancellation stops the run; the current and remaining suites are recorded as cancelled
+            // (a distinct outcome that fails the run — FR-006) rather than silently dropped.
+            if (cancellationToken.IsCancellationRequested)
+            {
+                allResults.Add(new(testFile.FilePath, testFile.Info?.Name, testFile.Info?.Description, Array.Empty<JTestCaseResult>())
+                {
+                    Cancelled = true
+                });
+                continue;
+            }
+
+            console.WriteLine($"Running test file: {testFile.FilePath}", new Style(foreground: Color.GreenYellow));
 
             try
             {
@@ -29,20 +40,33 @@ public sealed class JTestSuiteExecutor(IJTestCaseExecutor testCaseExecutor, IVar
 
                 console.WriteLine();
             }
+            catch (OperationCanceledException)
+            {
+                allResults.Add(new(testFile.FilePath, testFile.Info?.Name, testFile.Info?.Description, Array.Empty<JTestCaseResult>())
+                {
+                    Cancelled = true
+                });
+            }
             catch (Exception ex)
             {
                 console.WriteLine();
                 console.WriteLine($"Test file {testFile.FilePath} failed", new Style(foreground: Color.Red));
                 console.WriteException(ex, ExceptionFormats.NoStackTrace);
+
+                // Never drop a crashing suite — capture it as errored so it fails the run (FR-002).
+                allResults.Add(new(testFile.FilePath, testFile.Info?.Name, testFile.Info?.Description, Array.Empty<JTestCaseResult>())
+                {
+                    ExecutionError = ex.Message
+                });
             }
         }
 
         return allResults;
     }
 
-    public IEnumerable<JTestSuiteExecutionResult> ExecuteParallel(IEnumerable<JTestSuite> testFiles, int parallelCount)
+    public IEnumerable<JTestSuiteExecutionResult> ExecuteParallel(IEnumerable<JTestSuite> testFiles, int parallelCount, CancellationToken cancellationToken = default)
     {
-        // Thread-safe collections for parallel execution            
+        // Thread-safe collections for parallel execution
         var allResults = new ConcurrentBag<JTestSuiteExecutionResult>();
 
         var processedFilesThreadSafe = 0;
@@ -56,6 +80,15 @@ public sealed class JTestSuiteExecutor(IJTestCaseExecutor testCaseExecutor, IVar
 
         Parallel.ForEach(testFiles, parallelOptions, testFile =>
         {
+            if (cancellationToken.IsCancellationRequested)
+            {
+                allResults.Add(new(testFile.FilePath, testFile.Info?.Name, testFile.Info?.Description, Array.Empty<JTestCaseResult>())
+                {
+                    Cancelled = true
+                });
+                return;
+            }
+
             lock (Console.Out)
             {
                 Console.WriteLine($"Running test file: {testFile}");
@@ -69,12 +102,25 @@ public sealed class JTestSuiteExecutor(IJTestCaseExecutor testCaseExecutor, IVar
 
                 Interlocked.Increment(ref processedFilesThreadSafe);
             }
+            catch (OperationCanceledException)
+            {
+                allResults.Add(new(testFile.FilePath, testFile.Info?.Name, testFile.Info?.Description, Array.Empty<JTestCaseResult>())
+                {
+                    Cancelled = true
+                });
+            }
             catch (Exception ex)
             {
                 lock (Console.Error)
                 {
                     Console.Error.WriteLine($"Error executing test file {testFile}: {ex.Message}");
                 }
+
+                // Never drop a crashing suite in the parallel path either (FR-002/FR-005).
+                allResults.Add(new(testFile.FilePath, testFile.Info?.Name, testFile.Info?.Description, Array.Empty<JTestCaseResult>())
+                {
+                    ExecutionError = ex.Message
+                });
                 Interlocked.Increment(ref failedFilesThreadSafe);
             }
         });
@@ -99,7 +145,7 @@ public sealed class JTestSuiteExecutor(IJTestCaseExecutor testCaseExecutor, IVar
         int testNumber = 1;
         foreach (var testCase in testSuite.Tests)
         {
-            var context = CreateExecutionContext(mergedEnvironment, mergedGlobals);
+            var context = CreateExecutionContext(mergedEnvironment, mergedGlobals, variablesContext.RunVariables);
             var results = await testCaseExecutor.ExecuteAsync(testCase, context, testNumber);
             allResults.AddRange(results);
             testNumber++;
@@ -108,12 +154,18 @@ public sealed class JTestSuiteExecutor(IJTestCaseExecutor testCaseExecutor, IVar
         return allResults;
     }
 
-    private static TestExecutionContext CreateExecutionContext(Dictionary<string, object?>? environmentVariables, Dictionary<string, object?>? globalVariables)
+    private static TestExecutionContext CreateExecutionContext(
+        Dictionary<string, object?>? environmentVariables,
+        Dictionary<string, object?>? globalVariables,
+        IReadOnlyDictionary<string, object?>? runVariables)
     {
         var context = new TestExecutionContext();
         context.Variables["env"] = environmentVariables ?? [];
         context.Variables["globals"] = globalVariables ?? [];
         context.Variables["ctx"] = new Dictionary<string, object?>();
+        context.Variables["run"] = runVariables is null
+            ? new Dictionary<string, object?>()
+            : new Dictionary<string, object?>(runVariables);
 
         return context;
     }

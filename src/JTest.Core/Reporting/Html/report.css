@@ -1,0 +1,130 @@
+:root {
+  --bg: #ffffff;
+  --panel: #f6f8fa;
+  --border: #d0d7de;
+  --text: #1c2128;
+  --muted: #57606a;
+  --link: #0349b4;
+  --pass-bg: #1a7f37; --pass-fg: #ffffff;
+  --fail-bg: #b42318; --fail-fg: #ffffff;
+  --error-bg: #8a3b00; --error-fg: #ffffff;
+  --abort-bg: #6e4400; --abort-fg: #ffffff;
+  --skip-bg: #57606a; --skip-fg: #ffffff;
+  --focus: #0349b4;
+  --rail: #d0d7de;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0d1117; --panel: #161b22; --border: #30363d;
+    --text: #e6edf3; --muted: #9aa5b1; --link: #6cb6ff;
+    --pass-bg: #2ea043; --pass-fg: #05130a;
+    --fail-bg: #f85149; --fail-fg: #160b0b;
+    --error-bg: #db6d28; --error-fg: #160d05;
+    --abort-bg: #d29922; --abort-fg: #161200;
+    --skip-bg: #768390; --skip-fg: #0d1117;
+    --focus: #6cb6ff;
+    --rail: #30363d;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--text);
+  font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+main { max-width: 1100px; margin: 0 auto; padding: 1.5rem 1rem 4rem; }
+a { color: var(--link); }
+.skip-link {
+  position: absolute; left: -999px; top: 0; background: var(--panel); color: var(--text);
+  padding: .5rem 1rem; border: 1px solid var(--border); z-index: 10;
+}
+.skip-link:focus { left: .5rem; top: .5rem; }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; border-radius: 3px; }
+
+h1 { font-size: 1.5rem; margin: 0 0 .25rem; }
+.subtitle { color: var(--muted); margin: 0 0 1rem; font-size: .9rem; }
+
+.summary { display: flex; flex-wrap: wrap; gap: .5rem 1.25rem; align-items: center;
+  background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: .85rem 1rem; margin-bottom: 1rem; }
+.summary .metric { font-variant-numeric: tabular-nums; }
+.summary .metric b { font-size: 1.15rem; }
+
+.badge {
+  display: inline-block; padding: .1rem .5rem; border-radius: 999px; font-size: .72rem;
+  font-weight: 700; letter-spacing: .02em; text-transform: uppercase; white-space: nowrap;
+}
+.badge.passed { background: var(--pass-bg); color: var(--pass-fg); }
+.badge.failed { background: var(--fail-bg); color: var(--fail-fg); }
+.badge.errored { background: var(--error-bg); color: var(--error-fg); }
+.badge.cancelled, .badge.timedout { background: var(--abort-bg); color: var(--abort-fg); }
+.badge.skipped { background: var(--skip-bg); color: var(--skip-fg); }
+
+.controls { display: flex; gap: .5rem; flex-wrap: wrap; margin-bottom: 1rem; }
+.controls input[type="search"], .controls select {
+  padding: .45rem .6rem; border: 1px solid var(--border); border-radius: 6px;
+  background: var(--bg); color: var(--text); font-size: .9rem; min-width: 16rem;
+}
+.controls label { display: inline-flex; align-items: center; gap: .35rem; color: var(--muted); font-size: .85rem; }
+
+/* Only suites and cases are boxes. Everything nested is borderless and hangs off a thin, downward-
+   fading guide rail (like a JSON tree), so deep nesting stays calm instead of stacking hard borders. */
+details.node { border: 0; border-radius: 6px; margin: 0; background: transparent; }
+details.node.box { border: 1px solid var(--border); border-left-width: 3px; border-radius: 8px;
+  margin: .5rem 0; background: var(--bg); }
+/* Failure accent lives on the boxed rail — never as a full red box at every nesting level. */
+details.node.box[data-outcome="failed"] { border-left-color: var(--fail-bg); }
+details.node.box[data-outcome="errored"] { border-left-color: var(--error-bg); }
+details.node.box[data-outcome="timedout"], details.node.box[data-outcome="cancelled"] { border-left-color: var(--abort-bg); }
+details.node.box[data-outcome="passed"], details.node.box[data-outcome="skipped"] { border-left-color: var(--border); }
+
+details.node > summary {
+  cursor: pointer; padding: .4rem .55rem; display: flex; gap: .5rem; align-items: center;
+  list-style: none; border-radius: 6px;
+}
+details.node > summary:hover { background: var(--panel); }
+details.node > summary::-webkit-details-marker { display: none; }
+details.node > summary::before { content: "\25B6"; color: var(--muted); font-size: .7rem; transition: transform .1s; flex: none; }
+details.node[open] > summary::before { transform: rotate(90deg); }
+summary .kind { color: var(--muted); font-size: .72rem; text-transform: uppercase; letter-spacing: .03em; }
+summary .label { font-weight: 600; }
+summary .dur { color: var(--muted); font-size: .8rem; margin-left: auto; font-variant-numeric: tabular-nums; }
+
+/* Children indent under a 1px vertical guide aligned beneath the parent's arrow; it fades downward. */
+.node > .body { position: relative; padding: .1rem .5rem .35rem 1rem; margin-left: .6rem; }
+.node.box > .body { margin-left: .35rem; }
+.node > .body::before {
+  content: ""; position: absolute; left: 0; top: .1rem; bottom: .35rem; width: 1px;
+  background: linear-gradient(to bottom, var(--rail), transparent);
+}
+.node[data-outcome="failed"] > .body::before,
+.node[data-outcome="errored"] > .body::before,
+.node[data-outcome="timedout"] > .body::before,
+.node[data-outcome="cancelled"] > .body::before {
+  background: linear-gradient(to bottom, var(--fail-bg), transparent); opacity: .55;
+}
+
+.kv { margin: .3rem 0; }
+.kv .k { color: var(--muted); }
+/* Assertions read as calm rows; only a failing one carries a thin red edge. */
+.assertion { padding: .2rem .5rem; margin: .25rem 0; }
+.assertion.failed { border-left: 2px solid var(--fail-bg); }
+.assertion .op { font-weight: 600; }
+pre { background: var(--panel); border: 1px solid var(--border); border-radius: 6px;
+  padding: .5rem .6rem; overflow-x: auto; margin: .3rem 0; font-size: .82rem; }
+.assertion .kv { margin: .15rem 0; }
+
+/* Body viewer: collapsible, JSON-aware, with a copy control. */
+.bodybox { margin: .35rem 0; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+.bodybox-head { display: flex; align-items: center; gap: .5rem; padding: .3rem .5rem;
+  background: var(--panel); border-bottom: 1px solid var(--border); }
+.bodybox-head .k { color: var(--muted); font-size: .8rem; margin-right: auto; }
+.bodybox-pre { margin: 0; border: 0; border-radius: 0; background: var(--bg);
+  max-height: 24rem; overflow: auto; }
+.bodybox-pre.json { white-space: pre; }
+.btn { font: inherit; font-size: .78rem; padding: .12rem .55rem; cursor: pointer; white-space: nowrap;
+  color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: 999px; }
+.btn:hover { border-color: var(--focus); }
+
+.diag { color: var(--fail-bg); }
+.hidden { display: none !important; }
+.empty { color: var(--muted); font-style: italic; }
+.noscript { color: var(--fail-bg); }

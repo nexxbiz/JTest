@@ -137,10 +137,15 @@ public sealed class AssertionJsonConverterTests
         // Arrange
         const string json = "{\"op\": \"test\"}";
 
+        var descriptor = new TypeDescriptor(args => new object(), "test", typeof(object), []);
+
         var brokenDescriptorRegistry = Substitute.For<ITypeDescriptorRegistry>();
+        brokenDescriptorRegistry.GetDescriptor("test").Returns(descriptor);
+        // The operator resolves — this test is about a descriptor whose constructor yields the wrong
+        // type, not about an unknown operator.
         brokenDescriptorRegistry
-            .GetDescriptor("test")
-            .Returns(new TypeDescriptor(args => new object(), "test", typeof(object), []));
+            .GetDescriptors()
+            .Returns(new Dictionary<string, TypeDescriptor>(StringComparer.OrdinalIgnoreCase) { ["test"] = descriptor });
         var registryProvider = Substitute.For<ITypeDescriptorRegistryProvider>();
         registryProvider.AssertionTypeRegistry.Returns(brokenDescriptorRegistry);
 

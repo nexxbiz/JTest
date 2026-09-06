@@ -2,7 +2,10 @@
 using JTest.Cli.Settings;
 using JTest.Core.Execution;
 using JTest.Core.Models;
+using JTest.Core.Reporting;
+using JTest.Core.Reporting.Html;
 using JTest.Core.Templates;
+using JTest.Core.Tracing;
 using JTest.Core.Utilities;
 using JTest.Core.Variables;
 using Spectre.Console;
@@ -44,27 +47,111 @@ public class RunCommand : CommandBase<RunCommandSettings>
 
         InitializeVariablesContext(settings);
 
-        var results = await ExecuteRunCommand(settings);
+        var startedAt = DateTimeOffset.UtcNow;
+        var results = await ExecuteRunCommand(settings, cancellationToken);
+        var endedAt = DateTimeOffset.UtcNow;
+
         if (results is null)
         {
-            return 1;
+            // No test files matched — a run that produced nothing is not success (FR-003).
+            return (int)RunExitCode.ExecutionError;
         }
 
-        var outputDirectory = GetOutputDirectory(settings);
-        _testExecutionResultsProcessor.Process(results, outputDirectory, IsDebug, settings.SkipOutput == true, settings.OutputFormat);
-        if (results.All(x => x.CasesFailed == 0))
+        var resultList = results as IReadOnlyList<JTestSuiteExecutionResult> ?? results.ToList();
+
+        _testExecutionResultsProcessor.WriteConsoleSummary(resultList);
+
+        // The canonical trace is the single source of truth for both the exit code and the reports:
+        // its aggregated counts yield the class-specific code (test failure / execution error /
+        // validation / aborted), so a timeout or cancellation is exit 4, never a false green.
+        var toolVersion = typeof(RunCommand).Assembly.GetName().Version?.ToString(3) ?? "2.0.0";
+        var trace = ExecutionTraceAssembler.Assemble(resultList, toolVersion, 0, startedAt, endedAt);
+
+        var emptyDiscovery = !resultList.Any(r => r.Errored)
+            && resultList.Sum(r => r.CasesPassed + r.CasesFailed) == 0;
+        var exitCode = ExitCodeService.From(trace.Counts, emptyDiscovery: emptyDiscovery);
+
+        var environment = settings.IncludeVariables
+            ? VariableDump.Build(_variablesContext.EnvironmentVariables, _variablesContext.GlobalVariables)
+            : null;
+
+        WriteOutputs(settings, trace with
         {
-            return 0;
-        }
-
-        return 1;
+            ExitCode = exitCode,
+            Environment = environment,
+            Run = _variablesContext.RunVariables
+        });
+        return exitCode;
     }
 
-    private async Task<IEnumerable<JTestSuiteExecutionResult>?> ExecuteRunCommand(RunCommandSettings settings)
+    // Default output folder for reports/trace when no explicit path is given.
+    private const string DefaultOutputDirectory = "artifacts";
+    private const string DefaultReportBaseName = "report";
+    private const string DefaultTraceFileName = "trace.json";
+
+    /// <summary>
+    /// Persists the report and canonical trace, which are projections of the in-memory trace.
+    /// - The default report is a self-contained HTML file; `-f markdown` produces a Markdown report instead.
+    /// - With no explicit paths, both land in <c>artifacts/</c> (report.html|report.md, trace.json).
+    /// - An explicit <c>--report</c>/<c>--trace</c> always wins and is written even under <c>--skip-output</c>.
+    /// - <c>--skip-output</c> suppresses the defaults only.
+    /// The legacy per-suite Markdown dump is gone — no report file is ever written to the suite folder.
+    /// </summary>
+    private static void WriteOutputs(RunCommandSettings settings, ExecutionTrace trace)
     {
-        var testSuites = ReadTestSuites(settings);
-        var jTestSuites = testSuites as JTestSuite[] ?? testSuites.ToArray();
-        if (jTestSuites.Length == 0)
+        var outputDir = string.IsNullOrWhiteSpace(settings.OutputDirectoryPath)
+            ? DefaultOutputDirectory
+            : settings.OutputDirectoryPath;
+
+        // A single format selector: --report-format wins for an explicit --report, else -f/--output-format.
+        var format = !string.IsNullOrWhiteSpace(settings.ReportFormat) ? settings.ReportFormat : settings.OutputFormat;
+
+        // Report: explicit --report path wins; otherwise default into the output dir unless output is skipped.
+        var reportPath = settings.ReportFile;
+        if (string.IsNullOrWhiteSpace(reportPath) && settings.SkipOutput != true)
+        {
+            var ext = IsMarkdown(format, path: null) ? ".md" : ".html";
+            reportPath = Path.Combine(outputDir, DefaultReportBaseName + ext);
+        }
+        if (!string.IsNullOrWhiteSpace(reportPath))
+        {
+            EnsureDirectory(reportPath);
+            if (IsMarkdown(format, reportPath))
+                File.WriteAllText(reportPath, new JTest.Core.Reporting.Markdown.MarkdownReportGenerator().Generate(trace));
+            else
+                new HtmlReportGenerator().Write(trace, reportPath);
+        }
+
+        // Trace: explicit --trace path wins; otherwise default into the output dir unless output is skipped.
+        var tracePath = settings.TraceFile;
+        if (string.IsNullOrWhiteSpace(tracePath) && settings.SkipOutput != true)
+            tracePath = Path.Combine(outputDir, DefaultTraceFileName);
+        if (!string.IsNullOrWhiteSpace(tracePath))
+        {
+            EnsureDirectory(tracePath);
+            File.WriteAllText(tracePath, TraceJson.Serialize(trace));
+        }
+    }
+
+    /// <summary>Markdown when the format is explicitly markdown/md, or (absent a format) the path ends in .md.</summary>
+    private static bool IsMarkdown(string? format, string? path)
+    {
+        if (!string.IsNullOrWhiteSpace(format))
+            return format.Equals("markdown", StringComparison.OrdinalIgnoreCase)
+                || format.Equals("md", StringComparison.OrdinalIgnoreCase);
+        return path is not null && path.EndsWith(".md", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static void EnsureDirectory(string filePath)
+    {
+        var dir = Path.GetDirectoryName(Path.GetFullPath(filePath));
+        if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
+    }
+
+    private async Task<IEnumerable<JTestSuiteExecutionResult>?> ExecuteRunCommand(RunCommandSettings settings, CancellationToken cancellationToken)
+    {
+        var loads = ReadTestSuites(settings);
+        if (loads.Count == 0)
         {
             Console.WriteLine(
                 $"Error: No test files found matching patterns: {string.Join(", ", settings.TestFilePatterns)}",
@@ -73,28 +160,97 @@ public class RunCommand : CommandBase<RunCommandSettings>
             return null;
         }
 
-        if (settings.ParallelTestExecutionCount > 1)
+        var loaded = loads.Where(l => l.Suite is not null).Select(l => l.Suite!).ToArray();
+
+        foreach (var failure in loads.Where(l => l.Suite is null))
         {
-            Console.WriteLine($"Running {jTestSuites.Length} test files in parallel (max concurrent: {settings.ParallelTestExecutionCount})");
-            return _testSuiteExecutor.ExecuteParallel(jTestSuites, settings.ParallelTestExecutionCount.Value);
+            Console.WriteLine($"Test file {failure.FilePath} failed to load: {failure.Error}", new Style(foreground: Color.Red));
         }
 
-        return await _testSuiteExecutor.Execute(jTestSuites);
+        var executed = Array.Empty<JTestSuiteExecutionResult>() as IEnumerable<JTestSuiteExecutionResult>;
+        if (loaded.Length > 0)
+        {
+            if (settings.ParallelTestExecutionCount > 1)
+            {
+                Console.WriteLine($"Running {loaded.Length} test files in parallel (max concurrent: {settings.ParallelTestExecutionCount})");
+                executed = _testSuiteExecutor.ExecuteParallel(loaded, settings.ParallelTestExecutionCount.Value, cancellationToken);
+            }
+            else
+            {
+                executed = await _testSuiteExecutor.Execute(loaded, cancellationToken);
+            }
+        }
+
+        return MergeInDiscoveryOrder(loads, executed);
     }
 
-    private IEnumerable<JTestSuite> ReadTestSuites(RunCommandSettings settings)
+    /// <summary>
+    /// Rebuilds the result list in discovery order, pairing each discovered file with either its
+    /// execution result or its load failure. Matching is by file path because parallel execution does
+    /// not preserve input order.
+    /// </summary>
+    private static IEnumerable<JTestSuiteExecutionResult> MergeInDiscoveryOrder(
+        IReadOnlyList<SuiteLoad> loads,
+        IEnumerable<JTestSuiteExecutionResult> executed)
+    {
+        var byPath = executed
+            .GroupBy(r => r.FilePath, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => new Queue<JTestSuiteExecutionResult>(g), StringComparer.OrdinalIgnoreCase);
+
+        var results = new List<JTestSuiteExecutionResult>(loads.Count);
+        foreach (var load in loads)
+        {
+            if (load.Suite is null)
+            {
+                // A suite that could not be loaded is captured as errored, never dropped — it fails the
+                // run AND still appears in the trace and report (FR-002).
+                results.Add(new JTestSuiteExecutionResult(load.FilePath, null, null, Array.Empty<JTestCaseResult>())
+                {
+                    ExecutionError = load.Error
+                });
+                continue;
+            }
+
+            if (byPath.TryGetValue(load.FilePath, out var queue) && queue.Count > 0)
+                results.Add(queue.Dequeue());
+        }
+
+        // Anything the executor returned that did not match a discovered path (defensive; keeps every
+        // result rather than silently losing one).
+        foreach (var leftover in byPath.Values.SelectMany(q => q))
+            results.Add(leftover);
+
+        return results;
+    }
+
+    /// <summary>One discovered file: either a parsed suite, or the error that prevented parsing it.</summary>
+    private sealed record SuiteLoad(string FilePath, JTestSuite? Suite, string? Error);
+
+    /// <summary>
+    /// Reads every discovered file, isolating failures per file. A malformed definition (bad JSON, an
+    /// unknown step type or assertion operator) must not abort the whole run: the other suites still
+    /// execute and the run still produces a trace and report.
+    /// </summary>
+    private IReadOnlyList<SuiteLoad> ReadTestSuites(RunCommandSettings settings)
     {
         var testFiles = JsonFileSearcher.Search(settings.TestFilePatterns, settings.GetCategories());
 
         return testFiles.Select(filePath =>
         {
-            var json = File.ReadAllText(filePath);
-            var testSuite = JsonSerializer.Deserialize<JTestSuite>(json, _serializerOptionsCache.Options)
-                ?? throw new ArgumentException($"Test suite at path '{filePath}' is not a valid JTestSuite");
-            testSuite.FilePath = filePath;
+            try
+            {
+                var json = File.ReadAllText(filePath);
+                var testSuite = JsonSerializer.Deserialize<JTestSuite>(json, _serializerOptionsCache.Options)
+                    ?? throw new ArgumentException($"Test suite at path '{filePath}' is not a valid JTestSuite");
+                testSuite.FilePath = filePath;
 
-            return testSuite;
-        });
+                return new SuiteLoad(filePath, testSuite, null);
+            }
+            catch (Exception ex)
+            {
+                return new SuiteLoad(filePath, null, ex.Message);
+            }
+        }).ToList();
     }
 
     private void InitializeVariablesContext(RunCommandSettings settings)
@@ -102,13 +258,5 @@ public class RunCommand : CommandBase<RunCommandSettings>
         var environmentVariables = settings.GetEnvironmentVariables();
         var globalVariables = settings.GetGlobalVariables();
         _variablesContext.Initialize(environmentVariables, globalVariables);
-    }
-
-    private static string GetOutputDirectory(RunCommandSettings settings)
-    {
-        if (!string.IsNullOrWhiteSpace(settings.OutputDirectoryPath))
-            return settings.OutputDirectoryPath;
-
-        return Directory.GetCurrentDirectory();
     }
 }

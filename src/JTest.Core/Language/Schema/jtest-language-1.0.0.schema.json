@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/nexxbiz/JTest/schemas/jtest-language/1.0.0.json",
+  "title": "JTest Test Definition (v1.0.0)",
+  "description": "Authoritative schema for JTest test-definition files. Validation gates CI (jtest validate).",
+  "type": "object",
+  "required": ["version", "tests"],
+  "properties": {
+    "version": { "type": "string" },
+    "info": { "type": "object" },
+    "using": { "type": "array", "items": { "type": "string" } },
+    "env": { "type": "object" },
+    "globals": { "type": "object" },
+    "templates": true,
+    "categories": { "type": "array" },
+    "tests": { "type": "array", "items": { "$ref": "#/$defs/case" } }
+  },
+  "$defs": {
+    "case": {
+      "type": "object",
+      "required": ["name", "steps"],
+      "properties": {
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "datasets": { "type": "array" },
+        "steps": { "type": "array", "items": { "$ref": "#/$defs/step" } }
+      }
+    },
+    "assertion": {
+      "type": "object",
+      "required": ["op"],
+      "properties": {
+        "op": {
+          "type": "string",
+          "description": "Assertion operator, matched case-insensitively: equals, notequals, exists, notexists, in, contains, notcontains, startswith, endswith, match, greaterthan, greaterorequal, lessthan, lessorequal, between, length, empty, notempty, type. 'in' takes a collection as expectedValue ('one of these values'); length/empty/notempty inspect actualValue as a collection."
+        }
+      }
+    },
+    "scalarMap": {
+      "type": "object",
+      "description": "Object of name/value pairs. Values carry text, so a number or boolean is accepted and used as its textual form; objects and arrays have no unambiguous text form.",
+      "additionalProperties": { "type": ["string", "number", "boolean", "null"] }
+    },
+    "step": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": { "type": "string", "enum": ["http", "assert", "use", "for", "while", "wait"] },
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "steps": { "type": "array", "items": { "$ref": "#/$defs/step" } },
+        "assert": { "type": "array", "items": { "$ref": "#/$defs/assertion" } },
+        "save": { "type": "object" },
+        "query": { "$ref": "#/$defs/scalarMap" },
+        "headers": {
+          "description": "Request headers, as an object of name/value pairs or an array of { name, value } objects.",
+          "oneOf": [
+            { "$ref": "#/$defs/scalarMap" },
+            {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["name", "value"],
+                "properties": {
+                  "name": { "type": "string" },
+                  "value": { "type": ["string", "number", "boolean", "null"] }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "allOf": [
+        { "if": { "required": ["type"], "properties": { "type": { "const": "http" } } },
+          "then": { "required": ["method", "url"] } },
+        { "if": { "required": ["type"], "properties": { "type": { "const": "wait" } } },
+          "then": { "required": ["ms"] } },
+        { "if": { "required": ["type"], "properties": { "type": { "const": "for" } } },
+          "then": { "required": ["items", "steps"] } },
+        { "if": { "required": ["type"], "properties": { "type": { "const": "while" } } },
+          "then": { "required": ["steps", "timeoutMs", "condition"] } },
+        { "if": { "required": ["type"], "properties": { "type": { "const": "use" } } },
+          "then": { "required": ["template"] } },
+        { "if": { "required": ["type"], "properties": { "type": { "const": "assert" } } },
+          "then": { "required": ["assert"] } }
+      ]
+    }
+  }
+}

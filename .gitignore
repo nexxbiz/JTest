@@ -431,3 +431,7 @@ elsa-templates.json
 .idea/
 
 .DS_Store
+
+# Local agent config/skills (regenerable via `specify init`) and demo artifacts
+.claude/
+.jtest/

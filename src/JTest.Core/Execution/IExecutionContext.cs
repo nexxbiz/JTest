@@ -24,4 +24,11 @@ public interface IExecutionContext
     /// Gets the current test case name
     /// </summary>
     string TestCaseName { get; }
+
+    /// <summary>
+    /// The cookie jar for this execution scope. Cookies persist across the scope's HTTP steps and
+    /// are isolated from other scopes (a test case gets its own jar), independent of the HTTP
+    /// client handler's lifetime (FR-038/039).
+    /// </summary>
+    System.Net.CookieContainer Cookies { get; }
 }

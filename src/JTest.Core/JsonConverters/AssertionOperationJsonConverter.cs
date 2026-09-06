@@ -70,6 +70,17 @@ public sealed class AssertionOperationJsonConverter(IServiceProvider serviceProv
             .GetRequiredService<ITypeDescriptorRegistryProvider>()
             .AssertionTypeRegistry;
 
+        // Resolve against the registry rather than the built-in list, so operators contributed by a
+        // registered assembly are accepted too — and so an unknown one names what IS available
+        // instead of surfacing as a bare "type is not registered".
+        var available = typeRegistry.GetDescriptors();
+        if (!available.ContainsKey(operationType))
+        {
+            throw new JsonException(
+                $"Unknown assertion operator '{operationType}'. " +
+                $"Supported operators: {string.Join(", ", available.Keys.OrderBy(k => k, StringComparer.OrdinalIgnoreCase))}.");
+        }
+
         var descriptor = typeRegistry.GetDescriptor(operationType);
         var arguments = CreateArguments(doc.RootElement);
         var result = descriptor.Constructor.Invoke(arguments);

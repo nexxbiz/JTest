@@ -1,0 +1,116 @@
+name: JTest 2.0 CI
+
+on:
+  push:
+    branches: ["main"]
+    tags: ["v*"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  build-test-validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Restore
+        run: dotnet restore JTest.sln
+
+      - name: Build
+        run: dotnet build JTest.sln -c Release --no-restore
+
+      - name: Test
+        run: dotnet test JTest.sln -c Release --no-build
+
+      # jtest gates CI: validate the fixtures against the shipped schema, then run them (exit 0).
+      - name: jtest validate (schema gate)
+        run: dotnet run --project src/JTest.Cli -c Release --no-build -- validate "tests/fixtures/*.json"
+
+      - name: jtest run (report + trace)
+        run: dotnet run --project src/JTest.Cli -c Release --no-build -- run "tests/fixtures/*.json" --report artifacts/report.html --trace artifacts/trace.json --skip-output
+
+      - name: Upload report + trace
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jtest-report
+          path: artifacts/
+
+  # A PR publishes a PRERELEASE to nuget.org so reviewers can test it before merge.
+  # Base version comes from Directory.Build.props; the run number makes each preview unique/monotonic.
+  publish-preview:
+    needs: build-test-validate
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Read base version
+        id: ver
+        run: echo "base=$(grep -oPm1 '(?<=<Version>)[^<]+' Directory.Build.props)" >> "$GITHUB_OUTPUT"
+
+      - name: Build
+        run: dotnet build JTest.sln -c Release
+
+      - name: Pack prerelease (jtest tool)
+        run: |
+          VERSION="${{ steps.ver.outputs.base }}-preview.${{ github.run_number }}"
+          echo "Packing preview $VERSION"
+          # The tool bundles JTest.Core, so only the JTest.Cli tool is published.
+          dotnet pack src/JTest.Cli/JTest.Cli.csproj -c Release --no-build -p:PackageVersion=$VERSION -o artifacts
+
+      - name: Push prerelease to NuGet
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        run: |
+          if [ -z "$NUGET_API_KEY" ]; then
+            echo "NUGET_API_KEY not available (e.g. fork PR); skipping publish."
+            exit 0
+          fi
+          dotnet nuget push "artifacts/*.nupkg" --api-key "$NUGET_API_KEY" \
+            --source https://api.nuget.org/v3/index.json --skip-duplicate
+
+  # A human tag (vX.Y.Z) publishes the STABLE version (no suffix). The tag must match the source
+  # version, so a release always maps to exactly what is on main.
+  publish-release:
+    needs: build-test-validate
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Version gate (tag must equal source version)
+        id: ver
+        run: |
+          BASE=$(grep -oPm1 '(?<=<Version>)[^<]+' Directory.Build.props)
+          TAG="${GITHUB_REF_NAME#v}"
+          echo "source version: $BASE ; tag: $TAG"
+          if [ "$BASE" != "$TAG" ]; then
+            echo "::error::Git tag ($TAG) does not match source version ($BASE)."
+            exit 1
+          fi
+          echo "base=$BASE" >> "$GITHUB_OUTPUT"
+
+      - name: Build
+        run: dotnet build JTest.sln -c Release
+
+      - name: Pack stable (jtest tool)
+        run: |
+          # The tool bundles JTest.Core, so only the JTest.Cli tool is published.
+          dotnet pack src/JTest.Cli/JTest.Cli.csproj -c Release --no-build -p:PackageVersion=${{ steps.ver.outputs.base }} -o artifacts
+
+      - name: Push stable to NuGet
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        run: |
+          dotnet nuget push "artifacts/*.nupkg" --api-key "$NUGET_API_KEY" \
+            --source https://api.nuget.org/v3/index.json --skip-duplicate

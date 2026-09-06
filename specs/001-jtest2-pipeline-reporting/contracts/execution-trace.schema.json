@@ -1,0 +1,231 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/nexxbiz/JTest/schemas/execution-trace/1.0.0.json",
+  "title": "JTest Execution Trace",
+  "description": "Canonical, versioned execution trace — the single source of truth for a JTest run. Every report is a projection of this document. Draft contract for JTest 2.0.",
+  "type": "object",
+  "required": ["traceSchemaVersion", "toolVersion", "startedAt", "endedAt", "outcome", "exitCode", "counts", "suites"],
+  "additionalProperties": false,
+  "properties": {
+    "traceSchemaVersion": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
+    "toolVersion": { "type": "string", "minLength": 1 },
+    "startedAt": { "type": "string", "format": "date-time" },
+    "endedAt": { "type": "string", "format": "date-time" },
+    "durationMs": { "type": "number", "minimum": 0 },
+    "outcome": { "$ref": "#/$defs/outcome" },
+    "exitCode": { "type": "integer", "minimum": 0, "maximum": 4 },
+    "counts": { "$ref": "#/$defs/rollup" },
+    "suites": { "type": "array", "items": { "$ref": "#/$defs/suite" } },
+    "diagnostics": { "type": "array", "items": { "$ref": "#/$defs/diagnostic" } },
+    "environment": { "$ref": "#/$defs/redactedMap" },
+    "run": {
+      "type": "object",
+      "description": "Generated per-run values exposed to suites as $.run (uuid, id, timestamp, epoch, epochMs). Always recorded, so a suite that derives unique identifiers from them stays reproducible.",
+      "additionalProperties": true
+    }
+  },
+  "$defs": {
+    "outcome": {
+      "type": "string",
+      "enum": ["passed", "failed", "errored", "cancelled", "timedOut", "skipped"]
+    },
+    "nodeKind": {
+      "type": "string",
+      "enum": ["run", "suite", "case", "dataset", "step", "template", "loop", "iteration", "assertion"]
+    },
+    "rollup": {
+      "type": "object",
+      "required": ["total", "passed", "failed", "errored", "cancelled", "timedOut", "skipped"],
+      "additionalProperties": false,
+      "properties": {
+        "total": { "type": "integer", "minimum": 0 },
+        "passed": { "type": "integer", "minimum": 0 },
+        "failed": { "type": "integer", "minimum": 0 },
+        "errored": { "type": "integer", "minimum": 0 },
+        "cancelled": { "type": "integer", "minimum": 0 },
+        "timedOut": { "type": "integer", "minimum": 0 },
+        "skipped": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "timings": {
+      "type": "object",
+      "properties": {
+        "startedAt": { "type": "string", "format": "date-time" },
+        "endedAt": { "type": "string", "format": "date-time" },
+        "durationMs": { "type": "number", "minimum": 0 }
+      }
+    },
+    "diagnostic": {
+      "type": "object",
+      "required": ["severity", "message"],
+      "additionalProperties": false,
+      "properties": {
+        "severity": { "type": "string", "enum": ["error", "warning", "info"] },
+        "message": { "type": "string" },
+        "location": { "type": "string", "description": "JSON Pointer or file:line into the source definition." },
+        "exceptionType": { "type": "string" },
+        "stackTrace": { "type": "string" }
+      }
+    },
+    "redactedMap": {
+      "type": "object",
+      "description": "Key/value map whose values have already passed redaction; secret values are the mask token.",
+      "additionalProperties": { "type": ["string", "number", "boolean", "null"] }
+    },
+    "headerMap": {
+      "type": "object",
+      "description": "Case-insensitive header map; a value is a string (single-valued) or an array of strings (multi-valued, e.g. set-cookie). Cookie/Set-Cookie/Authorization values are redacted.",
+      "additionalProperties": {
+        "oneOf": [
+          { "type": "string" },
+          { "type": "array", "items": { "type": "string" } }
+        ]
+      }
+    },
+    "suite": {
+      "type": "object",
+      "required": ["id", "path", "kind", "name", "outcome", "counts", "cases"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string" },
+        "path": { "type": "string" },
+        "kind": { "const": "suite" },
+        "filePath": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "startedAt": { "type": "string", "format": "date-time" },
+        "endedAt": { "type": "string", "format": "date-time" },
+        "durationMs": { "type": "number", "minimum": 0 },
+        "outcome": { "$ref": "#/$defs/outcome" },
+        "counts": { "$ref": "#/$defs/rollup" },
+        "cases": { "type": "array", "items": { "$ref": "#/$defs/case" } },
+        "diagnostics": { "type": "array", "items": { "$ref": "#/$defs/diagnostic" } }
+      }
+    },
+    "case": {
+      "type": "object",
+      "required": ["id", "path", "kind", "name", "outcome", "counts", "datasets"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string" },
+        "path": { "type": "string" },
+        "kind": { "const": "case" },
+        "name": { "type": "string" },
+        "outcome": { "$ref": "#/$defs/outcome" },
+        "counts": { "$ref": "#/$defs/rollup" },
+        "startedAt": { "type": "string", "format": "date-time" },
+        "endedAt": { "type": "string", "format": "date-time" },
+        "durationMs": { "type": "number", "minimum": 0 },
+        "datasets": { "type": "array", "items": { "$ref": "#/$defs/dataset" } },
+        "diagnostics": { "type": "array", "items": { "$ref": "#/$defs/diagnostic" } }
+      }
+    },
+    "dataset": {
+      "type": "object",
+      "required": ["id", "path", "kind", "outcome", "counts", "steps"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string" },
+        "path": { "type": "string" },
+        "kind": { "const": "dataset" },
+        "label": { "type": "string" },
+        "parameters": { "$ref": "#/$defs/redactedMap" },
+        "outcome": { "$ref": "#/$defs/outcome" },
+        "counts": { "$ref": "#/$defs/rollup" },
+        "durationMs": { "type": "number", "minimum": 0 },
+        "steps": { "type": "array", "items": { "$ref": "#/$defs/stepNode" } },
+        "diagnostics": { "type": "array", "items": { "$ref": "#/$defs/diagnostic" } }
+      }
+    },
+    "stepNode": {
+      "type": "object",
+      "required": ["id", "path", "kind", "stepType", "ordinal", "outcome"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string" },
+        "path": { "type": "string" },
+        "kind": { "type": "string", "enum": ["step", "template", "loop"] },
+        "stepType": { "type": "string" },
+        "ordinal": { "type": "integer", "minimum": 1 },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "startedAt": { "type": "string", "format": "date-time" },
+        "endedAt": { "type": "string", "format": "date-time" },
+        "durationMs": { "type": "number", "minimum": 0 },
+        "outcome": { "$ref": "#/$defs/outcome" },
+        "http": { "$ref": "#/$defs/httpExchange" },
+        "contextChanges": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "added": { "$ref": "#/$defs/redactedMap" },
+            "modified": { "$ref": "#/$defs/redactedMap" }
+          }
+        },
+        "assertions": { "type": "array", "items": { "$ref": "#/$defs/assertion" } },
+        "children": { "type": "array", "items": { "$ref": "#/$defs/stepNode" } },
+        "iterations": { "type": "array", "items": { "$ref": "#/$defs/iteration" } },
+        "diagnostics": { "type": "array", "items": { "$ref": "#/$defs/diagnostic" } }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "kind": { "const": "loop" } } },
+          "then": { "required": ["iterations"] }
+        }
+      ]
+    },
+    "iteration": {
+      "type": "object",
+      "required": ["id", "path", "kind", "index", "outcome", "steps"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string" },
+        "path": { "type": "string" },
+        "kind": { "const": "iteration" },
+        "index": { "type": "integer", "minimum": 0 },
+        "startedAt": { "type": "string", "format": "date-time" },
+        "endedAt": { "type": "string", "format": "date-time" },
+        "durationMs": { "type": "number", "minimum": 0 },
+        "outcome": { "$ref": "#/$defs/outcome" },
+        "steps": { "type": "array", "items": { "$ref": "#/$defs/stepNode" } },
+        "diagnostics": { "type": "array", "items": { "$ref": "#/$defs/diagnostic" } }
+      }
+    },
+    "assertion": {
+      "type": "object",
+      "required": ["id", "kind", "operation", "outcome"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string" },
+        "kind": { "const": "assertion" },
+        "operation": { "type": "string" },
+        "expected": {},
+        "actual": {},
+        "subject": { "description": "The original actual expression asserted (e.g. a JSONPath), for report clarity." },
+        "description": { "type": "string", "description": "Optional human description of the check." },
+        "outcome": { "type": "string", "enum": ["passed", "failed"] },
+        "message": { "type": "string" },
+        "diagnostics": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/diagnostic" },
+          "description": "Diagnostics at this assertion's point of use, e.g. a JSONPath that matched nothing (FR-049)."
+        }
+      }
+    },
+    "httpExchange": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "method": { "type": "string" },
+        "url": { "type": "string" },
+        "requestHeaders": { "$ref": "#/$defs/headerMap" },
+        "requestBody": { "type": ["string", "null"] },
+        "statusCode": { "type": "integer", "description": "Canonical HTTP status code." },
+        "status": { "type": "integer", "description": "Alias of statusCode (retained for compatibility)." },
+        "responseHeaders": { "$ref": "#/$defs/headerMap" },
+        "responseBody": { "type": ["string", "null"] },
+        "durationMs": { "type": "number", "minimum": 0 }
+      }
+    }
+  }
+}

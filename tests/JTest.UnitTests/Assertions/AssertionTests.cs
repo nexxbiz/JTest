@@ -936,6 +936,46 @@ public sealed class AssertionTests
     }
 
     [Fact]
+    public void InAssertion_WithIntegerActual_ChecksMembership()
+    {
+        // 'in' asks whether a scalar actual is one of the expected values — asserting a status code
+        // that may legitimately vary is its central use. The actual must NOT have to be a collection.
+        var context = new TestExecutionContext();
+        context.Variables["this"] = new Dictionary<string, object?> { ["statusCode"] = 201 };
+        var expected = JsonSerializer.Deserialize<JsonElement>("[200, 201]");
+
+        var result = new InAssertion("{{$.this.statusCode}}", expected).Execute(context);
+
+        Assert.True(result.Success);
+        Assert.Empty(result.ErrorMessage);
+    }
+
+    [Fact]
+    public void InAssertion_WithIntegerActualNotInCollection_FailsOnMembership()
+    {
+        var context = new TestExecutionContext();
+        context.Variables["this"] = new Dictionary<string, object?> { ["statusCode"] = 500 };
+        var expected = JsonSerializer.Deserialize<JsonElement>("[200, 201]");
+
+        var result = new InAssertion("{{$.this.statusCode}}", expected).Execute(context);
+
+        // Fails because 500 is not a member — not because the actual was rejected as a non-collection.
+        Assert.False(result.Success);
+        Assert.DoesNotContain("expects a collection", result.ErrorMessage);
+    }
+
+    [Fact]
+    public void InAssertion_WithScalarExpected_ReportsExpectedMustBeCollection()
+    {
+        var context = new TestExecutionContext();
+
+        var result = new InAssertion("200", 200).Execute(context);
+
+        Assert.False(result.Success);
+        Assert.Contains("expects a collection as expectedValue", result.ErrorMessage);
+    }
+
+    [Fact]
     public void InAssertion_WithJsonArray_ReturnsTrue()
     {
         // Arrange

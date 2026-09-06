@@ -1,0 +1,13 @@
+{
+  "version": "1.0",
+  "info": { "name": "CI smoke suite" },
+  "tests": [
+    {
+      "name": "loop then assert",
+      "steps": [
+        { "type": "for", "items": ["a", "b", "c"], "steps": [ { "type": "wait", "ms": 1 } ] },
+        { "type": "assert", "name": "always true", "assert": [ { "op": "equals", "actualValue": "1", "expectedValue": "1" } ] }
+      ]
+    }
+  ]
+}
