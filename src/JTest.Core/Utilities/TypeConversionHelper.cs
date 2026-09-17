@@ -94,6 +94,57 @@ internal static class TypeConversionHelper
         return value is double or float or decimal or int or long or short or byte or sbyte or uint or ulong or ushort;
     }
 
+    /// <summary>
+    /// True when the value is a number, counting a JSON number as one. Values reaching an assertion
+    /// normally arrive as <see cref="JsonElement"/> — the actual from a response body, the expected
+    /// from the suite file — so a check that only recognises CLR numerics answers "not a number" for
+    /// almost every real comparison.
+    /// </summary>
+    internal static bool IsNumericValue(this object? value) =>
+        value is JsonElement { ValueKind: JsonValueKind.Number } || (value is not null && value.IsNumeric());
+
+    /// <summary>
+    /// Reads the value as an exact <see cref="decimal"/>, for sources that carry an exact decimal
+    /// value: a JSON number (parsed from its literal text) and CLR integral/decimal types.
+    /// <see cref="double"/> and <see cref="float"/> are deliberately excluded — converting them to
+    /// decimal rounds to 15 significant digits, which would make values that genuinely differ in
+    /// binary floating point compare equal.
+    /// </summary>
+    internal static bool TryGetExactDecimal(this object? value, out decimal number)
+    {
+        number = 0m;
+
+        if (value is JsonElement { ValueKind: JsonValueKind.Number } element)
+            return element.TryGetDecimal(out number);
+
+        switch (value)
+        {
+            case decimal d: number = d; return true;
+            case int or long or short or byte or sbyte or uint or ulong or ushort:
+                try { number = Convert.ToDecimal(value, CultureInfo.InvariantCulture); return true; }
+                catch (OverflowException) { return false; }
+            default:
+                return false;
+        }
+    }
+
+    /// <summary>Reads the value as a <see cref="double"/>, for numbers decimal cannot represent.</summary>
+    internal static bool TryGetDoubleValue(this object? value, out double number)
+    {
+        number = 0d;
+
+        if (value is JsonElement { ValueKind: JsonValueKind.Number } element)
+            return element.TryGetDouble(out number);
+
+        if (value is not null && value.IsNumeric())
+        {
+            try { number = Convert.ToDouble(value, CultureInfo.InvariantCulture); return true; }
+            catch (OverflowException) { return false; }
+        }
+
+        return false;
+    }
+
     internal static string ConvertToInvariantString(this object value)
     {
         return value switch
