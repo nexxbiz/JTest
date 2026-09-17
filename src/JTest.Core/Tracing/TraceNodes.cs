@@ -40,6 +40,13 @@ public sealed record ExecutionTrace
     /// if the run's actual values are part of the evidence.
     /// </summary>
     public IReadOnlyDictionary<string, object?>? Run { get; init; }
+
+    /// <summary>
+    /// Set only when this trace was produced by merging several runs (<c>jtest report</c> with more
+    /// than one <c>--trace</c>). It states what the merged root's numbers mean and lists the runs
+    /// behind them, including each one's own <c>$.run</c> and environment.
+    /// </summary>
+    public MergeInfo? Merge { get; init; }
 }
 
 public sealed record SuiteResult

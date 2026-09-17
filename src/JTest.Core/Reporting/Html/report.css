@@ -128,3 +128,39 @@ pre { background: var(--panel); border: 1px solid var(--border); border-radius: 
 .hidden { display: none !important; }
 .empty { color: var(--muted); font-style: italic; }
 .noscript { color: var(--fail-bg); }
+
+/* --- Merged runs panel -------------------------------------------------
+   A merged report's root numbers do not describe a single run, so they are
+   laid out and labelled rather than explained in a sentence. */
+.merge {
+  border: 1px solid var(--border); border-radius: 6px; background: var(--panel);
+  padding: .9rem 1rem; margin: 0 0 1rem;
+}
+.merge-head { display: flex; align-items: baseline; gap: .6rem; flex-wrap: wrap; }
+.merge h2 { font-size: 1rem; margin: 0; }
+.merge-figures { display: flex; flex-wrap: wrap; gap: 1.75rem; margin: .75rem 0 .25rem; }
+.merge-figure { display: flex; flex-direction: column; min-width: 8rem; }
+.merge-figure b { font-size: 1.3rem; font-variant-numeric: tabular-nums; line-height: 1.2; }
+.merge-figure-label { font-size: .85rem; }
+.merge-figure-hint { font-size: .75rem; color: var(--muted); }
+.merge-table { width: 100%; border-collapse: collapse; margin-top: .9rem; font-size: .875rem; }
+.merge-table th {
+  text-align: left; font-weight: 600; color: var(--muted); font-size: .75rem;
+  text-transform: uppercase; letter-spacing: .03em; padding: .3rem .6rem .3rem 0;
+  border-bottom: 1px solid var(--border);
+}
+.merge-table td { padding: .4rem .6rem .4rem 0; border-bottom: 1px solid var(--border); vertical-align: middle; }
+.merge-table tr:last-child td { border-bottom: 0; }
+.merge-table td:first-child { font-weight: 600; white-space: nowrap; }
+.merge-table .merge-src { color: var(--muted); font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .8rem; }
+.merge-gap td {
+  color: var(--muted); font-style: italic; padding: .35rem 0 .35rem 1rem;
+  border-bottom: 1px dashed var(--border); background: transparent;
+}
+.merge > details { margin-top: .6rem; }
+
+/* Which merged run a suite came from. */
+.chip {
+  font-size: .7rem; padding: .1rem .45rem; border-radius: 999px;
+  border: 1px solid var(--border); color: var(--muted); white-space: nowrap;
+}

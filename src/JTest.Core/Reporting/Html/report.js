@@ -23,6 +23,20 @@
     return el("span", { class: "dur", text: ms >= 1000 ? (ms / 1000).toFixed(2) + " s" : Math.round(ms) + " ms" });
   }
 
+  function fmtMs(ms) {
+    if (ms == null) return "—";
+    if (ms < 1000) return Math.round(ms) + " ms";
+    if (ms < 60000) return (ms / 1000).toFixed(1) + " s";
+    var m = Math.floor(ms / 60000), sec = Math.round((ms % 60000) / 1000);
+    return m + " min " + sec + " s";
+  }
+
+  function fmtClock(iso) {
+    if (!iso) return "—";
+    var d = new Date(iso);
+    return isNaN(d) ? iso : d.toLocaleString();
+  }
+
   function kv(key, value) {
     var row = el("div", { class: "kv" });
     row.appendChild(el("span", { class: "k", text: key + ": " }));
@@ -35,11 +49,38 @@
     return el("pre", { text: text });
   }
 
-  function sortFailureFirst(nodes) {
-    return (nodes || []).slice().sort(function (a, b) {
+  // "failures" surfaces the worst first; "execution" restores the order the runs actually happened
+  // in. Execution order is recoverable from the node path, whose bracketed indices are assigned at
+  // execution time — input[0]/suite[0] < input[0]/suite[1] < input[1]/suite[0] — so it survives the
+  // failure-first ordering already applied to the embedded trace.
+  var orderMode = "failures";
+
+  function pathKey(node) {
+    var out = [];
+    var re = /\[(\d+)\]/g, m;
+    var path = (node && (node.path || node.id)) || "";
+    while ((m = re.exec(path)) !== null) out.push(parseInt(m[1], 10));
+    return out;
+  }
+
+  function compareExecution(a, b) {
+    var ka = pathKey(a), kb = pathKey(b);
+    for (var i = 0; i < Math.max(ka.length, kb.length); i++) {
+      var x = ka[i] == null ? -1 : ka[i];
+      var y = kb[i] == null ? -1 : kb[i];
+      if (x !== y) return x - y;
+    }
+    return 0;
+  }
+
+  function sortNodes(nodes) {
+    var list = (nodes || []).slice();
+    if (orderMode === "execution") return list.sort(compareExecution);
+    return list.sort(function (a, b) {
       return (SEVERITY[a.outcome] || 9) - (SEVERITY[b.outcome] || 9);
     });
   }
+
 
   function searchText(parts) {
     return parts.filter(function (p) { return p != null; }).join(" ").toLowerCase();
@@ -188,7 +229,7 @@
 
   function renderIteration(it) {
     return node("iteration", "iteration " + it.index, it.outcome, it.durationMs, it.path, function (body) {
-      sortFailureFirst(it.steps).forEach(function (s) { body.appendChild(renderStep(s)); });
+      sortNodes(it.steps).forEach(function (s) { body.appendChild(renderStep(s)); });
       renderDiagnostics(body, it.diagnostics);
     });
   }
@@ -213,18 +254,104 @@
         (datasets[0].steps || []).forEach(function (s) { body.appendChild(renderStep(s)); });
         renderDiagnostics(body, datasets[0].diagnostics);
       } else {
-        sortFailureFirst(datasets).forEach(function (ds) { body.appendChild(renderDataset(ds)); });
+        sortNodes(datasets).forEach(function (ds) { body.appendChild(renderDataset(ds)); });
       }
       renderDiagnostics(body, c.diagnostics);
     });
   }
 
+  // In a merged report every node id starts with input[n]; label the suite with the run it came
+  // from, so a row is attributable without opening it.
+  var runLabels = null; // index -> label, built from trace.merge
+
+  function runLabelFor(path) {
+    if (!runLabels) return null;
+    var m = /^input\[(\d+)\]/.exec(path || "");
+    return m ? runLabels[parseInt(m[1], 10)] : null;
+  }
+
   function renderSuite(s) {
-    return node("suite", s.name || s.filePath || "suite", s.outcome, s.durationMs, s.filePath, function (body) {
-      if (s.filePath) body.appendChild(kv("file", s.filePath));
-      renderDiagnostics(body, s.diagnostics); // suite crash surfaces here
-      sortFailureFirst(s.cases).forEach(function (c) { body.appendChild(renderCase(c)); });
+    var runLabel = runLabelFor(s.path || s.id);
+    var d = node("suite", s.name || s.filePath || "suite", s.outcome, s.durationMs,
+      searchText([s.filePath, runLabel]), function (body) {
+        if (runLabel) body.appendChild(kv("run", runLabel));
+        if (s.filePath) body.appendChild(kv("file", s.filePath));
+        renderDiagnostics(body, s.diagnostics); // suite crash surfaces here
+        sortNodes(s.cases).forEach(function (c) { body.appendChild(renderCase(c)); });
+      });
+    if (runLabel) d.querySelector("summary").appendChild(el("span", { class: "chip", text: runLabel }));
+    return d;
+  }
+
+  // A merged report's root numbers do not describe one run, so they get their own panel rather than
+  // a sentence: what the time figures mean, and which runs produced the results below.
+  function renderMergePanel(merge) {
+    var wrap = el("section", { class: "merge", attrs: { "aria-label": "Merged runs" } });
+
+    var head = el("div", { class: "merge-head" });
+    head.appendChild(el("h2", { text: "Merged from " + merge.sources.length + " runs" }));
+    wrap.appendChild(head);
+
+    var figures = el("div", { class: "merge-figures" });
+    function figure(value, label, hint) {
+      var f = el("div", { class: "merge-figure" });
+      f.appendChild(el("b", { text: value }));
+      f.appendChild(el("span", { class: "merge-figure-label", text: label }));
+      if (hint) f.appendChild(el("span", { class: "merge-figure-hint", text: hint }));
+      return f;
+    }
+    figures.appendChild(figure(fmtMs(merge.testDurationMs), "spent testing", "added up across the runs"));
+    figures.appendChild(figure(fmtMs(merge.betweenRunsMs), "between runs", "restarts and waiting — not testing"));
+    figures.appendChild(figure(fmtMs(merge.elapsedMs), "start to finish", "first run started to last run ended"));
+    wrap.appendChild(figures);
+
+    var table = el("table", { class: "merge-table" });
+    var thead = el("tr");
+    ["Run", "Started", "Tests", "Testing time", "Result", "Trace file"].forEach(function (h) {
+      thead.appendChild(el("th", { text: h }));
     });
+    table.appendChild(el("thead", {}, thead));
+
+    var tbody = el("tbody");
+    merge.sources.forEach(function (src) {
+      if (src.gapBeforeMs) {
+        var gapRow = el("tr", { class: "merge-gap" });
+        var gapCell = el("td", { text: "↓ " + fmtMs(src.gapBeforeMs) + " with no tests running" });
+        gapCell.setAttribute("colspan", "6");
+        gapRow.appendChild(gapCell);
+        tbody.appendChild(gapRow);
+      }
+
+      var c = src.counts || {};
+      var row = el("tr");
+      row.appendChild(el("td", { text: "run " + (src.index + 1) }));
+      row.appendChild(el("td", { text: fmtClock(src.startedAt) }));
+      row.appendChild(el("td", { text: (c.total == null ? src.suiteCount : c.total) +
+        (c.failed ? " (" + c.failed + " failed)" : "") }));
+      row.appendChild(el("td", { text: fmtMs(src.durationMs) }));
+      row.appendChild(el("td", {}, badge(src.outcome)));
+      row.appendChild(el("td", { class: "merge-src", text: src.source }));
+      tbody.appendChild(row);
+    });
+    table.appendChild(tbody);
+    wrap.appendChild(table);
+
+    // Per-run $.run / environment: kept per source because no single set of them is the merged run's.
+    merge.sources.forEach(function (src) {
+      if (!src.run && !src.environment) return;
+      var det = el("details", { class: "node box", attrs: { "data-outcome": "passed", "data-text": "run variables " + src.source } });
+      var sum = el("summary");
+      sum.appendChild(el("span", { class: "kind", text: "variables" }));
+      sum.appendChild(el("span", { class: "label", text: "run " + (src.index + 1) + " — $.run and environment" }));
+      det.appendChild(sum);
+      var body = el("div", { class: "body" });
+      if (src.run) Object.keys(src.run).forEach(function (k) { body.appendChild(kv("$.run." + k, src.run[k])); });
+      if (src.environment) Object.keys(src.environment).forEach(function (k) { body.appendChild(kv(k, src.environment[k])); });
+      det.appendChild(body);
+      wrap.appendChild(det);
+    });
+
+    return wrap;
   }
 
   function renderSummary(trace) {
@@ -254,14 +381,27 @@
     return wrap;
   }
 
-  function buildControls(root) {
+  function buildControls(root, onReorder) {
     var controls = el("div", { class: "controls" });
     var search = el("input", { attrs: { type: "search", placeholder: "Search suites, steps, assertions…", "aria-label": "Search report" } });
     var select = el("select", { attrs: { "aria-label": "Filter by outcome" } });
     select.appendChild(el("option", { text: "All results", attrs: { value: "all" } }));
     select.appendChild(el("option", { text: "Failures only", attrs: { value: "failures" } }));
+
+    var order = el("select", { attrs: { "aria-label": "Order results" } });
+    order.appendChild(el("option", { text: "Chronological", attrs: { value: "execution" } }));
+    order.appendChild(el("option", { text: "Failures first", attrs: { value: "failures" } }));
+    order.value = orderMode;
+
     controls.appendChild(search);
     controls.appendChild(el("label", { text: "" }, select));
+    controls.appendChild(el("label", { text: "" }, order));
+
+    order.addEventListener("change", function () {
+      orderMode = order.value;
+      onReorder();
+      apply();
+    });
 
     function apply() {
       var q = search.value.trim().toLowerCase();
@@ -290,9 +430,31 @@
     try { trace = JSON.parse(raw); }
     catch (e) { app.textContent = "Failed to parse embedded trace: " + e.message; app.removeAttribute("aria-busy"); return; }
 
+    // A merged report defaults to chronological: its story is what ran, then what happened in
+    // between, then what ran next. A single run keeps failure-first.
+    if (trace.merge) {
+      orderMode = "execution";
+      runLabels = {};
+      trace.merge.sources.forEach(function (src) { runLabels[src.index] = "run " + (src.index + 1); });
+    }
+
     app.textContent = "";
     app.appendChild(renderSummary(trace));
-    app.appendChild(buildControls(app));
+    if (trace.merge) app.appendChild(renderMergePanel(trace.merge));
+
+    var results = el("section", { attrs: { id: "results", "aria-label": "Execution results" } });
+
+    function fillResults() {
+      results.textContent = "";
+      var suites = sortNodes(trace.suites);
+      if (suites.length === 0) results.appendChild(el("p", { class: "empty", text: "No suites in this run." }));
+      suites.forEach(function (s) { results.appendChild(renderSuite(s)); });
+      (trace.diagnostics || []).forEach(function (dg) {
+        results.appendChild(el("div", { class: "diag", text: "run: " + dg.message }));
+      });
+    }
+
+    app.appendChild(buildControls(app, fillResults));
 
     if (trace.environment) {
       var envNode = el("details", { class: "node box", attrs: { "data-outcome": "passed", "data-text": "variables environment globals" } });
@@ -306,13 +468,7 @@
       app.appendChild(envNode);
     }
 
-    var results = el("section", { attrs: { id: "results", "aria-label": "Execution results" } });
-    var suites = sortFailureFirst(trace.suites);
-    if (suites.length === 0) results.appendChild(el("p", { class: "empty", text: "No suites in this run." }));
-    suites.forEach(function (s) { results.appendChild(renderSuite(s)); });
-    (trace.diagnostics || []).forEach(function (dg) {
-      results.appendChild(el("div", { class: "diag", text: "run: " + dg.message }));
-    });
+    fillResults();
     app.appendChild(results);
     app.removeAttribute("aria-busy");
   }

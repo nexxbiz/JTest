@@ -15,7 +15,7 @@ public class TraceSchemaTests
         var json = TraceJson.Serialize(trace);
         using var doc = JsonDocument.Parse(json);
 
-        var schema = JsonSchema.FromText(File.ReadAllText(SchemaPath()));
+        var schema = TraceSchemaFixture.Schema;
         var results = schema.Evaluate(doc.RootElement, new EvaluationOptions { OutputFormat = OutputFormat.List });
 
         Assert.True(results.IsValid, Describe(results, json));
@@ -139,17 +139,6 @@ public class TraceSchemaTests
                 ["epochMs"] = 0L
             }
         };
-    }
-
-    private static string SchemaPath()
-    {
-        var dir = new DirectoryInfo(AppContext.BaseDirectory);
-        while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "JTest.sln")))
-            dir = dir.Parent;
-
-        Assert.NotNull(dir);
-        return Path.Combine(dir!.FullName, "specs", "001-jtest2-pipeline-reporting",
-            "contracts", "execution-trace.schema.json");
     }
 
     private static string Describe(EvaluationResults results, string json)
