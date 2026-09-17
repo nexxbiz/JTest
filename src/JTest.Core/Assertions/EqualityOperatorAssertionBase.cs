@@ -1,5 +1,4 @@
 ﻿using JTest.Core.Utilities;
-using System.Globalization;
 
 namespace JTest.Core.Assertions;
 
@@ -65,7 +64,7 @@ public abstract class EqualityOperatorAssertionBase(object? actualValue, object?
         if (actual == null && expected == null) return true;
         if (actual == null || expected == null) return false;
 
-        if (actual.IsNumeric() && expected.IsNumeric())
+        if (actual.IsNumericValue() && expected.IsNumericValue())
         {
             return CompareNumericValues(actual, expected);
         }
@@ -76,17 +75,24 @@ public abstract class EqualityOperatorAssertionBase(object? actualValue, object?
         return string.Equals(actualStr, expectedStr, StringComparison.Ordinal);
     }
   
+    /// <summary>
+    /// Compares two numbers by value, so 25 and 25.0 — the same number written two ways, which is
+    /// routine between a response body and a suite file — are equal.
+    ///
+    /// Exact decimal comparison is preferred: it keeps integers that a double cannot distinguish
+    /// (2^53 and 2^53+1) distinct, so a real difference in an id or a cent amount cannot become a
+    /// passing assertion. Values outside decimal's range, and doubles/floats — whose conversion to
+    /// decimal would round away genuine binary-floating-point differences — fall back to comparing
+    /// as doubles.
+    /// </summary>
     private static bool CompareNumericValues(object actual, object expected)
     {
-        try
-        {
-            var actualDouble = Convert.ToDouble(actual, CultureInfo.InvariantCulture);
-            var expectedDouble = Convert.ToDouble(expected, CultureInfo.InvariantCulture);
-            return Math.Abs(actualDouble - expectedDouble) < double.Epsilon;
-        }
-        catch
-        {
-            return false;
-        }
+        if (actual.TryGetExactDecimal(out var actualDecimal) && expected.TryGetExactDecimal(out var expectedDecimal))
+            return actualDecimal == expectedDecimal;
+
+        if (actual.TryGetDoubleValue(out var actualDouble) && expected.TryGetDoubleValue(out var expectedDouble))
+            return actualDouble.Equals(expectedDouble);
+
+        return false;
     }
 }

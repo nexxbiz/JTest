@@ -32,6 +32,20 @@ jobs:
       - name: jtest run (report + trace)
         run: dotnet run --project src/JTest.Cli -c Release --no-build -- run "tests/fixtures/*.json" --report artifacts/report.html --trace artifacts/trace.json --skip-output
 
+      # `jtest report` is what a consumer uses when a catalog cannot be one invocation. Exercise it
+      # against traces a real run produced, not hand-built ones: render one, then merge two.
+      - name: jtest run (second invocation, for the merge)
+        run: dotnet run --project src/JTest.Cli -c Release --no-build -- run "tests/fixtures/*.json" --trace artifacts/trace-2.json --skip-output
+
+      - name: jtest report (re-render a single trace)
+        run: dotnet run --project src/JTest.Cli -c Release --no-build -- report --trace artifacts/trace.json -o artifacts/rerendered.html
+
+      - name: jtest report (merge two runs)
+        run: dotnet run --project src/JTest.Cli -c Release --no-build -- report --trace artifacts/trace.json --trace artifacts/trace-2.json -o artifacts/merged.html --merged-trace artifacts/merged-trace.json
+
+      - name: Check the merged trace
+        run: python3 scripts/check-merged-trace.py artifacts
+
       - name: Upload report + trace
         if: always()
         uses: actions/upload-artifact@v4

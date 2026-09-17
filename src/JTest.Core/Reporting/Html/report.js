@@ -55,29 +55,39 @@
   // failure-first ordering already applied to the embedded trace.
   var orderMode = "failures";
 
-  function pathKey(node) {
-    var out = [];
-    var re = /\[(\d+)\]/g, m;
+  // A path is a sequence of "kind[index]" segments assigned at execution time. Comparing segment by
+  // segment — name first, then index NUMERICALLY — keeps suite[10] after suite[9], and still orders
+  // segments that carry no index rather than treating them all as equal.
+  function pathSegments(node) {
     var path = (node && (node.path || node.id)) || "";
-    while ((m = re.exec(path)) !== null) out.push(parseInt(m[1], 10));
-    return out;
+    return path.split("/").map(function (segment) {
+      var m = /^(.*?)\[(\d+)\]$/.exec(segment);
+      return m ? { name: m[1], index: parseInt(m[2], 10) } : { name: segment, index: -1 };
+    });
   }
 
   function compareExecution(a, b) {
-    var ka = pathKey(a), kb = pathKey(b);
-    for (var i = 0; i < Math.max(ka.length, kb.length); i++) {
-      var x = ka[i] == null ? -1 : ka[i];
-      var y = kb[i] == null ? -1 : kb[i];
-      if (x !== y) return x - y;
+    var sa = pathSegments(a), sb = pathSegments(b);
+    for (var i = 0; i < Math.max(sa.length, sb.length); i++) {
+      if (i >= sa.length) return -1;
+      if (i >= sb.length) return 1;
+      if (sa[i].name !== sb[i].name) return sa[i].name < sb[i].name ? -1 : 1;
+      if (sa[i].index !== sb[i].index) return sa[i].index - sb[i].index;
     }
     return 0;
+  }
+
+  // `SEVERITY[o] || 9` would read the most severe rank, errored === 0, as falsy and score it 9 —
+  // sorting errored BELOW passed, the exact opposite of failure-first.
+  function severityRank(outcome) {
+    return Object.prototype.hasOwnProperty.call(SEVERITY, outcome) ? SEVERITY[outcome] : 9;
   }
 
   function sortNodes(nodes) {
     var list = (nodes || []).slice();
     if (orderMode === "execution") return list.sort(compareExecution);
     return list.sort(function (a, b) {
-      return (SEVERITY[a.outcome] || 9) - (SEVERITY[b.outcome] || 9);
+      return severityRank(a.outcome) - severityRank(b.outcome);
     });
   }
 
@@ -473,6 +483,15 @@
     app.removeAttribute("aria-busy");
   }
 
+  // The ordering rules are the one piece of report behaviour with no DOM in it, and the one a
+  // merged report depends on to show runs in the order they happened. Exposing them lets the test
+  // suite drive them directly; in a browser this is an unused property on the report's own object.
+  var api = { sortNodes: sortNodes, compareExecution: compareExecution, setOrder: function (mode) { orderMode = mode; } };
+  if (typeof globalThis !== "undefined") globalThis.JTestReport = api;
+
+  // Only bootstrap when there is a document to render into, so the file can be loaded and its
+  // ordering exercised without one.
+  if (typeof document === "undefined") return;
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", main);
   else main();
 })();
