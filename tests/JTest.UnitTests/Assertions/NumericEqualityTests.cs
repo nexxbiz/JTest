@@ -17,10 +17,10 @@ public class NumericEqualityTests
     private static object? Json(string literal) => JsonDocument.Parse(literal).RootElement;
 
     /// <summary>Runs the assertion the way a suite does, through the execution context.</summary>
-    private static bool Equals(object? actual, object? expected) =>
+    private static bool IsEqual(object? actual, object? expected) =>
         new EqualsAssertion(actual, expected).Execute(new TestExecutionContext()).Success;
 
-    private static bool NotEquals(object? actual, object? expected) =>
+    private static bool IsNotEqual(object? actual, object? expected) =>
         new NotEqualsAssertion(actual, expected).Execute(new TestExecutionContext()).Success;
 
     [Theory]
@@ -34,9 +34,9 @@ public class NumericEqualityTests
     [InlineData("0.5", "5e-1")]
     public void JsonNumbers_ThatAreTheSameNumber_AreEqual(string actual, string expected)
     {
-        Assert.True(Equals(Json(actual), Json(expected)),
+        Assert.True(IsEqual(Json(actual), Json(expected)),
             $"{actual} and {expected} are the same number and must compare equal.");
-        Assert.False(NotEquals(Json(actual), Json(expected)));
+        Assert.False(IsNotEqual(Json(actual), Json(expected)));
     }
 
     [Theory]
@@ -46,8 +46,8 @@ public class NumericEqualityTests
     [InlineData("1000", "1e4")]
     public void JsonNumbers_ThatDiffer_AreNotEqual(string actual, string expected)
     {
-        Assert.False(Equals(Json(actual), Json(expected)));
-        Assert.True(NotEquals(Json(actual), Json(expected)));
+        Assert.False(IsEqual(Json(actual), Json(expected)));
+        Assert.True(IsNotEqual(Json(actual), Json(expected)));
     }
 
     [Fact]
@@ -55,16 +55,30 @@ public class NumericEqualityTests
     {
         // 2^53 and 2^53+1 are the same double. Comparing as doubles would call these equal and turn
         // a real difference — an id, a cent amount, a counter — into a passing assertion.
-        Assert.False(Equals(Json("9007199254740993"), Json("9007199254740992")));
-        Assert.True(Equals(Json("9007199254740993"), Json("9007199254740993")));
+        Assert.False(IsEqual(Json("9007199254740993"), Json("9007199254740992")));
+        Assert.True(IsEqual(Json("9007199254740993"), Json("9007199254740993")));
+    }
+
+    [Fact]
+    public void DoublesThatDifferOnlyInBinaryFloatingPoint_StayDistinct()
+    {
+        // 0.1 + 0.2 is 0.30000000000000004, not 0.3. Routing doubles through decimal would round
+        // both to 0.3 at 15 significant digits and call them equal — quietly passing an assertion
+        // about a value that is genuinely different. Doubles therefore skip the decimal path.
+        Assert.False(IsEqual(0.1d + 0.2d, 0.3d));
+        Assert.True(IsEqual(0.1d + 0.2d, 0.1d + 0.2d));
+        Assert.True(IsEqual(0.3d, 0.3d));
+
+        // Same when the comparison is against a JSON literal.
+        Assert.False(IsEqual(0.1d + 0.2d, Json("0.3")));
     }
 
     [Fact]
     public void VeryLargeNumbers_OutsideDecimalRange_StillCompare()
     {
         // Beyond decimal's range the comparison falls back to double, which is the best available.
-        Assert.True(Equals(Json("1e300"), Json("1e300")));
-        Assert.False(Equals(Json("1e300"), Json("1e301")));
+        Assert.True(IsEqual(Json("1e300"), Json("1e300")));
+        Assert.False(IsEqual(Json("1e300"), Json("1e301")));
     }
 
     [Fact]
@@ -72,11 +86,11 @@ public class NumericEqualityTests
     {
         // A value saved into the context is a CLR number; one from a body is a JsonElement. Mixing
         // the two is routine and must not depend on which side came from where.
-        Assert.True(Equals(25, Json("25.0")));
-        Assert.True(Equals(Json("25.0"), 25));
-        Assert.True(Equals(25.0d, Json("25")));
-        Assert.True(Equals(Json("25"), 25.0d));
-        Assert.False(Equals(25, Json("26")));
+        Assert.True(IsEqual(25, Json("25.0")));
+        Assert.True(IsEqual(Json("25.0"), 25));
+        Assert.True(IsEqual(25.0d, Json("25")));
+        Assert.True(IsEqual(Json("25"), 25.0d));
+        Assert.False(IsEqual(25, Json("26")));
     }
 
     [Fact]
@@ -84,21 +98,26 @@ public class NumericEqualityTests
     {
         // Only number-to-number comparison changed. A string keeps comparing as text, so a suite
         // asserting on an id like "007" is not quietly turned into a numeric 7.
-        Assert.True(Equals(Json("\"25\""), Json("\"25\"")));
-        Assert.False(Equals(Json("\"25.0\""), Json("\"25\"")));
-        Assert.False(Equals(Json("\"007\""), Json("7")));
+        Assert.True(IsEqual(Json("\"25\""), Json("\"25\"")));
+        Assert.False(IsEqual(Json("\"25.0\""), Json("\"25\"")));
+        Assert.False(IsEqual(Json("\"007\""), Json("7")));
+
+        // A string against a number compares by text — documented in language-reference.md, so it
+        // is pinned here rather than left as prose.
+        Assert.True(IsEqual(Json("\"25\""), Json("25")));
+        Assert.False(IsEqual(Json("\"25\""), Json("25.0")));
     }
 
     [Fact]
     public void NullAndBooleanComparisons_AreUnaffected()
     {
-        Assert.True(Equals(null, null));
-        Assert.False(Equals(null, Json("0")));
-        Assert.False(Equals(Json("0"), null));
-        Assert.True(Equals(Json("true"), Json("true")));
-        Assert.False(Equals(Json("true"), Json("false")));
+        Assert.True(IsEqual(null, null));
+        Assert.False(IsEqual(null, Json("0")));
+        Assert.False(IsEqual(Json("0"), null));
+        Assert.True(IsEqual(Json("true"), Json("true")));
+        Assert.False(IsEqual(Json("true"), Json("false")));
 
         // A boolean is not a number: false must not equal 0.
-        Assert.False(Equals(Json("false"), Json("0")));
+        Assert.False(IsEqual(Json("false"), Json("0")));
     }
 }

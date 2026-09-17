@@ -60,7 +60,7 @@ does not recognize, pointing at its location in the file.
 
 | `op` | Checks | `expectedValue` |
 |------|--------|-----------------|
-| `equals` / `notequals` | Value equality. | The value to compare against. |
+| `equals` / `notequals` | Value equality. Numbers compare by value; everything else by text. | The value to compare against. |
 | `exists` / `notexists` | The value is present and non-empty. | — |
 | `in` | The actual value is **one of** the expected values. | An array, e.g. `[200, 201]`. |
 | `contains` / `notcontains` | A string or collection contains the value. | The member/substring. |
@@ -72,6 +72,24 @@ does not recognize, pointing at its location in the file.
 | `length` | The length of a string or collection. | The expected length. |
 | `empty` / `notempty` | A string or collection is empty. | — |
 | `type` | The value's type: `string`, `integer`, `number`, `boolean`, `array`, `object`, `null`. | The type name. |
+
+#### How `equals` compares
+
+Two **numbers** compare by value, so the same number written two ways is equal — `25` and `25.0`,
+`25.50` and `25.5`, `1000` and `1e3`. This matters because the actual value comes from a JSON
+response body and the expected from your suite file, and neither side controls how the other spells
+a number.
+
+Comparison is exact, not approximate:
+
+- Integers that a `double` cannot tell apart stay distinct, so a difference in an id or a cent
+  amount can never become a passing assertion.
+- Values that genuinely differ in binary floating point stay distinct too: `0.1 + 0.2` does not
+  equal `0.3`. If you are asserting on a computed float, assert a rounded value, or use `between`.
+
+Anything that is not a number compares as **text**, so an id like `"007"` is not quietly turned into
+`7`, and a boolean is never equal to `0` or `1`. A string and a number compare by their text, so
+`"25"` equals `25` but not `25.0`. When a field's type matters, assert it with `type`.
 
 `in` is the "one of these values" operator, and its actual value is a **scalar** — asserting a status
 code that may legitimately vary is its central use:
