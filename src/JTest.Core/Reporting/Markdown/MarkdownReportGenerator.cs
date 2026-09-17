@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using JTest.Core.Security;
 using JTest.Core.Tracing;
@@ -25,6 +26,12 @@ public sealed class MarkdownReportGenerator
         sb.AppendLine("|------:|------:|------:|------:|------:|------:|------:|");
         sb.AppendLine($"| {c.Total} | {c.Passed} | {c.Failed} | {c.Errored} | {c.Cancelled} | {c.TimedOut} | {c.Skipped} |").AppendLine();
 
+        if (trace.Merge is not null) WriteMergeSection(sb, trace.Merge);
+
+        // Run-level diagnostics (the HTML report shows these too).
+        foreach (var diag in trace.Diagnostics ?? Enumerable.Empty<Diagnostic>())
+            sb.AppendLine($"> **{diag.Severity}** — {_values.Markdown(diag.Message)}").AppendLine();
+
         foreach (var suite in trace.Suites)
         {
             sb.AppendLine($"## {_values.Markdown(suite.Name)} — {suite.Outcome}");
@@ -42,6 +49,46 @@ public sealed class MarkdownReportGenerator
         }
 
         return sb.ToString();
+    }
+
+    /// <summary>
+    /// The merged-run section. A merged root's time figures do not describe one run, so they are
+    /// named individually rather than left for the reader to tell apart.
+    /// </summary>
+    private void WriteMergeSection(StringBuilder sb, MergeInfo merge)
+    {
+        sb.AppendLine($"## Merged from {merge.Sources.Count} runs").AppendLine();
+        sb.AppendLine($"- **{Duration(merge.TestDurationMs)}** spent testing (added up across the runs)");
+        sb.AppendLine($"- **{Duration(merge.BetweenRunsMs)}** between runs — restarts and waiting, not testing");
+        sb.AppendLine($"- **{Duration(merge.ElapsedMs)}** start to finish");
+        sb.AppendLine();
+
+        sb.AppendLine("| Run | Started | Tests | Testing time | Result | Trace file |");
+        sb.AppendLine("|-----|---------|------:|-------------:|--------|------------|");
+        foreach (var source in merge.Sources)
+        {
+            if (source.GapBeforeMs is > 0)
+                sb.AppendLine($"| | _{Duration(source.GapBeforeMs.Value)} with no tests running_ | | | | |");
+
+            var failed = source.Counts.Failed > 0 ? $" ({source.Counts.Failed} failed)" : string.Empty;
+            sb.AppendLine(
+                $"| run {source.Index + 1} | {source.StartedAt.ToUniversalTime():yyyy-MM-dd HH:mm:ss}Z | {source.Counts.Total}{failed} | " +
+                $"{Duration(source.DurationMs)} | {source.Outcome} | {_values.Markdown(source.Source)} |");
+        }
+        sb.AppendLine();
+    }
+
+    // Invariant culture: a report is an artifact read on other machines, so a decimal separator must
+    // not depend on the locale of whichever CI agent rendered it.
+    private static string Duration(double ms)
+    {
+        var c = CultureInfo.InvariantCulture;
+        return ms switch
+        {
+            < 1000 => string.Create(c, $"{Math.Round(ms)} ms"),
+            < 60_000 => string.Create(c, $"{ms / 1000:0.#} s"),
+            _ => string.Create(c, $"{Math.Floor(ms / 60_000)} min {Math.Round(ms % 60_000 / 1000)} s")
+        };
     }
 
     private void WriteStep(StringBuilder sb, StepNode step, int depth)

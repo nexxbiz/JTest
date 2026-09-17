@@ -134,4 +134,56 @@ public class HtmlReportTests
         Assert.Contains("renderBodyBox", html);
         Assert.Contains("Copy", html);
     }
+
+    // The report orders suites failure-first before embedding them, so a merged report can only
+    // offer a chronological view if the ORIGINAL order is still recoverable afterwards. It is,
+    // from the bracketed indices in each node's path — these tests pin that contract, since the
+    // client-side reordering itself is JavaScript and cannot run here.
+    [Fact]
+    public void MergedReport_EmbedsTheMergeBlock_SoThePanelHasDataToRender()
+    {
+        var html = Generate(Merged());
+        var embedded = TraceFixtures.ExtractEmbeddedTrace(html);
+
+        Assert.Contains("\"merge\"", embedded);
+        Assert.Contains("\"durationSemantics\": \"sumOfSources\"", embedded);
+        Assert.Contains("\"betweenRunsMs\"", embedded);
+        Assert.Contains("\"idPrefix\": \"input[0]\"", embedded);
+        Assert.Contains("\"idPrefix\": \"input[1]\"", embedded);
+    }
+
+    [Fact]
+    public void MergedReport_KeepsInputNamespacedPaths_SoChronologicalOrderIsRecoverable()
+    {
+        var html = Generate(Merged());
+        var embedded = TraceFixtures.ExtractEmbeddedTrace(html);
+
+        // Failure-first has reordered the suites in the embedded document...
+        var failIndex = embedded.IndexOf("failing-suite", StringComparison.Ordinal);
+        var passIndex = embedded.IndexOf("passing-suite", StringComparison.Ordinal);
+        Assert.True(failIndex < passIndex);
+
+        // ...but each suite still carries its OWN execution path, which is what the client sorts on
+        // to undo it. Asserting the strings merely appear somewhere is not enough — they also occur
+        // inside every nested case/step path, so a suite whose own path was blanked would slip by.
+        var roundTripped = TraceJson.Deserialize(embedded)!;
+        Assert.Equal(
+            new[] { "input[0]/s0", "input[0]/s1", "input[1]/s0", "input[1]/s1" },
+            roundTripped.Suites.Select(x => x.Path).OrderBy(x => x, StringComparer.Ordinal));
+        Assert.Equal(
+            roundTripped.Suites.Select(x => x.Path).OrderBy(x => x, StringComparer.Ordinal),
+            roundTripped.Suites.Select(x => x.Id).OrderBy(x => x, StringComparer.Ordinal));
+
+        // Sorting on those paths restores the order the runs happened in.
+        Assert.Equal(
+            new[] { "passing-suite", "failing-suite", "passing-suite", "failing-suite" },
+            roundTripped.Suites.OrderBy(x => x.Path, StringComparer.Ordinal).Select(x => x.Name));
+    }
+
+    /// <summary>Two runs of the same fixture, merged — the shape a consumer's split catalog produces.</summary>
+    private static ExecutionTrace Merged() => TraceMerger.Merge(
+    [
+        new TraceMergeInput("first.trace.json", TraceFixtures.Mixed()),
+        new TraceMergeInput("second.trace.json", TraceFixtures.Mixed())
+    ]);
 }

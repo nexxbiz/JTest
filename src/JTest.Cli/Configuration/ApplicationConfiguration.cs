@@ -16,6 +16,7 @@ internal static class ApplicationConfiguration
         ConfigureRunCommand(config);
         ConfigureDebugCommand(config);
         ConfigureExportCommand(config);
+        ConfigureReportCommand(config);
         ConfigureCreateCommand(config);
         ConfigureValidateCommand(config);
     }
@@ -46,6 +47,15 @@ internal static class ApplicationConfiguration
             .AddCommand<ExportCommand>(CommandNames.Export)
             .WithDescription("Export tests to other frameworks")
             .WithExample("my_api_tests.json", "postman", "-o", "C://output");
+    }
+
+    private static void ConfigureReportCommand(IConfigurator config)
+    {
+        config
+            .AddCommand<ReportCommand>(CommandNames.Report)
+            .WithDescription("Render a report from saved execution trace(s); repeat --trace to merge several runs into one report")
+            .WithExample("report", "--trace", "artifacts/trace.json", "-o", "report.html")
+            .WithExample("report", "--trace", "part1.json", "--trace", "part2.json", "-o", "merged.html", "--merged-trace", "merged.json");
     }
 
     private static void ConfigureCreateCommand(IConfigurator config)
