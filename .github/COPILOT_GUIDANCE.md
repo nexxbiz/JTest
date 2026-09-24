@@ -33,7 +33,7 @@
 - Use descriptive names that explain intent
 - Prefer longer descriptive names over short cryptic ones
 - Use consistent naming patterns across the codebase
-- Follow C# naming conventions for .NET 8 projects
+- Follow C# naming conventions for .NET 10 projects
 
 ### Code organization
 - Keep classes focused on single responsibilities
@@ -44,7 +44,7 @@
 ## Project context
 
 ### Technology stack
-- Target framework: .NET 8
+- Target framework: .NET 10
 - Primary language: C#
 - Project type: CLI tool with extensible architecture
 

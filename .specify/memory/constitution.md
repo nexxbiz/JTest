@@ -33,7 +33,7 @@ Follow-up TODOs: none. RATIFICATION_DATE set to first adoption date 2026-08-03.
 # JTest Constitution
 
 <!--
-JTest is a .NET (net8.0) tool that executes JSON-defined API/integration tests. It is
+JTest is a .NET (net10.0) tool that executes JSON-defined API/integration tests. It is
 published as a dotnet global tool (`jtest`) and runs both interactively and headless in
 CI/CD pipelines. This constitution governs JTest 2.0 — a hardening and reporting release
 that learns from confirmed defects in the 1.0 line.
