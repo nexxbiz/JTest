@@ -8,7 +8,7 @@ stages:
   - deploy
 
 variables:
-  DOTNET_VERSION: "8.0.x"
+  DOTNET_VERSION: "10.0.x"
 
 # Cache for faster builds
 cache:
@@ -25,7 +25,7 @@ before_script:
 # Build and test
 build-and-test:
   stage: build
-  image: mcr.microsoft.com/dotnet/sdk:8.0
+  image: mcr.microsoft.com/dotnet/sdk:10.0
   script:
     - dotnet restore
     - dotnet build --configuration Release --no-restore
@@ -40,7 +40,7 @@ build-and-test:
 # Package creation
 create-packages:
   stage: package
-  image: mcr.microsoft.com/dotnet/sdk:8.0
+  image: mcr.microsoft.com/dotnet/sdk:10.0
   dependencies:
     - build-and-test
   script:
@@ -53,7 +53,7 @@ create-packages:
 # Test installation
 test-installation:
   stage: test
-  image: mcr.microsoft.com/dotnet/sdk:8.0
+  image: mcr.microsoft.com/dotnet/sdk:10.0
   dependencies:
     - create-packages
   script:
@@ -76,7 +76,7 @@ docker-test:
 # Environment-specific testing
 .test-template: &test-template
   stage: test
-  image: mcr.microsoft.com/dotnet/sdk:8.0
+  image: mcr.microsoft.com/dotnet/sdk:10.0
   dependencies:
     - create-packages
   before_script:
@@ -112,7 +112,7 @@ test-production:
 # Release deployment (for tags)
 deploy-release:
   stage: deploy
-  image: mcr.microsoft.com/dotnet/sdk:8.0
+  image: mcr.microsoft.com/dotnet/sdk:10.0
   dependencies:
     - create-packages
   script:

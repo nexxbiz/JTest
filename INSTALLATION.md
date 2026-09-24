@@ -109,10 +109,10 @@ cd JTest
 dotnet build
 
 # Run directly from source
-./src/JTest.Cli/bin/Debug/net8.0/JTest --help
+./src/JTest.Cli/bin/Debug/net10.0/JTest --help
 
 # Or create an alias for convenience
-alias jtest='./src/JTest.Cli/bin/Debug/net8.0/JTest'
+alias jtest='./src/JTest.Cli/bin/Debug/net10.0/JTest'
 ```
 
 ## Docker Installation
@@ -175,7 +175,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '8.0.x'
+          dotnet-version: '10.0.x'
           
       - name: Setup JTest
         run: |

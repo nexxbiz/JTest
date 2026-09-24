@@ -22,7 +22,7 @@ jtest run "tests/**/*.json" --report artifacts/jtest-report.html --trace artifac
 ```yaml
 - uses: actions/setup-dotnet@v4
   with:
-    dotnet-version: "8.0.x"
+    dotnet-version: "10.0.x"
 - run: dotnet tool install --global JTest.Cli
 - run: jtest validate "tests/**/*.json"
 - run: jtest run "tests/**/*.json" --report artifacts/report.html --trace artifacts/trace.json

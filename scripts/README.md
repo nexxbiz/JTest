@@ -118,7 +118,7 @@ packages/
 
 ### Prerequisites
 
-- .NET 8.0 SDK
+- .NET 10.0 SDK
 - Git
 - Docker (optional, for containerized builds)
 
@@ -134,7 +134,7 @@ packages/
 2. **Development build:**
    ```bash
    dotnet build
-   ./src/JTest.Cli/bin/Debug/net8.0/JTest --help
+   ./src/JTest.Cli/bin/Debug/net10.0/JTest --help
    ```
 
 3. **Create packages:**
@@ -231,7 +231,7 @@ JTEST_TIMEOUT=300
 JTEST_OUTPUT_FORMAT=junit
 
 # Build Configuration
-DOTNET_VERSION=8.0.x
+DOTNET_VERSION=10.0.x
 BUILD_CONFIGURATION=Release
 ```
 

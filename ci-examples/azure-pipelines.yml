@@ -17,7 +17,7 @@ pr:
 
 variables:
   buildConfiguration: 'Release'
-  dotnetVersion: '8.0.x'
+  dotnetVersion: '10.0.x'
   packagesDirectory: 'packages'
 
 stages:

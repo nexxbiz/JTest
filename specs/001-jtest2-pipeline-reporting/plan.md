@@ -33,7 +33,7 @@ the HTML report is composed server-side from embedded, inlined CSS/JS templates.
 
 ## Technical Context
 
-**Language/Version**: C# 12 on .NET 8.0 (`net8.0`) — unchanged.
+**Language/Version**: C# 14 on .NET 10.0 (`net10.0`) — unchanged.
 **Primary Dependencies**: `JsonPath.Net` (json-everything) already referenced; **add
 `JsonSchema.Net`** (same ecosystem) for language-schema validation; `System.Text.Json` for the
 canonical trace; `Microsoft.Extensions.DependencyInjection`/`.Http`/`.Hosting`;
@@ -105,7 +105,7 @@ assemblies, to keep the build and packaging simple.
 
 ```text
 src/
-├── JTest.Core/                      # net8.0 library (PackageId JTest.Core)
+├── JTest.Core/                      # net10.0 library (PackageId JTest.Core)
 │   ├── Tracing/                     # NEW — canonical ExecutionTrace model + builder + JSON I/O
 │   ├── Execution/                   # REWORK — suite/case/step executors capture all outcomes; per-case session scope
 │   ├── Http/                        # NEW — IHttpClientProvider + per-scope CookieContainer, keyed header map, statusCode/status
@@ -120,7 +120,7 @@ src/
 │   ├── Security/                    # NEW/REWORK — SecurityMasker fixed (value + key match, bodies)
 │   ├── Models/ Assertions/ Variables/ Templates/ JsonConverters/ ...   # existing
 │   └── Exceptions/ Utilities/ TypeDescriptors/                          # existing
-└── JTest.Cli/                       # net8.0 global tool `jtest`
+└── JTest.Cli/                       # net10.0 global tool `jtest`
     ├── Core/                        # REWORK — reconcile the two AddHttpClient paths onto the scoped cookie provider
     └── Commands/                    # REWORK — run/validate/report exit codes; trace/HTML output
 

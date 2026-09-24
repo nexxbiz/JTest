@@ -9,7 +9,7 @@ redaction, HTTP session/contract, JSONPath resolution, and doc-example validatio
 therefore included in every story and are release-blocking.
 
 **Organization**: Tasks are grouped by user story (spec.md priorities) for independent
-implementation and testing. Target framework: C#/.NET 8.0; test framework: xUnit.
+implementation and testing. Target framework: C#/.NET 10.0; test framework: xUnit.
 
 ## Format: `[ID] [P?] [Story] Description`
 
