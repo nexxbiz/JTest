@@ -199,7 +199,7 @@ stages:
 
 api-tests:
   stage: test
-  image: mcr.microsoft.com/dotnet/sdk:8.0
+  image: mcr.microsoft.com/dotnet/sdk:10.0
   before_script:
     - git clone https://github.com/nexxbiz/JTest.git jtest-repo
     - cd jtest-repo
