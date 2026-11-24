@@ -121,6 +121,16 @@ An **empty `items` list runs zero iterations and succeeds** — it is not an err
 a "clean up whatever is left over" loop expressible, where having nothing left to do is the normal
 case. (`steps` must still be non-empty.)
 
+A `{{...}}` **`items` expression is a JSONPath node list**: the loop runs once per matched node. A
+filter that matches one node iterates once over that node (elsewhere a single match resolves to the
+value itself), and an `items` path that matches nothing runs zero iterations and records a warning
+on the step instead of failing it. A path to an array iterates the array's elements.
+
+```json
+{ "type": "for", "items": "{{$.this.body.items[?(@.artifactVersion == '1.0.0')]}}",
+  "steps": [ { "type": "wait", "ms": 1, "save": { "$.ids[]": "{{$.item.id}}" } } ] }
+```
+
 ```json
 { "type": "for", "items": ["a", "b", "c"], "steps": [ { "type": "wait", "ms": 10 } ] }
 ```
@@ -227,6 +237,7 @@ Concretely:
 - An **assertion** whose `actualValue` or `expectedValue` contains such a path fails with that path
   named, rather than comparing a blank value and failing for what looks like a data problem.
 - A **`save`** whose source matched nothing records a warning on the step.
+- A **`for` `items`** path that matched nothing runs zero iterations and records a warning on the step.
 - The `exists` and `notexists` operators are exempt — for them, matching nothing is the answer being
   tested.
 

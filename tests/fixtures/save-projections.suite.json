@@ -24,6 +24,20 @@
       }
     ],
     "none": [],
+    "artifacts": [
+      {
+        "id": "a",
+        "artifactVersion": "1.0.0"
+      },
+      {
+        "id": "b",
+        "artifactVersion": "2.0.0"
+      },
+      {
+        "id": "c",
+        "artifactVersion": "2.0.0"
+      }
+    ],
     "entries": [
       {
         "name": "Text",
@@ -137,6 +151,124 @@
               "op": "equals",
               "actualValue": "{{ $.this.state.Other }}",
               "expectedValue": "x"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "for over a filter with two matches iterates twice",
+      "steps": [
+        {
+          "type": "wait",
+          "ms": 1,
+          "save": {
+            "$.seen": []
+          }
+        },
+        {
+          "type": "for",
+          "items": "{{ $.globals.artifacts[?(@.artifactVersion == '2.0.0')] }}",
+          "steps": [
+            {
+              "type": "wait",
+              "ms": 1,
+              "save": {
+                "$.seen[]": "{{ $.item.id }}"
+              }
+            }
+          ]
+        },
+        {
+          "type": "assert",
+          "name": "iterated once per match",
+          "assert": [
+            {
+              "op": "length",
+              "actualValue": "{{ $.seen }}",
+              "expectedValue": 2
+            },
+            {
+              "op": "equals",
+              "actualValue": "{{ $.seen[0] }}",
+              "expectedValue": "b"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "for over a filter with one match iterates once",
+      "steps": [
+        {
+          "type": "wait",
+          "ms": 1,
+          "save": {
+            "$.seen": []
+          }
+        },
+        {
+          "type": "for",
+          "items": "{{ $.globals.artifacts[?(@.artifactVersion == '1.0.0')] }}",
+          "steps": [
+            {
+              "type": "wait",
+              "ms": 1,
+              "save": {
+                "$.seen[]": "{{ $.item.id }}"
+              }
+            }
+          ]
+        },
+        {
+          "type": "assert",
+          "name": "iterated once per match",
+          "assert": [
+            {
+              "op": "length",
+              "actualValue": "{{ $.seen }}",
+              "expectedValue": 1
+            },
+            {
+              "op": "equals",
+              "actualValue": "{{ $.seen[0] }}",
+              "expectedValue": "a"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "for over a filter with no match runs zero iterations",
+      "steps": [
+        {
+          "type": "wait",
+          "ms": 1,
+          "save": {
+            "$.seen": []
+          }
+        },
+        {
+          "type": "for",
+          "items": "{{ $.globals.artifacts[?(@.artifactVersion == '9.9.9')] }}",
+          "steps": [
+            {
+              "type": "wait",
+              "ms": 1,
+              "save": {
+                "$.seen[]": "{{ $.item.id }}"
+              }
+            }
+          ]
+        },
+        {
+          "type": "assert",
+          "name": "iterated once per match",
+          "assert": [
+            {
+              "op": "length",
+              "actualValue": "{{ $.seen }}",
+              "expectedValue": 0
             }
           ]
         }

@@ -21,6 +21,13 @@ security.
   a path that matched nothing records a warning). Previously the tokens were stored unresolved and
   re-resolved when the value was read, so an object saved once per `for` iteration (e.g.
   `{"id": "{{$.item.id}}"}`) held the *last* item's values for every entry.
+- **A `for` step's `items` expression is read as a JSONPath node list.** A filter such as
+  `"items": "{{$.this.body.items[?(@.artifactVersion == '1.0.0')]}}"` now iterates once per match for
+  any number of matches: a single match (which resolves to the matched value, not an array) is
+  iterated once as a one-item list, and a path that matches nothing runs zero iterations and records a
+  warning on the step instead of failing it. This applies to `items` only; everywhere else a
+  single-match filter still resolves to the value itself. A literal `items` string without tokens is
+  still invalid, and an unresolved token embedded in a larger string still fails the step.
 
 ## [2.0.0] — unreleased
 

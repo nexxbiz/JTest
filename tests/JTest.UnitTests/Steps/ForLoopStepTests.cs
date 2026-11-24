@@ -182,7 +182,8 @@ public sealed class ForLoopStepTests
 
     public static readonly IEnumerable<object[]> InvalidItemsTestMemberData =
     [
-        ["{{ $.unknownToken }}"],
+        // A `{{...}}` path that matches nothing is no longer invalid: it runs zero iterations with a
+        // warning (see ForItemsNodeListTests).
         ["invalid type"],
         [123],
         [false]

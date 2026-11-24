@@ -271,7 +271,7 @@ public sealed class StepProcessor(IAssertionProcessor assertionProcessor) : ISte
             AssertionResults = assertionResults ?? [],
             Data = stepExecutionResult.Data,
             ContextChanges = contextChanges,
-            Warnings = saveWarnings,
+            Warnings = [.. stepExecutionResult.Warnings, .. saveWarnings],
             InnerResults = stepExecutionResult.InnerProcessedResults ?? [],
             Iterations = stepExecutionResult.Iterations ?? [],
             TimedOut = stepExecutionResult.TimedOut,
