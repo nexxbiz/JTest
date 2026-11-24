@@ -273,6 +273,80 @@
           ]
         }
       ]
+    },
+    {
+      "name": "nested-token filter in a template, two matches (param default)",
+      "steps": [
+        {
+          "type": "use",
+          "template": "ids-for-version",
+          "with": {
+            "pageItems": "{{ $.globals.artifacts }}"
+          },
+          "assert": [
+            {
+              "op": "length",
+              "actualValue": "{{ $.this.ids }}",
+              "expectedValue": 2
+            },
+            {
+              "op": "equals",
+              "actualValue": "{{ $.this.ids[0] }}",
+              "expectedValue": "b"
+            },
+            {
+              "op": "equals",
+              "actualValue": "{{ $.this.ids[1] }}",
+              "expectedValue": "c"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "nested-token filter in a template, one match",
+      "steps": [
+        {
+          "type": "use",
+          "template": "ids-for-version",
+          "with": {
+            "pageItems": "{{ $.globals.artifacts }}",
+            "major": "1"
+          },
+          "assert": [
+            {
+              "op": "length",
+              "actualValue": "{{ $.this.ids }}",
+              "expectedValue": 1
+            },
+            {
+              "op": "equals",
+              "actualValue": "{{ $.this.ids[0] }}",
+              "expectedValue": "a"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "nested-token filter in a template, no match",
+      "steps": [
+        {
+          "type": "use",
+          "template": "ids-for-version",
+          "with": {
+            "pageItems": "{{ $.globals.artifacts }}",
+            "major": "9"
+          },
+          "assert": [
+            {
+              "op": "length",
+              "actualValue": "{{ $.this.ids }}",
+              "expectedValue": 0
+            }
+          ]
+        }
+      ]
     }
   ]
 }

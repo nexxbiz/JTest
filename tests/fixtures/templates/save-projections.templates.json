@@ -6,11 +6,26 @@
         "name": "project-instances",
         "description": "Projects a list into a new list shape: each item renamed and its status translated.",
         "params": {
-          "items": { "type": "array", "required": true },
-          "map": { "type": "object", "default": { "Completed": "Finished", "Suspended": "Running" } }
+          "items": {
+            "type": "array",
+            "required": true
+          },
+          "map": {
+            "type": "object",
+            "default": {
+              "Completed": "Finished",
+              "Suspended": "Running"
+            }
+          }
         },
         "steps": [
-          { "type": "wait", "ms": 1, "save": { "$.out": [] } },
+          {
+            "type": "wait",
+            "ms": 1,
+            "save": {
+              "$.out": []
+            }
+          },
           {
             "type": "for",
             "items": "{{ $.items }}",
@@ -18,25 +33,86 @@
               {
                 "type": "wait",
                 "ms": 1,
-                "save": { "$.out[]": { "id": "{{ $.item.id }}", "status": "{{ $.map['{{ $.item.s }}'] }}" } }
+                "save": {
+                  "$.out[]": {
+                    "id": "{{ $.item.id }}",
+                    "status": "{{ $.map['{{ $.item.s }}'] }}"
+                  }
+                }
               }
             ]
           }
         ],
-        "output": { "out": "{{ $.out }}" }
+        "output": {
+          "out": "{{ $.out }}"
+        }
       },
       {
         "name": "state-by-name",
         "description": "Builds a name-keyed object from a list of {name, value} entries.",
-        "params": { "entries": { "type": "array", "required": true } },
+        "params": {
+          "entries": {
+            "type": "array",
+            "required": true
+          }
+        },
         "steps": [
           {
             "type": "for",
             "items": "{{ $.entries }}",
-            "steps": [ { "type": "wait", "ms": 1, "save": { "$.state.{{ $.item.name }}": "{{ $.item.value }}" } } ]
+            "steps": [
+              {
+                "type": "wait",
+                "ms": 1,
+                "save": {
+                  "$.state.{{ $.item.name }}": "{{ $.item.value }}"
+                }
+              }
+            ]
           }
         ],
-        "output": { "state": "{{ $.state }}" }
+        "output": {
+          "state": "{{ $.state }}"
+        }
+      },
+      {
+        "name": "ids-for-version",
+        "description": "Filters a list by a version built from a parameter (nested token) and collects the ids.",
+        "params": {
+          "pageItems": {
+            "type": "array",
+            "required": true
+          },
+          "major": {
+            "type": "string",
+            "default": "2"
+          }
+        },
+        "steps": [
+          {
+            "type": "wait",
+            "ms": 1,
+            "save": {
+              "$.ids": []
+            }
+          },
+          {
+            "type": "for",
+            "items": "{{ $.pageItems[?(@.artifactVersion == '{{ $.major }}.0.0')] }}",
+            "steps": [
+              {
+                "type": "wait",
+                "ms": 1,
+                "save": {
+                  "$.ids[]": "{{ $.item.id }}"
+                }
+              }
+            ]
+          }
+        ],
+        "output": {
+          "ids": "{{ $.ids }}"
+        }
       }
     ]
   }

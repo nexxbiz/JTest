@@ -115,6 +115,8 @@ public sealed class ForLoopStep(IStepProcessor stepProcessor, ForLoopStepConfigu
             return Configuration.Items.ConvertToArray(context).ToArray();
         }
 
+        expression = ResolveInnerTokens(expression, context);
+
         var resolved = VariableInterpolator.ResolveVariableTokens(expression, context, out var unresolvedPaths);
         if (unresolvedPaths.Count > 0)
         {
@@ -133,6 +135,53 @@ public sealed class ForLoopStep(IStepProcessor stepProcessor, ForLoopStepConfigu
             IEnumerable<object> list => list.ToArray(),
             _ => [resolved!]
         };
+    }
+
+    /// <summary>
+    /// For an expression that is one enclosing token with tokens nested inside it, e.g.
+    /// <c>{{ $.items[?(@.v == '{{ $.v }}')] }}</c>, resolves the inner tokens first so the outer
+    /// path is then evaluated as a single token (a node list). Without this the interpolator
+    /// treats the input as a multi-token string and the matches are flattened to text. A nested
+    /// token that matched nothing fails the step, as in any other step field (FR-061).
+    /// </summary>
+    private static string ResolveInnerTokens(string expression, IExecutionContext context)
+    {
+        var trimmed = expression.Trim();
+        if (!trimmed.StartsWith("{{", StringComparison.Ordinal) || !trimmed.EndsWith("}}", StringComparison.Ordinal))
+        {
+            return expression;
+        }
+
+        var inner = trimmed[2..^2];
+        if (!inner.Contains("{{", StringComparison.Ordinal) || !EnclosesWholeExpression(trimmed))
+        {
+            return expression;
+        }
+
+        var resolvedInner = VariableInterpolator.ResolveVariableTokens(inner, context, out var unresolvedPaths);
+        if (unresolvedPaths.Count > 0)
+        {
+            throw new UnresolvedTokenException(expression, unresolvedPaths);
+        }
+
+        return $"{{{{{resolvedInner}}}}}";
+    }
+
+    /// <summary>True when the opening <c>{{</c> of <paramref name="token"/> is closed by its final <c>}}</c>.</summary>
+    private static bool EnclosesWholeExpression(string token)
+    {
+        var depth = 0;
+        for (var i = 0; i < token.Length - 1; i++)
+        {
+            if (token[i] == '{' && token[i + 1] == '{') { depth++; i++; }
+            else if (token[i] == '}' && token[i + 1] == '}')
+            {
+                depth--; i++;
+                if (depth == 0) return i == token.Length - 1;
+            }
+        }
+
+        return false;
     }
 
     async Task<StepProcessedResult> ExecuteStep(IStep step, IExecutionContext context, CancellationToken cancellationToken)

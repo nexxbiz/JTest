@@ -28,6 +28,9 @@ security.
   warning on the step instead of failing it. This applies to `items` only; everywhere else a
   single-match filter still resolves to the value itself. A literal `items` string without tokens is
   still invalid, and an unresolved token embedded in a larger string still fails the step.
+  Tokens nested in the expression (e.g. `[?(@.artifactVersion == '{{$.v}}.0.0')]`) are resolved
+  first, and the outer path is then evaluated as a node list; a nested token that matches nothing
+  fails the step.
 
 ## [2.0.0] — unreleased
 

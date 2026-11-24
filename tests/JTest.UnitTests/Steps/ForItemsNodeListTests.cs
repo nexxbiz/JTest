@@ -114,4 +114,29 @@ public class ForItemsNodeListTests
         await Assert.ThrowsAsync<Core.Exceptions.StepConfigurationValidationException>(
             () => RunFor("prefix-{{ $.unknownToken }}", context));
     }
+
+    [Theory]
+    [InlineData("2", new[] { "b", "c" })]
+    [InlineData("1", new[] { "a" })]
+    [InlineData("9", new string[0])]
+    public async Task FilterWithNestedToken_HasTheSameNodeListSemantics(string major, string[] expected)
+    {
+        var context = ContextWithItems();
+        context.Variables["major"] = major;
+
+        var result = await RunFor("{{ $.this.body.items[?(@.artifactVersion == '{{ $.major }}.0.0')] }}", context);
+
+        Assert.True(result.Success, result.ErrorMessage);
+        Assert.Equal(expected, Seen(context).Cast<string>().ToArray());
+        Assert.Equal(expected.Length == 0 ? 1 : 0, result.Warnings.Count);
+    }
+
+    [Fact]
+    public async Task FilterWithNestedToken_WhenInnerTokenMatchesNothing_Fails()
+    {
+        var context = ContextWithItems();
+
+        await Assert.ThrowsAsync<Core.Exceptions.StepConfigurationValidationException>(
+            () => RunFor("{{ $.this.body.items[?(@.artifactVersion == '{{ $.missing }}')] }}", context));
+    }
 }
