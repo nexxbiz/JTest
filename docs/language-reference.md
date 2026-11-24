@@ -251,6 +251,25 @@ a **target path** to a **source expression**:
 
 Later steps can then use `{{$.ctx.token}}`.
 
+**Target paths.** `$.name` saves a top-level variable; `$.scope.key` saves `key` inside the object
+`scope` (created when absent). `{{...}}` tokens in a target are resolved first, so
+`"$.state.{{$.item.name}}": "{{$.item.value}}"` inside a `for` builds a name-keyed object.
+
+**Appending.** A target whose last segment ends in `[]` appends the value to the array at that path,
+creating the array when absent. Saving `[]` initialises an empty array. Appending to a value that is
+not an array fails the step.
+
+**Structured values.** When the source is an object or array, every `{{...}}` token nested in it is
+resolved at save time, in the current context, by the same rules as a plain string source. Together
+with appending, this projects one list shape into another:
+
+```json
+{ "type": "for", "items": "{{$.this.body.items}}", "steps": [
+  { "type": "wait", "ms": 1,
+    "save": { "$.instances[]": { "id": "{{$.item.workflowExecutionId}}",
+                                 "status": "{{$.statusMap['{{$.item.status}}']}}" } } } ] }
+```
+
 ## Datasets
 
 A case with `datasets` runs once per row; each row is available as `$.case`. Each dataset becomes its

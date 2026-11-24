@@ -1,0 +1,146 @@
+{
+  "version": "1.0",
+  "info": {
+    "name": "save projections: append target and eagerly resolved structured values"
+  },
+  "using": [
+    "templates/save-projections.templates.json"
+  ],
+  "globals": {
+    "two": [
+      {
+        "id": "a",
+        "s": "Completed"
+      },
+      {
+        "id": "b",
+        "s": "Suspended"
+      }
+    ],
+    "one": [
+      {
+        "id": "a",
+        "s": "Completed"
+      }
+    ],
+    "none": [],
+    "entries": [
+      {
+        "name": "Text",
+        "value": "hello"
+      },
+      {
+        "name": "Other",
+        "value": "x"
+      }
+    ]
+  },
+  "tests": [
+    {
+      "name": "two items are projected in order",
+      "steps": [
+        {
+          "type": "use",
+          "template": "project-instances",
+          "with": {
+            "items": "{{ $.globals.two }}"
+          },
+          "assert": [
+            {
+              "op": "length",
+              "actualValue": "{{ $.this.out }}",
+              "expectedValue": 2
+            },
+            {
+              "op": "equals",
+              "actualValue": "{{ $.this.out[0].id }}",
+              "expectedValue": "a"
+            },
+            {
+              "op": "equals",
+              "actualValue": "{{ $.this.out[0].status }}",
+              "expectedValue": "Finished"
+            },
+            {
+              "op": "equals",
+              "actualValue": "{{ $.this.out[1].id }}",
+              "expectedValue": "b"
+            },
+            {
+              "op": "equals",
+              "actualValue": "{{ $.this.out[1].status }}",
+              "expectedValue": "Running"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "one item",
+      "steps": [
+        {
+          "type": "use",
+          "template": "project-instances",
+          "with": {
+            "items": "{{ $.globals.one }}"
+          },
+          "assert": [
+            {
+              "op": "length",
+              "actualValue": "{{ $.this.out }}",
+              "expectedValue": 1
+            },
+            {
+              "op": "equals",
+              "actualValue": "{{ $.this.out[0].id }}",
+              "expectedValue": "a"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "no items yields an empty list",
+      "steps": [
+        {
+          "type": "use",
+          "template": "project-instances",
+          "with": {
+            "items": "{{ $.globals.none }}"
+          },
+          "assert": [
+            {
+              "op": "length",
+              "actualValue": "{{ $.this.out }}",
+              "expectedValue": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "name-keyed object built from a list",
+      "steps": [
+        {
+          "type": "use",
+          "template": "state-by-name",
+          "with": {
+            "entries": "{{ $.globals.entries }}"
+          },
+          "assert": [
+            {
+              "op": "equals",
+              "actualValue": "{{ $.this.state.Text }}",
+              "expectedValue": "hello"
+            },
+            {
+              "op": "equals",
+              "actualValue": "{{ $.this.state.Other }}",
+              "expectedValue": "x"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -5,6 +5,23 @@ The language is validated by an authoritative, versioned JSON Schema shipped wit
 (`jtest validate`), and breaking changes are made deliberately for correctness, clarity, or
 security.
 
+## [2.0.4] — unreleased
+
+### Language
+
+- **`save` can append to an array.** A target whose last segment ends in `[]` appends the resolved
+  value to the array at that path, creating the array when it does not exist yet:
+  `"$.instances[]": { ... }`, `"$.ctx.list[]": "..."`. Saving `"$.instances": []` initialises an empty
+  array, so a template can output an empty list. Appending to a value that is not an array fails the
+  save, naming the path. Appends inside `for`/`while` iterations and inside templates accumulate and
+  are visible in the template's `output`, like any other save.
+- **Object and array `save` values are resolved when saved.** Every `{{...}}` token nested in a
+  structured value is now resolved in the step's context at save time, by the same rules as a plain
+  string value (a whole-token string keeps the resolved value's type; an embedded token interpolates;
+  a path that matched nothing records a warning). Previously the tokens were stored unresolved and
+  re-resolved when the value was read, so an object saved once per `for` iteration (e.g.
+  `{"id": "{{$.item.id}}"}`) held the *last* item's values for every entry.
+
 ## [2.0.0] — unreleased
 
 JTest 2.0 is a hardening + reporting release. It moves JTest into CI/CD pipelines with an honest
