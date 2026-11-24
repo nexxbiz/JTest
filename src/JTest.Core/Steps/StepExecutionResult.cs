@@ -1,4 +1,4 @@
-namespace JTest.Core.Steps;
+﻿namespace JTest.Core.Steps;
 
 /// <summary>
 /// Represents the result of a single step execution
@@ -8,7 +8,8 @@ public sealed class StepExecutionResult(
     IEnumerable<StepProcessedResult>? innerProcessedResults = null,
     IEnumerable<StepIteration>? iterations = null,
     bool timedOut = false,
-    bool cancelled = false)
+    bool cancelled = false,
+    IReadOnlyList<string>? warnings = null)
 {
     public Dictionary<string, object?>? Data { get; } = data;
 
@@ -23,4 +24,8 @@ public sealed class StepExecutionResult(
 
     /// <summary>The step was cancelled (FR-006) — a distinct outcome, not a pass.</summary>
     public bool Cancelled { get; } = cancelled;
+
+    /// <summary>Non-failing diagnostics raised by the step itself (e.g. a <c>for</c> whose
+    /// <c>items</c> path matched nothing); merged into the processed result's warnings.</summary>
+    public IReadOnlyList<string> Warnings { get; } = warnings ?? [];
 }

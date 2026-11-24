@@ -1,0 +1,352 @@
+{
+  "version": "1.0",
+  "info": {
+    "name": "save projections: append target and eagerly resolved structured values"
+  },
+  "using": [
+    "templates/save-projections.templates.json"
+  ],
+  "globals": {
+    "two": [
+      {
+        "id": "a",
+        "s": "Completed"
+      },
+      {
+        "id": "b",
+        "s": "Suspended"
+      }
+    ],
+    "one": [
+      {
+        "id": "a",
+        "s": "Completed"
+      }
+    ],
+    "none": [],
+    "artifacts": [
+      {
+        "id": "a",
+        "artifactVersion": "1.0.0"
+      },
+      {
+        "id": "b",
+        "artifactVersion": "2.0.0"
+      },
+      {
+        "id": "c",
+        "artifactVersion": "2.0.0"
+      }
+    ],
+    "entries": [
+      {
+        "name": "Text",
+        "value": "hello"
+      },
+      {
+        "name": "Other",
+        "value": "x"
+      }
+    ]
+  },
+  "tests": [
+    {
+      "name": "two items are projected in order",
+      "steps": [
+        {
+          "type": "use",
+          "template": "project-instances",
+          "with": {
+            "items": "{{ $.globals.two }}"
+          },
+          "assert": [
+            {
+              "op": "length",
+              "actualValue": "{{ $.this.out }}",
+              "expectedValue": 2
+            },
+            {
+              "op": "equals",
+              "actualValue": "{{ $.this.out[0].id }}",
+              "expectedValue": "a"
+            },
+            {
+              "op": "equals",
+              "actualValue": "{{ $.this.out[0].status }}",
+              "expectedValue": "Finished"
+            },
+            {
+              "op": "equals",
+              "actualValue": "{{ $.this.out[1].id }}",
+              "expectedValue": "b"
+            },
+            {
+              "op": "equals",
+              "actualValue": "{{ $.this.out[1].status }}",
+              "expectedValue": "Running"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "one item",
+      "steps": [
+        {
+          "type": "use",
+          "template": "project-instances",
+          "with": {
+            "items": "{{ $.globals.one }}"
+          },
+          "assert": [
+            {
+              "op": "length",
+              "actualValue": "{{ $.this.out }}",
+              "expectedValue": 1
+            },
+            {
+              "op": "equals",
+              "actualValue": "{{ $.this.out[0].id }}",
+              "expectedValue": "a"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "no items yields an empty list",
+      "steps": [
+        {
+          "type": "use",
+          "template": "project-instances",
+          "with": {
+            "items": "{{ $.globals.none }}"
+          },
+          "assert": [
+            {
+              "op": "length",
+              "actualValue": "{{ $.this.out }}",
+              "expectedValue": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "name-keyed object built from a list",
+      "steps": [
+        {
+          "type": "use",
+          "template": "state-by-name",
+          "with": {
+            "entries": "{{ $.globals.entries }}"
+          },
+          "assert": [
+            {
+              "op": "equals",
+              "actualValue": "{{ $.this.state.Text }}",
+              "expectedValue": "hello"
+            },
+            {
+              "op": "equals",
+              "actualValue": "{{ $.this.state.Other }}",
+              "expectedValue": "x"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "for over a filter with two matches iterates twice",
+      "steps": [
+        {
+          "type": "wait",
+          "ms": 1,
+          "save": {
+            "$.seen": []
+          }
+        },
+        {
+          "type": "for",
+          "items": "{{ $.globals.artifacts[?(@.artifactVersion == '2.0.0')] }}",
+          "steps": [
+            {
+              "type": "wait",
+              "ms": 1,
+              "save": {
+                "$.seen[]": "{{ $.item.id }}"
+              }
+            }
+          ]
+        },
+        {
+          "type": "assert",
+          "name": "iterated once per match",
+          "assert": [
+            {
+              "op": "length",
+              "actualValue": "{{ $.seen }}",
+              "expectedValue": 2
+            },
+            {
+              "op": "equals",
+              "actualValue": "{{ $.seen[0] }}",
+              "expectedValue": "b"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "for over a filter with one match iterates once",
+      "steps": [
+        {
+          "type": "wait",
+          "ms": 1,
+          "save": {
+            "$.seen": []
+          }
+        },
+        {
+          "type": "for",
+          "items": "{{ $.globals.artifacts[?(@.artifactVersion == '1.0.0')] }}",
+          "steps": [
+            {
+              "type": "wait",
+              "ms": 1,
+              "save": {
+                "$.seen[]": "{{ $.item.id }}"
+              }
+            }
+          ]
+        },
+        {
+          "type": "assert",
+          "name": "iterated once per match",
+          "assert": [
+            {
+              "op": "length",
+              "actualValue": "{{ $.seen }}",
+              "expectedValue": 1
+            },
+            {
+              "op": "equals",
+              "actualValue": "{{ $.seen[0] }}",
+              "expectedValue": "a"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "for over a filter with no match runs zero iterations",
+      "steps": [
+        {
+          "type": "wait",
+          "ms": 1,
+          "save": {
+            "$.seen": []
+          }
+        },
+        {
+          "type": "for",
+          "items": "{{ $.globals.artifacts[?(@.artifactVersion == '9.9.9')] }}",
+          "steps": [
+            {
+              "type": "wait",
+              "ms": 1,
+              "save": {
+                "$.seen[]": "{{ $.item.id }}"
+              }
+            }
+          ]
+        },
+        {
+          "type": "assert",
+          "name": "iterated once per match",
+          "assert": [
+            {
+              "op": "length",
+              "actualValue": "{{ $.seen }}",
+              "expectedValue": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "nested-token filter in a template, two matches (param default)",
+      "steps": [
+        {
+          "type": "use",
+          "template": "ids-for-version",
+          "with": {
+            "pageItems": "{{ $.globals.artifacts }}"
+          },
+          "assert": [
+            {
+              "op": "length",
+              "actualValue": "{{ $.this.ids }}",
+              "expectedValue": 2
+            },
+            {
+              "op": "equals",
+              "actualValue": "{{ $.this.ids[0] }}",
+              "expectedValue": "b"
+            },
+            {
+              "op": "equals",
+              "actualValue": "{{ $.this.ids[1] }}",
+              "expectedValue": "c"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "nested-token filter in a template, one match",
+      "steps": [
+        {
+          "type": "use",
+          "template": "ids-for-version",
+          "with": {
+            "pageItems": "{{ $.globals.artifacts }}",
+            "major": "1"
+          },
+          "assert": [
+            {
+              "op": "length",
+              "actualValue": "{{ $.this.ids }}",
+              "expectedValue": 1
+            },
+            {
+              "op": "equals",
+              "actualValue": "{{ $.this.ids[0] }}",
+              "expectedValue": "a"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "nested-token filter in a template, no match",
+      "steps": [
+        {
+          "type": "use",
+          "template": "ids-for-version",
+          "with": {
+            "pageItems": "{{ $.globals.artifacts }}",
+            "major": "9"
+          },
+          "assert": [
+            {
+              "op": "length",
+              "actualValue": "{{ $.this.ids }}",
+              "expectedValue": 0
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

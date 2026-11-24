@@ -5,6 +5,33 @@ The language is validated by an authoritative, versioned JSON Schema shipped wit
 (`jtest validate`), and breaking changes are made deliberately for correctness, clarity, or
 security.
 
+## [2.0.4] — unreleased
+
+### Language
+
+- **`save` can append to an array.** A target whose last segment ends in `[]` appends the resolved
+  value to the array at that path, creating the array when it does not exist yet:
+  `"$.instances[]": { ... }`, `"$.ctx.list[]": "..."`. Saving `"$.instances": []` initialises an empty
+  array, so a template can output an empty list. Appending to a value that is not an array fails the
+  save, naming the path. Appends inside `for`/`while` iterations and inside templates accumulate and
+  are visible in the template's `output`, like any other save.
+- **Object and array `save` values are resolved when saved.** Every `{{...}}` token nested in a
+  structured value is now resolved in the step's context at save time, by the same rules as a plain
+  string value (a whole-token string keeps the resolved value's type; an embedded token interpolates;
+  a path that matched nothing records a warning). Previously the tokens were stored unresolved and
+  re-resolved when the value was read, so an object saved once per `for` iteration (e.g.
+  `{"id": "{{$.item.id}}"}`) held the *last* item's values for every entry.
+- **A `for` step's `items` expression is read as a JSONPath node list.** A filter such as
+  `"items": "{{$.this.body.items[?(@.artifactVersion == '1.0.0')]}}"` now iterates once per match for
+  any number of matches: a single match (which resolves to the matched value, not an array) is
+  iterated once as a one-item list, and a path that matches nothing runs zero iterations and records a
+  warning on the step instead of failing it. This applies to `items` only; everywhere else a
+  single-match filter still resolves to the value itself. A literal `items` string without tokens is
+  still invalid, and an unresolved token embedded in a larger string still fails the step.
+  Tokens nested in the expression (e.g. `[?(@.artifactVersion == '{{$.v}}.0.0')]`) are resolved
+  first, and the outer path is then evaluated as a node list; a nested token that matches nothing
+  fails the step.
+
 ## [2.0.0] — unreleased
 
 JTest 2.0 is a hardening + reporting release. It moves JTest into CI/CD pipelines with an honest

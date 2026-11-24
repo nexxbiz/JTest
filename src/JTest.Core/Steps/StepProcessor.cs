@@ -101,25 +101,30 @@ public sealed class StepProcessor(IAssertionProcessor assertionProcessor) : ISte
     }
 
     /// <summary>
-    /// Applies a save operation to the execution context
+    /// Applies a save operation to the execution context. A target whose last segment ends in
+    /// <c>[]</c> (e.g. <c>$.instances[]</c>, <c>$.ctx.list[]</c>) appends the value to the array at
+    /// that path, creating it when absent; any other target replaces the value.
     /// </summary>
     private static void ApplySaveOperation(IExecutionContext context, string targetPath, object? value)
     {
         targetPath = $"{VariableInterpolator.ResolveVariableTokens(targetPath, context)}";
 
+        var append = targetPath.EndsWith("[]", StringComparison.Ordinal);
+        var path = append ? targetPath[..^2] : targetPath;
+
         // Handle JSONPath style target paths like $.globals.token, $.case.userId, etc.
-        if (!targetPath.StartsWith("$."))
+        if (!path.StartsWith("$."))
         {
             // Simple variable name
-            context.Variables[targetPath] = value;
+            Assign(context.Variables, path);
             return;
         }
 
-        var pathParts = targetPath[2..].Split('.');
+        var pathParts = path[2..].Split('.');
         if (pathParts.Length == 1)
         {
             // Simple variable like $.token
-            context.Variables[pathParts[0]] = value;
+            Assign(context.Variables, pathParts[0]);
             return;
         }
 
@@ -135,12 +140,42 @@ public sealed class StepProcessor(IAssertionProcessor assertionProcessor) : ISte
 
         if (scopeValue is Dictionary<string, object?> scopeDict)
         {
-            scopeDict[key] = value;
+            Assign(scopeDict, key);
         }
         else
         {
             throw new InvalidOperationException($"Cannot save to '{targetPath}' - '{scope}' is not a dictionary");
         }
+
+        void Assign(IDictionary<string, object?> target, string name)
+        {
+            target[name] = append
+                ? AppendToArray(target.TryGetValue(name, out var existing) ? existing : null, value, path)
+                : value;
+        }
+    }
+
+    /// <summary>
+    /// Returns a new array holding the existing items plus <paramref name="value"/>. A new array is
+    /// built on every append (rather than mutating in place) so the saved value never aliases data it
+    /// was copied from and the step's context-change detection sees the update.
+    /// </summary>
+    private static object?[] AppendToArray(object? existing, object? value, string path)
+    {
+        IEnumerable<object?> items = existing switch
+        {
+            null => [],
+            JsonElement { ValueKind: JsonValueKind.Array } element => element.EnumerateArray().Select(e => (object?)e),
+            JsonElement { ValueKind: JsonValueKind.Null } => [],
+            string or System.Collections.IDictionary => throw NotAnArray(),
+            System.Collections.IEnumerable enumerable => enumerable.Cast<object?>(),
+            _ => throw NotAnArray()
+        };
+
+        return [.. items, value];
+
+        InvalidOperationException NotAnArray() =>
+            new($"Cannot append to '{path}' - the existing value is not an array");
     }
 
     /// <summary>
@@ -236,7 +271,7 @@ public sealed class StepProcessor(IAssertionProcessor assertionProcessor) : ISte
             AssertionResults = assertionResults ?? [],
             Data = stepExecutionResult.Data,
             ContextChanges = contextChanges,
-            Warnings = saveWarnings,
+            Warnings = [.. stepExecutionResult.Warnings, .. saveWarnings],
             InnerResults = stepExecutionResult.InnerProcessedResults ?? [],
             Iterations = stepExecutionResult.Iterations ?? [],
             TimedOut = stepExecutionResult.TimedOut,
@@ -270,78 +305,46 @@ public sealed class StepProcessor(IAssertionProcessor assertionProcessor) : ISte
 
 
     /// <summary>
-    /// Gets the save value from JSON element, handling different value types
+    /// Resolves a save value. Strings are interpolated; JSON objects and arrays are resolved eagerly,
+    /// every nested string interpolated in the current context, so a structured value saved inside a
+    /// loop captures that iteration's values (not tokens re-resolved later against the last
+    /// iteration). Every JSONPath that matched nothing is reported in <paramref name="unresolvedPaths"/>.
     /// </summary>
-    private object? GetSaveValue(JsonElement element, IExecutionContext context, out IReadOnlyList<string> unresolvedPaths)
+    private static object? GetSaveValue(JsonElement element, IExecutionContext context, out IReadOnlyList<string> unresolvedPaths)
     {
-        unresolvedPaths = [];
+        var collected = new List<string>();
+        var value = ResolveSaveValue(element, context, collected);
+        unresolvedPaths = collected;
+        return value;
+    }
 
-        if (element.ValueKind == JsonValueKind.String)
+    private static object? ResolveSaveValue(JsonElement element, IExecutionContext context, List<string> unresolved)
+    {
+        switch (element.ValueKind)
         {
-            var resolved = VariableInterpolator.ResolveVariableTokens(element.GetString() ?? "", context, out var unresolved);
-            unresolvedPaths = unresolved;
-            return resolved;
+            case JsonValueKind.String:
+                var resolved = VariableInterpolator.ResolveVariableTokens(element.GetString() ?? "", context, out var paths);
+                unresolved.AddRange(paths);
+                return resolved;
+            case JsonValueKind.Number:
+                return element.TryGetInt32(out var intValue) ? intValue : element.GetDouble();
+            case JsonValueKind.True:
+                return true;
+            case JsonValueKind.False:
+                return false;
+            case JsonValueKind.Null:
+                return null;
+            case JsonValueKind.Object:
+                var dictionary = new Dictionary<string, object?>();
+                foreach (var property in element.EnumerateObject())
+                {
+                    dictionary[property.Name] = ResolveSaveValue(property.Value, context, unresolved);
+                }
+                return dictionary;
+            case JsonValueKind.Array:
+                return element.EnumerateArray().Select(item => ResolveSaveValue(item, context, unresolved)).ToArray();
+            default:
+                return element.GetString() ?? "";
         }
-
-        return GetSaveValue(element, context);
-    }
-
-    private object? GetSaveValue(JsonElement element, IExecutionContext context)
-    {
-        return element.ValueKind switch
-        {
-            JsonValueKind.String => VariableInterpolator.ResolveVariableTokens(element.GetString() ?? "", context),
-            JsonValueKind.Number => element.TryGetInt32(out var intValue) ? intValue : element.GetDouble(),
-            JsonValueKind.True => true,
-            JsonValueKind.False => false,
-            JsonValueKind.Null => null,
-            JsonValueKind.Object => JsonElementToDictionary(element),
-            JsonValueKind.Array => JsonElementToArray(element),
-            _ => element.GetString() ?? ""
-        };
-    }
-
-    /// <summary>
-    /// Converts JSON object to dictionary
-    /// </summary>
-    private Dictionary<string, object?> JsonElementToDictionary(JsonElement element)
-    {
-        var dictionary = new Dictionary<string, object?>();
-        foreach (var property in element.EnumerateObject())
-        {
-            dictionary[property.Name] = GetValueFromJsonElement(property.Value);
-        }
-        return dictionary;
-    }
-
-    /// <summary>
-    /// Converts JSON array to object array
-    /// </summary>
-    private object?[] JsonElementToArray(JsonElement element)
-    {
-        var list = new List<object?>();
-        foreach (var item in element.EnumerateArray())
-        {
-            list.Add(GetValueFromJsonElement(item));
-        }
-        return [.. list];
-    }
-
-    /// <summary>
-    /// Gets value from JSON element without variable interpolation
-    /// </summary>
-    private object? GetValueFromJsonElement(JsonElement element)
-    {
-        return element.ValueKind switch
-        {
-            JsonValueKind.String => element.GetString() ?? "",
-            JsonValueKind.Number => element.TryGetInt32(out var intValue) ? intValue : element.GetDouble(),
-            JsonValueKind.True => true,
-            JsonValueKind.False => false,
-            JsonValueKind.Null => null,
-            JsonValueKind.Object => JsonElementToDictionary(element),
-            JsonValueKind.Array => JsonElementToArray(element),
-            _ => element.GetString() ?? ""
-        };
     }
 }
